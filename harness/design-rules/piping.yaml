@@ -1,0 +1,69 @@
+# Piping rules, company-wide (harness): apply to every CPME skid. Owned by mechanical-piping-engineer; Bob approves.
+# Where a rule applies on a project, and every project-only value, go in that project's
+# <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/, under the same rule id
+# (<project> = the project folder, job/Project-*). A job adds its own rules to each class in
+# job/design-rules/piping.yaml (PIPE-SVC-001 job_rules_by_class). A new rule is added only after Bob says which level
+# it belongs at (harness, job or project; harness/design-rules/README.md).
+meta:
+  owner: "mechanical-piping-engineer"
+  revision: 2
+  status: >-
+    Rev 2, 2026-10-27: product rules moved to the job level; the harness keeps the class framework and the
+    company-wide rules only (Bob, chat, 2026-10-27). Rev 1, 2026-10-26: PIPE-SVC-001 created (Bob, chat,
+    2026-10-26: "The rules need to be specific to the function. you are smart enough to identify and develop the
+    correct way to handle this."; designation: harness).
+
+service_classes:
+  id: PIPE-SVC-001
+  rule: >-
+    Every line in the project's line list carries exactly one service class (line-list.csv column
+    service_class). The class decides the line's material and joints and which design rules apply to it:
+    the company-wide rules listed here, plus the job's rules for that class (job/design-rules/piping.yaml
+    job_rules_by_class). A rule written for one class is never applied to a line of another class. A line
+    whose class is not yet known is `unknown`, and the class-dependent checks report it as not checked.
+  classes:
+    hygienic:
+      meaning: liquid that touches product, or a line the customer specifies as sanitary
+      material_and_joints: ASTM A270 S2 316L tube (SAN-MAT-001); tri-clamp ferrules and orbital butt welds
+      rules: [SAN-SLOPE-001, SAN-DL-001, SAN-DL-002, SAN-DRAIN-001, SAN-RA-001, SAN-WELD-001, SAN-MAT-001,
+              INST-POS-001, INST-LEAK-001, INST-SR-001, STR-PS-001, STR-PS-002, PIPE-CV-001,
+              TR-20, TR-21, TR-22]
+    utility-water:
+      meaning: a water line that does not touch product (heating or cooling loops, jackets, coils, make-up)
+      material_and_joints: per the customer spec; `unknown` until given (stainless tube or carbon steel pipe)
+      rules: >-
+        SAN-DRAIN-001 (every low point drains), PIPE-CV-001 (pump discharge check valve) and the project's
+        governing code (SAN-PIPE-001). The other SAN-* rules only where the customer spec calls for them.
+        STR-PS-001 and STR-PS-002 where the line is built in stainless tube.
+    steam:
+      meaning: steam supply to equipment
+      material_and_joints: >-
+        carbon steel pipe, ASTM A106 Gr B or A53 Gr B, Sch 40 (Sch 80 for threaded and small bore);
+        flanged or butt welded; threaded only at 2 in and below
+      rules: [SAN-PIPE-001]
+    condensate:
+      meaning: condensate from equipment and drip legs to the return
+      material_and_joints: as steam (Sch 80 is common for condensate because of wall loss)
+      rules: [SAN-PIPE-001]
+    relief-vent:
+      meaning: safety valve, thermal relief and vent discharge lines
+      material_and_joints: as the line it relieves
+      rules: [SAN-PIPE-001]
+    air:
+      meaning: compressed air or nitrogen to actuators and instruments
+      material_and_joints: per the actuator and instrument makers
+      rules: []
+  skid_wide:
+    rules: [SAN-PP-001, SAN-FRAME-001, SAN-ACC-001, LAY-FORK-001]
+    note: >-
+      These apply to the whole skid whatever the line class. SAN-PP-001 sets the 140 F hot-surface threshold
+      skid-wide; its sealed stainless-jacket method applies on hygienic lines, and a job may set the insulation
+      method for its other lines (job/design-rules/piping.yaml insulation_method).
+  basis: >-
+    Bob, chat, 2026-10-26 (rules specific to the function of each line). Sanitary rules apply where a line touches
+    product; steam and condensate are never sanitary and are carbon steel, flanged or welded, threaded only at
+    2 in and below (CPME practice; Spirax Sarco and ASME B31.1 / B31.9 practice). Designation: harness, because the
+    split by function applies to any CPME skid.
+  project_values: >-
+    per project: <project>/03_Working_Design/PID/02_Tag_Lists/line-list.csv service_class (one per line), and
+    the project's Design_Rules files for each class's scope and values

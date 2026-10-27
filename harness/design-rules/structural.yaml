@@ -1,0 +1,187 @@
+# Structural rules, company-wide (harness): pipe supports for stainless sanitary tube on any CPME skid.
+# Engineer-owned; Bob approves. These are first-pass design checks, not a certification (Gate 3).
+# Where a rule applies on a project and any project-only value go in that project's
+# <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/structural.yaml, under the same rule id
+# (<project> = the project folder, job/Project-*). A new rule is added only after Bob says which level it belongs at
+# (harness, job or project; harness/design-rules/README.md).
+#
+# SCOPE (PIPE-SVC-001, harness/design-rules/piping.yaml): STR-PS-001 and STR-PS-002 cover stainless sanitary TUBE
+# (the hygienic service class, and utility-water lines built in tube). Carbon steel steam, condensate and utility PIPE
+# has no support rule yet; supports on those lines are sized per the project's governing code (SAN-PIPE-001) and
+# recorded as an ASSUMPTION until Bob designates a rule.
+meta:
+  owner: "<project engineer>"
+  revision: 7
+  status: >-
+    Rev 7, 2026-10-26: STR-SHEET-001/002 removed and the superseded STR-PS-001 hardware records dropped; scope
+    stated as sanitary tube (Bob, chat, 2026-10-26). Values and keys of STR-PS-001 and STR-PS-002 are
+    unchanged; their basis is CPME practice.
+
+pipe_supports:
+  - id: STR-PS-001
+    rule: >-
+      A 2.0 in OD tube support is one support member: a 1 x 1 x
+      0.065 in ASTM A554 304 square tube standing straight under the tube
+      centreline, full height from the frame member or equipment top it stands
+      on to the clamp's weld base, with no post under it and no horizontal arm
+      (a horizontal reach is a frame or support member, PS-nnn). Any clamp
+      used on a support has a stainless weld base that covers the whole
+      support-tube end and extends beyond the tube on every side by at least
+      the fillet leg (weld.leg_in), so the tube top is fillet welded all round
+      to its underside on a land and that weld closes the tube end; bolt or
+      stud holes in the weld base are blind or sealed from below, and any
+      threaded mount on the weld base is sealed at its seat (an FDA elastomer
+      seal, 21 CFR 177.2600, rated at or above the line design temperature,
+      under the clamp's boss or nut; a stud plug weld is fused through the full
+      plate thickness, so no annulus is open at the plate top). The clamp
+      body or insert is rated at or above the design temperature of the line
+      it carries. Both ends of the support tube are SEAL WELDED ALL ROUND,
+      CONTINUOUS (no stitch welds, no open tube end; SAN-FRAME-001). The clamp
+      body is off while welding; heat tint is removed from both faces of the
+      weld base and it is passivated (ASTM A380 / A967), and the body goes
+      back only on a cool, rinsed, dry base. Size check: under the sizing load
+      case below the support's sway at the clamp stays within sway_limit_in
+      at the longest support on the skid; if it does not, the next tube size
+      up is used.
+    applies_to: 2.0 in OD tube
+    support_member:
+      material: ASTM A554 304 square tube
+      size_in: 1.0 x 1.0
+      wall_in: 0.065
+      length: full height, member or equipment top to the clamp weld base, no post
+      ends: seal weld all round, both ends, continuous (bottom to the member, top to the clamp weld base)
+      candidates_in: [0.75 x 0.065, 1.0 x 0.065, 1.5 x 0.065]   # smallest that meets sway_limit_in is used
+    clamp:
+      vendor: McMaster-Carr
+      part_number: 8831T38
+      description: >-
+        washdown threaded-rod-mount clamping hanger, 316 SS two-piece, FDA
+        silicone cushion (21 CFR 177.2600), 2 in ID, 3/8-16 boss, two 316
+        acorn nuts, 32 Ra exterior, concealed threads
+      mounting: inverted on its boss (McMaster load location top or bottom) on the weld base, on a 3/8-16 x 7/8 in 316 SS stud
+      bottom_plate_in: none (the weld base below is a separate plate)
+      weld_base_plate_in: 1.25 x 1.25 x 0.1875   # ASTM A240 304, laser cut, 0.391 in centre hole for the stud
+      weld_base_material: ASTM A240 304
+      stud: 3/8-16 x 7/8 in 316 SS, plug welded through the weld base from below (no open hole)
+      plate_offset_from_tube_cl_in: 1.882   # boss face = weld base top (vendor STEP, 2026-10-08)
+      top_above_tube_cl_in: 1.618           # inverted hanger (vendor STEP, 2026-10-08)
+      land_on_1in_tube_in: 0.125 each side   # = weld.leg_in, filled by the fillet, no ledge
+      temperature_f: -60 to 400     # McMaster
+      weight_capacity_lb: 600       # McMaster
+      weight_capacity: 600 lb       # McMaster
+      component: unknown            # add the vendor STEP to the project's component library (skill component-add)
+      seat_seal: >-
+        FDA EPDM sealing washer under the boss: McMaster 99186A124,
+        one piece, 21 CFR 177.2600, -50 to 300 F, for 3/8 in screw, 0.355 in ID x 0.625 in OD x 0.047..0.077 in
+      seat_seal_part_number: 99186A124
+      seat_seal_temperature_f: -50 to 300   # McMaster
+      seat_seal_thickness_in: 0.062         # as modelled (vendor STEP); catalog 0.047..0.077, compressed when fitted
+      seat_seal_component: unknown          # add the vendor STEP to the project's component library
+      stud_plug_weld: fused through the full weld base thickness from below, flush at the plate top, top-face ring 100 % visual before the seal goes on
+      plate_top_below_tube_cl_in: 1.944     # boss face 1.882 + seal 0.062; plate_offset_from_tube_cl_in stays the boss face
+    sizing_load_case:
+      side_load_lb: 5.0             # sideways at the clamp
+      support_fixity: fixed at the base, free at the top (cantilever)
+      E_psi: 28000000.0
+      sway_limit_in: 0.1            # CPME practice
+      sizing_table: the model's layout note (regenerated in every model revision)
+    weld:
+      type: fillet, all round, both ends
+      leg_in: 0.125                # not more than the support-tube wall can carry without burn-through (1/8 in on 0.065 in wall, ER308L)
+      filler: ER308L
+      seal: continuous, all round, both ends of the support tube (SAN-FRAME-001)
+    sizing_basis: >-
+      First-pass check, not a certification (Gate 3). Load per support taken as
+      50 lb: 2.0 x 0.065 in tube 1.37 lb/ft plus water 1.19 lb/ft = 2.56 lb/ft
+      over a 4 ft span (about 10 lb), one 2 in sanitary butterfly valve with
+      actuator (about 10 lb), and margin. The 1 x 1 x 0.065 in square tube meets
+      the 0.1 in sway limit at a 30 in support under the 5 lb side load; 3/4 in
+      tube does not. Allowable stress 0.6 Fy (304, Fy 30 ksi, 18 ksi), CPME practice.
+    basis: >-
+      CPME practice: square-tube supports, seal welded all round at both ends,
+      with a fillet land at the hanger pad, and clamps chosen to suit those
+      welds. Clamp: no McMaster clamp with an integral stainless weld base is
+      rated at or above 200 F without an aluminium body, so the weld base is a
+      CPME plate with a stud, carrying the inverted 8831T38 with the sealed
+      seat and fused plug weld. Sway limit 0.1 in (CPME practice). Designation:
+      harness (CPME practice). Not a 3-A or ASME BPE hygienic hanger; a
+      hygienic review of the clamp on the project is still to be done.
+
+  - id: STR-PS-002
+    rule: >-
+      Supports (STR-PS-001 hangers, or an equipment nozzle or frame member that
+      carries the tube) on 2.0 in OD tube are placed so that: (a) no span
+      between adjacent supports along the tube centreline exceeds
+      max_span_in; (b) every inline valve, check valve, strainer, instrument or
+      other inline component has a support on each side within
+      max_from_component_in of its clamp face (a component never counts as a
+      support); (c) every change of direction has a support on at least one
+      leg within max_from_elbow_in of the elbow's tangent point; (d) every
+      pump suction and discharge connection has a support within
+      max_from_pump_in of the pump's clamp face, so the pump casing does not
+      carry the pipe weight; (e) a vertical run longer than
+      vertical_guide_over_in gets one guide; (f) no hanger sits on a weld, a
+      ferrule or a clamp: the hanger centre is at least min_clear_of_joint_in
+      along the tube from any butt weld, ferrule face or clamp, so the cushion
+      bears on straight tube and every weld stays visible for inspection
+      (SAN-WELD-001).
+    applies_to: 2.0 in OD x 0.065 in wall stainless sanitary tube, water full
+    max_span_in: 84
+    max_from_component_in: 12
+    max_from_elbow_in: 24
+    max_from_pump_in: 24
+    vertical_guide_over_in: 48
+    min_clear_of_joint_in: 2.0
+    sizing_basis: >-
+      First-pass check, not a certification (Gate 3). Simply supported span,
+      316L at 200 F (E 27,000 ksi), 2.0 x 0.065 in tube (I 0.1851 in4, S
+      0.1851 in3), tube plus water 2.56 lb/ft, plus one 10.2 lb valve at mid
+      span (a 2 in sanitary butterfly valve with actuator). Governing limit:
+      sustained sag no more than 1/16 in, half the SAN-SLOPE-001 fall of
+      1/8 in/ft over one foot, so a sagging span cannot pocket a sloped line
+      (CPME practice). At 84 in: sag 0.053 in with the valve (0.028 in without);
+      end slope of the sag 0.19 times the 1/8 in/ft fall; bending stress 2.2 ksi,
+      6.5 ksi at 3 g vertical in transport (TR-18), against about 16.7 ksi basic
+      allowable for A270 316L at 200 F (ASME B31.3 Table A-1, value unverified);
+      first-mode frequency about 21 Hz; reaction at each support about 28 lb,
+      inside the 50 lb load basis of STR-PS-001. At 96 in the sag with a valve
+      is 0.085 in, over the limit. Dixon's 2 in sanitary hanger installation
+      note (support every 10 ft, each side of every valve as close as
+      possible, each change of direction) is the looser trade practice this
+      rule tightens. The 12, 24 and 48 in placement values and the 2.0 in
+      joint clearance are CPME practice set at first pass: 2.0 in covers the
+      0.775 in half length of the 1.550 in hanger cushion plus the 0.500 in
+      length of a 2 in short weld ferrule, leaving about 0.7 in for the clamp
+      band and the ferrule's weld to the tube.
+    verification: >-
+      Measured on the 3D model along each line's centreline once hangers are
+      modelled (STR-PS-001): spans, distances to component clamp faces,
+      elbows and pump faces, and hanger-to-joint clearance
+      (harness/checks/pipe_supports.py).
+    basis: >-
+      CPME practice, sized above. Designation: harness (CPME practice): the
+      spans depend only on the tube, its contents and the slope rule, not on
+      the project.
+    values_by_od_in:                 # the 2.0 in values are the top-level keys above
+      "3.0":
+        applies_to: 3.0 in OD x 0.065 in wall stainless sanitary tube, water full
+        max_span_in: 96
+        max_from_component_in: 12
+        max_from_elbow_in: 24
+        max_from_pump_in: 24
+        vertical_guide_over_in: 48
+        min_clear_of_joint_in: 2.0   # provisional: re-check against the 3 in hanger cushion and 3 in ferrule once selected
+    sizing_basis_3in: >-
+      Same method as sizing_basis (simply supported span, 316L at 200 F, E
+      27,000 ksi, sustained sag no more than 1/16 in, one 10.2 lb valve at mid
+      span), for 3.0 x 0.065 in tube: I 0.6457 in4, S 0.4304 in3, tube plus
+      water 4.88 lb/ft. Sag allows about 110 in (0.061 in with the valve at
+      110 in, 0.065 in at 112 in). The span is held to 96 in by the STR-PS-001
+      50 lb load basis: a support between two full 96 in spans carries about
+      50 lb (25 lb from each), at 108 in about 54 lb. At 96 in: sag 0.037 in
+      with the valve (0.026 in without), bending stress 1.7 ksi, 5.0 ksi at 3 g
+      vertical in transport (TR-18), first mode about 22 Hz. The 12, 24 and 48
+      in placement values are carried over from 2.0 in as CPME practice; the
+      2.0 in joint clearance is provisional until a 3 in hanger is selected.
+      First pass, not a certification (Gate 3). Designation: harness (CPME
+      practice).

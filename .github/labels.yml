@@ -1,0 +1,44 @@
+# Labels for the daily pull request. Apply with:  python harness/scripts/sync_labels.py
+# Colours are hex without '#'. Tasks are Linear issues (TR-12), not GitHub issues, so the issue-kind labels
+# (type:*) and the issue-state label (status:blocked) were removed 2026-10-26 (CPME practice). A daily PR carries the
+# role of each agent whose work it holds and the gate it advances.
+
+# Which agent role's work the PR holds
+- name: role:project-manager
+  color: "C5DEF5"
+  description: ""
+- name: role:process-engineer
+  color: "C5DEF5"
+  description: ""
+- name: role:cad-design-engineer
+  color: "C5DEF5"
+  description: ""
+- name: role:mechanical-piping-engineer
+  color: "C5DEF5"
+  description: ""
+- name: role:controls-engineer
+  color: "C5DEF5"
+  description: ""
+- name: role:electrical-engineer
+  color: "C5DEF5"
+  description: ""
+- name: role:engineering-manager
+  color: "C5DEF5"
+  description: ""
+- name: role:software-developer
+  color: "C5DEF5"
+  description: ""
+
+# Which approval gate the work feeds
+- name: gate:1
+  color: "FEF2C0"
+  description: "Gate 1 - digitized P&ID data"
+- name: gate:2
+  color: "FEF2C0"
+  description: "Gate 2 - equipment layout"
+- name: gate:3
+  color: "FEF2C0"
+  description: "Gate 3 - frame structural check and fork-lift case (TR-19, LAY-FORK-001)"
+- name: gate:4
+  color: "FEF2C0"
+  description: "Gate 4 - final model and drawing sign-off"

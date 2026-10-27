@@ -1,0 +1,46 @@
+# Layout rules, company-wide (harness): apply to every CPME skid. Engineer-owned.
+# Project values (footprint, shipping envelope, tank arrangement, lift points, tie-ins, clearances)
+# are in the project's <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml. A new rule is added only after
+# Bob says which level it belongs at (harness, job or project; harness/design-rules/README.md). <project> = the project folder, job/Project-*.
+meta:
+  owner: "<project engineer>"
+  revision: 3
+  status: >-
+    Rev 3, 2026-10-26: LAY-FORK-001 reworded to the heaviest equipment (Bob, chat, 2026-10-26).
+    lift_points is a project value. Other bases are CPME practice.
+
+maintenance_pull_space:
+  valve_actuator_removal: "removable without cutting pipe"
+
+# LAY-FORK-001: where the forks go. Designation: harness (CPME practice).
+# Project scope (the lane's frame members and entry end): <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml lift_points.
+fork_lift:
+  id: LAY-FORK-001
+  rule: >-
+    The skid is lifted by forks only (TR-19, no lift points), and the forks go
+    directly under the heaviest equipment (for example a tank): that equipment sits
+    over a clear fork lane between two full-length frame rails, entered from a skid
+    end. The frame under it is designed for the fork case.
+  basis: >-
+    CPME practice; worded for the heaviest equipment by
+    Bob, chat, 2026-10-26. TR-19 (Todd, meeting 2026-09-18): no lift points, long
+    forks go under the skid.
+
+# PIPE-CV-001: spacing of a check valve downstream of a centrifugal pump discharge.
+# Designation: harness (CPME practice); value 10 D (CPME practice). Guidance and reasoning: harness/knowledge/Design Standards.md
+# "Check valves after a pump discharge". Project scope: <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml.
+pump_discharge_check_valve:
+  id: PIPE-CV-001
+  rule: >-
+    A check valve on a pump discharge sits at least min_developed_d nominal tube
+    diameters of developed centerline pipe (tube, fittings and elbows along the
+    centerline) downstream of the pump outlet flange / clamp face. Route no longer
+    than that needs; extra length is not a benefit.
+  min_developed_d: 10          # x nominal size (tube OD or pipe NPS), e.g. 20 in for 2 in
+  measured: "developed centerline length, pump outlet face to check valve inlet face"
+  basis: >-
+    Common practice (not a code or vendor requirement): 5 to 10 pipe diameters of
+    settled flow ahead of a check valve keeps the disc out of the pump discharge
+    turbulence, which causes chatter and seat / hinge wear, most for swing checks.
+    CPME practice takes the conservative end, 10 D. A vendor installation
+    instruction that asks for more governs over this rule.

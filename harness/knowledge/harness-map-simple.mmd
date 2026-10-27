@@ -1,0 +1,44 @@
+%% CPME design harness, simplified: the main pieces and how a prompt flows. Detail in harness-map.mmd.
+%% Job = the product line and its repo (job/JOB.md says which); project = one order, job/Project-*/ (Bob, chat, 2026-10-26).
+%% Text updated 2026-10-27 (job-neutral, Engineering Harness master); harness-map-simple.png predates this text and needs re-rendering.
+flowchart TB
+  classDef person fill:#ffe6a8,stroke:#8a6d00,color:#000
+  classDef ctx fill:#e8f0ff,stroke:#2b5aa8,color:#000
+  classDef agent fill:#e6f7e6,stroke:#2e7d32,color:#000
+  classDef tool fill:#fff0e6,stroke:#c05a00,color:#000
+  classDef store fill:#f4f4f4,stroke:#555,color:#000
+  classDef ext fill:#f3e6ff,stroke:#6a1b9a,color:#000
+
+  BOB(["Bob<br/>Claude Code desktop app"]):::person
+  CTX["Instructions and memory<br/>CLAUDE.md (loads job/JOB.md), harness/knowledge/Todd Requirements.md (TR-01..TR-26)<br/>~/.claude/projects/.../memory/MEMORY.md"]:::ctx
+  MAIN["Main agent<br/>the Claude Code session in the job's repo checkout"]:::agent
+  AG["Role subagents<br/>.claude/agents/*.md (8 roles)"]:::agent
+  SK["Skills<br/>.claude/skills/ (agent-task, model tiers, github-tracking, ...), text-to-cad plugin skills"]:::tool
+  RULES["Design rules, three levels, and knowledge<br/>1 harness/design-rules/ (company), 2 job/design-rules/ (the job's product),<br/>3 job/Project-*/01_Design_Basis/05_Standards_Specifications/Design_Rules/ (project); job/knowledge/"]:::store
+  JOBF["The job<br/>job/JOB.md, job/knowledge/, job/design-rules/, job/components/, job/drive-store.yaml"]:::store
+  JOB["Project records<br/>job/Project-*/: intake, P&ID lists, registers, decisions, CAD/; Agent-to-Agent Questions.md at the repo root"]:::store
+  FILED["Filed revisions, never overwritten<br/>job/Project-*/06_Issued_Revisions/Drawings/, Models/ (+ .drive pointers)"]:::store
+  SCR["Harness scripts<br/>harness/scripts/track.py, model tiers, drive_store.py, cad-lib/revfile.py, checks/"]:::tool
+  MASTER["Engineering Harness master<br/>C:/Users/Bob/Documents/Engineering Harness<br/>harness_sync.py pull, job_new.py"]:::ext
+  GH["GitHub: the job's repo (origin in job/JOB.md)<br/>daily branch, one PR per day, CI"]:::ext
+  GD["Google Drive folder<br/>large files, via rclone"]:::ext
+  LIN["Linear<br/>agent task board"]:::ext
+
+  BOB -->|"prompt"| MAIN
+  CTX -.->|"read every turn"| MAIN
+  MAIN -->|"Agent tool"| AG
+  MAIN -->|"Skill tool"| SK
+  MAIN -->|"PowerShell"| SCR
+  MAIN -->|"MCP"| LIN
+  RULES --> AG
+  JOBF --> AG
+  AG -->|"draft and check"| JOB
+  AG -->|"handoff, NEXT line"| MAIN
+  SK --> SCR
+  JOB -->|"model_file.py, revfile.py: next letter"| FILED
+  SCR --> FILED
+  FILED -->|"drive_store.py"| GD
+  SCR -->|"track.py"| GH
+  GH -->|"review and merge"| BOB
+  MAIN -->|"handoff"| BOB
+  MASTER -->|"harness-owned files"| SCR

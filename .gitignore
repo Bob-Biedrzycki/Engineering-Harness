@@ -1,0 +1,27 @@
+# Project folders (Bob, 2026-10-26): each job/Project-*/ keeps working copies in _work/ and build output in Exports/.
+job/*/_work/
+job/*/03_Working_Design/Exports/
+# Job-level working copies (the Drive folder's local path, drive-root.txt; Bob, 2026-10-26).
+job/_work/
+harness/tools/
+__pycache__/
+*.pyc
+*.tmp
+*.bak
+~$*
+# AutoCAD lock and autosave files
+*.dwl
+*.dwl2
+*.sv$
+plot.log
+# Editor / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+.venv/
+# _work/ also holds the derived lists-viewer.xlsx (rebuild: harness/scripts/build_lists_workbook.ps1).
+# Fast builds (model_iterate.py --fast; Bob, 2026-10-10): viewing copies, not revisions; never committed or pushed.
+job/*/03_Working_Design/CAD/Fast_Builds/
+# P&ID fast edits (model-to-pid.py --fast; Bob, 2026-10-11): viewing copies, not revisions; never committed or pushed.
+job/*/03_Working_Design/PID/Fast_Edits/

@@ -1,0 +1,5 @@
+# Pinned 2026-09-22 (CPME practice); recorded in each project's 00_Project_Admin/07_Project_Controls/tooling.md.
+# Upgrade on purpose, one change at a time, and update tooling.md in the same PR.
+build123d==0.13.0
+pyyaml==6.0.3
+pandas==3.0.6

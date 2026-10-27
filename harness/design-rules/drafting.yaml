@@ -1,0 +1,170 @@
+# Drafting rules, company-wide (harness): how CPME P&IDs are labelled and how flow arrows are
+# applied. Engineer-owned. Designation: harness (CPME practice).
+# The rules are generic CPME drafting practice. They govern a brand new P&ID (meta.applies_to).
+# Values are on the printed sheet, inches (17 x 11 in sheet).
+# Not read by any script yet.
+meta:
+  owner: "<project engineer>"
+  applies_to: >-
+    A brand new P&ID. A revision of an existing P&ID (a fast edit or a filed revision) keeps the
+    discretion already applied to it and is not re-laid-out by these rules unless Bob requests or
+    asks for it. Formatting rules raise no questions; the value is taken from Bob's own edits
+    (CPME practice).
+  revision: 2
+  status: >-
+    Rev 2: label, flow-arrow and symbol-placement rules for the next brand new P&ID; no generator
+    applies them yet, and existing drawings keep their own layout. Placement is drawing formatting
+    only: where a symbol sits on the sheet, never what it connects to. Bases are CPME practice.
+
+# ---------------------------------------------------------------------------------------------
+# Labels
+# ---------------------------------------------------------------------------------------------
+label_block:
+  id: DRF-LBL-001
+  rule: >-
+    A tag label is a block: the tag in bold, then its description lines below it, at the spacing
+    below (taken from a reference pump label). A description of more than one word that would
+    crowd its neighbours goes on two lines, the last word on the second.
+  tag_gap_in: 0.08           # symbol edge to the tag's cap height
+  description_offset_in: 0.14  # tag baseline to first description baseline
+  next_line_in: 0.11         # description line to description line
+  basis: "CPME practice"
+
+flag_and_drain_labels:
+  id: DRF-LBL-002
+  rule: >-
+    A battery-limit flag or open drain at the end of a horizontal line is labelled centred under
+    the symbol (DRF-LBL-001 block). A flag at the end of a vertical line pointing up is labelled
+    beside the flag, tag over service, within the flag's height. Drains carry the service they
+    drain (for example SUPPLY DRAIN, RETURN DRAIN).
+  basis: "CPME practice"
+
+valve_and_instrument_labels:
+  id: DRF-LBL-003
+  rule: >-
+    On a horizontal line, valve tags and instrument bubbles go below the line (actuators above).
+    On a vertical line, the valve tag goes beside the valve, opposite its actuator. The line number
+    of a branch ("spool label") is centred under the tag of the valve on that branch. Instrument
+    bubbles of one run share one pitch.
+  instrument_pitch_in: 0.65
+  basis: "CPME practice"
+
+line_labels:
+  id: DRF-LBL-004
+  rule: >-
+    A line label is the line number and its service name, no size. On a horizontal run it is
+    centred over the flow arrow in the middle of its segment, above the line, clear of the
+    arrowhead. On a vertical run it is turned 90 deg, reading upward, on the left of the line,
+    centred between the arrows of that run; labels of parallel vertical runs line up. Where the
+    line number already shows under a valve on the run, the vertical label may carry the service
+    name only. A line whose number shows under a valve may go without a run label.
+  horizontal_clear_of_arrow_in: 0.05   # baseline 0.10 above the line; arrowhead half-width 0.046
+  vertical_offset_in: 0.05             # baseline left of the line
+  basis: "CPME practice"
+
+equipment_labels:
+  id: DRF-LBL-005
+  rule: >-
+    Sheet 1 shows the equipment tag only (no model number); models stay in the sheet 2 register.
+    A vessel's tag / service / size block is centred in the free space inside its symbol, clear of
+    its nozzle labels. Each nozzle is labelled at its own connection, not in a row.
+  basis: "CPME practice"
+
+# ---------------------------------------------------------------------------------------------
+# Flow arrows
+# ---------------------------------------------------------------------------------------------
+arrow_per_segment:
+  id: DRF-ARR-001
+  rule: >-
+    Every segment between two connections (tee, valve, inline instrument or fitting, equipment
+    nozzle, battery-limit flag, drain) carries one flow arrow, its body centred in the segment,
+    pointing with the flow.
+  arrow_length_in: 0.11
+  basis: "CPME practice"
+
+branch_valve_arrows:
+  id: DRF-ARR-002
+  rule: >-
+    On a branch, the segment downstream of a valve always carries an arrow. The segment upstream of
+    a valve carries one only when it is at least min_upstream_run_in long.
+  min_upstream_run_in: 0.5
+  basis: "CPME practice: an arrow on a run shorter than about 0.5 in crowds the valve symbol."
+
+arrows_around_labels:
+  id: DRF-ARR-003
+  rule: >-
+    A segment that carries a line label keeps its arrow(s) clear of the label: on a horizontal run
+    the label sits over the centred arrow (DRF-LBL-004); on a vertical run the label is flanked by
+    an arrow on each side and no arrow runs through it.
+  basis: "CPME practice"
+
+aligned_arrows:
+  id: DRF-ARR-004
+  rule: >-
+    Arrows on parallel runs line up (same x on stacked horizontal runs, same height on side-by-side
+    vertical runs) where the segments allow it.
+  basis: "CPME practice"
+
+# ---------------------------------------------------------------------------------------------
+# Symbol placement on the sheet (drawing formatting only: where a symbol sits on the drawing,
+# never what it connects to or its order along a line)
+# ---------------------------------------------------------------------------------------------
+drawing_never_reorders:
+  id: DRF-PLC-001
+  rule: >-
+    Placement moves symbols on the sheet only. The order of items along a line, and every branch
+    and join, follow the model; a change of order is a model change, not a drafting change.
+  basis: "CPME practice"
+
+station_spacing:
+  id: DRF-PLC-002
+  rule: >-
+    Items along a run are spread at an even rhythm. A row of like items (instrument bubbles, a
+    group of inline items off a pump) uses one fixed pitch; a run with nothing below it may spread
+    wider. No two items closer than min_station_pitch_in, including the first item from the start of
+    the row.
+  min_station_pitch_in: 0.44
+  row_pitch_in: 0.65          # the same value as DRF-LBL-003 instrument_pitch_in
+  basis: >-
+    CPME practice. min_station_pitch_in is the station check of the P&ID generator
+    (<project>/03_Working_Design/CAD/06_Drawings/Generators/), once the generator exists; none yet on
+    this project (<project> = the project folder, job/Project-*).
+
+nothing_stacked:
+  id: DRF-PLC-003
+  rule: >-
+    Whatever hangs below (or above) a line - instrument bubbles, a relief valve, an exchanger's
+    utility ports with their valves, flags and labels - sits under a gap between that line's items,
+    never under another item's symbol or label. Each such assembly gets its own gap; where the
+    neighbours are fixed, the free space is split evenly between them.
+  basis: "CPME practice"
+
+like_items_in_line:
+  id: DRF-PLC-004
+  rule: >-
+    Like items on parallel branches are drawn at the same level: for example the isolation valves
+    on parallel branches, the valves on a bypass and the run it bypasses, the valves on like
+    equipment outlets. An internal device drawn inside a vessel sits centred in it.
+  basis: "CPME practice"
+
+check_valve_at_its_junction:
+  id: DRF-PLC-005
+  rule: >-
+    A check valve is drawn next to the junction it stops back flow from, on that side of its line.
+  basis: "CPME practice"
+
+appurtenances_one_side:
+  id: DRF-PLC-006
+  rule: >-
+    On a horizontal process line, the attachments of one item leave the same side: both utility
+    ports of an exchanger below the line, a relief valve below the line with its discharge to the
+    right, instrument bubbles below the line. The item's tag goes on the free side (above).
+  basis: "CPME practice"
+
+rows_and_margins:
+  id: DRF-PLC-007
+  rule: >-
+    Each horizontal row leaves room below it for its bubbles, flags and their labels; rows move,
+    not labels, when room runs out. No symbol or label touches the sheet border, the title block or
+    the header band.
+  basis: "CPME practice. The generator's layout check reports any overlap."

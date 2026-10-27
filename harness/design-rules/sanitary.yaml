@@ -1,0 +1,224 @@
+# Sanitary design rules, company-wide (harness): the rule and its value, for the
+# hygienic lines of any CPME skid. Owned by mechanical-piping-engineer; Bob approves.
+# Every value must come from a standard or from CPME practice; cite the basis.
+# Standards are summarized in your own words, never copied.
+#
+# Where a rule applies on a project (lines, tags, drain points) and any project-only value
+# lives in that project's <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml, under the same rule id
+# (<project> = the project folder, job/Project-*). A new rule is added only after Bob says which level it belongs at
+# (harness, job or project; harness/design-rules/README.md; Bob, chat, 2026-10-26).
+#
+# SCOPE (PIPE-SVC-001, harness/design-rules/piping.yaml; Bob, chat, 2026-10-26): the slope, dead-leg,
+# finish, weld and tube/gasket rules below apply only to lines of service class `hygienic` (product-contact water),
+# or to `utility-water` lines where the customer's spec calls for them. Steam, condensate and relief lines follow their
+# own class's rules. SAN-PP-001, SAN-FRAME-001 and SAN-ACC-001 apply to the whole skid.
+meta:
+  owner: "mechanical-piping-engineer"
+  revision: 4
+  status: >-
+    Rev 4, 2026-10-26: scoped to the hygienic service class (PIPE-SVC-001);
+    SAN-FLOW-001 removed; SAN-PIPE-001 governing code made a project value
+    (Bob, chat, 2026-10-26). Every other basis is CPME practice and
+    the standards it cites.
+
+slope:
+  - id: SAN-SLOPE-001
+    rule: every hygienic line slopes continuously toward an assigned drain point
+    min_slope_in_per_ft: 0.125
+    deviation: 0.0625 in/ft only with recorded Bob approval
+    basis: "ASME BPE Part SD gravity-slope designation GSD2 (1%), summarized; 3-A AP 605 self-draining principle; CPME practice."
+
+dead_leg:
+  - id: SAN-DL-001
+    rule: >-
+      Every branch, instrument tee, valve body cavity and capped or closed
+      connection that is stagnant while product or cleaning solution flows in its
+      parent hygienic line is held to max_L_over_D.
+    max_L_over_D: 2.0
+    measurement: >-
+      L is measured along the branch centerline, from the inside (ID) wall of
+      the run tube to the closure: the valve seat or seal line, the instrument
+      sensing face, or the inside face of the cap or blind. D is the inside
+      diameter of the branch, not its nominal OD. For 2.0 in OD x 0.065 in wall
+      branches (D = 1.870 in), L max = 3.74 in. For 1.5 in OD x 0.065 in wall
+      (D = 1.370 in), L max = 2.74 in. For 1.0 in OD x 0.065 in wall
+      (D = 0.870 in), L max = 1.74 in. Tube walls are from SAN-MAT-001; this is
+      arithmetic, not an additional rule.
+    basis: >-
+      ASME BPE Part SD, para. SD-3.1.2.2 (dead legs), summarized: a dead leg is
+      measured as L/D, with L from the ID wall of the run to the branch closure
+      and D the branch ID, and BPE sets L/D of 2 or less as the design limit for
+      hygienic systems. Applied as a principle only, not BPE certification
+      (standards-register ASME BPE row). Chosen as the most stringent
+      clause-citable value for beverage use. Not used: EHEDG Doc 8 (no clause
+      text on file; if the purchased text gives a tighter limit for a stagnant
+      branch, that value governs and this entry is revised); 3-A AP 605 (no
+      numeric dead-leg clause on file); and the older "6D" pipe-diameter
+      convention (no current standard behind it). CPME practice.
+    assumption: "ASSUMPTION: the clause number SD-3.1.2.2, the L/D = 2 limit and the measurement convention are taken from ASME BPE Part SD as recalled by mechanical-piping-engineer. No BPE text is on file, and the edition is `unknown` (standards-register ASME BPE row). Verify against the purchased edition at design freeze; BPE editions have renumbered Part SD paragraphs."
+    edition_note: >-
+      Value unchanged. The current edition is ASME BPE-2026 (supersedes
+      BPE-2024). Its text was not purchased and has not been read. The BPE-2024
+      contents list SD-3.1.2.2 (dead legs) with Tables SD-3.1.2.2-1 and -2 (L/d
+      for full-size and short-outlet tees), so the clause number holds for
+      BPE-2024 by its contents page only; the clause number, the L/D = 2 value
+      and where L ends for an instrument are UNVERIFIED against BPE-2026. For
+      branch-mounted instruments the stricter SAN-DL-002 also applies.
+
+  - id: SAN-DL-002
+    rule: >-
+      Every branch-mounted instrument (a sensor installed in a tee outlet,
+      ferrule, weld-in adapter or other branch off a hygienic line) has a dead
+      leg L < (D - d). This is in addition to SAN-DL-001
+      and is stricter than it: SAN-DL-001 (ASME BPE) allows L/D up to 2, this
+      rule allows less than 1 for a flush sensor and less again for a probe that
+      sits in the branch. Where the instrument maker's own installation rule is
+      stricter than this one (for example a minimum immersion, or a requirement
+      that the sensing element reach fully into the run), the maker's rule
+      governs for that instrument.
+    max_L: "D - d"            # strict: L must be less than this value
+    measurement: >-
+      L is measured along the branch centerline from the inside (ID) wall of the
+      run tube to the sensor seat, meaning the sealing point of the sensor or
+      its adapter, not the sensor tip. Any gasket or seal gap between clamp
+      faces on the way to the seat is included in L. D is the inside diameter
+      (bore) of the branch around the sensor: tee outlet, ferrule or adapter.
+      d is the diameter of the part of the probe that lies in the branch; d = 0
+      for a flush (diaphragm or face-mounted) sensor, so the rule becomes L < D.
+      Arithmetic only, not an additional rule: for a flush sensor on a 2.0 in OD
+      x 0.065 in wall branch (D = 1.870 in, 47.5 mm), L < 1.870 in; on 1.5 in OD
+      x 0.065 in wall (D = 1.370 in), L < 1.370 in; on 1.0 in OD x 0.065 in wall
+      (D = 0.870 in), L < 0.870 in. Walls are from SAN-MAT-001.
+    basis: >-
+      (1) EHEDG Position Paper "Easy cleanable pipe couplings and process
+      connections", Version 6, January 2024, summarized: for a sensor in a pipe
+      connection the stagnant leg must be shorter than the bore of that leg, and
+      where the sensor protrudes into the leg the limit is reduced by the sensor
+      diameter, to D - d; connection sizes that exceed it are excluded from
+      certification. (2) ifm operating instructions, summarized, each setting the
+      same limit for its sensor: OI 11659025/02 §6.2 p18 (PI17xx pressure
+      sensors in a clamp adapter, L < D); OI 11412706/00 §4.5 (SI6800 flow
+      monitor, L < D - d); OI 11577874/00 §5.2 (TD2xxx temperature sensors,
+      L < D - d with EHEDG seals); OI 11394632/00 §5.3 (LDL2xx conductivity
+      sensors, L < D - d where a clamp adapter cannot be avoided).
+      The strict "<" is used: the ifm instructions state "<"; the Position Paper
+      can be read as "<=" for the protruding case, so "<" is the conservative
+      reading of both. Compared with SAN-DL-001: ASME BPE L/d <= 2
+      (SD-3.1.2.2) remains the general dead-leg limit; this rule is the tighter
+      limit that ifm's 3-A / EHEDG installation claims rest on. ASME BPE-2026
+      text was NOT purchased; every BPE reference here comes from the BPE-2024
+      contents page and secondary sources. CPME practice. Designation: harness
+      (CPME practice).
+    job_values: "per project: <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml SAN-DL-002 (which instruments are branch-mounted, each d, and any stricter maker rule), when entered"
+
+drain_points:
+  - id: SAN-DRAIN-001
+    rule: every local low point has a drain valve or is drainable through equipment
+    basis: "CPME practice"
+
+surface_finish:
+  - id: SAN-RA-001
+    product_contact_max_Ra_uin: 32
+    applies_to: tube ID, fittings, valve and instrument wetted surfaces, tank interiors
+    non_contact_finish: null   # not set
+    basis: "3-A Sanitary Standards product-contact finish criterion, summarized; CPME practice."
+
+welds:
+  - id: SAN-WELD-001
+    acceptance: "AWS D18.1"
+    discoloration_max_level: null   # per AWS D18.2 chart
+    basis: "harness/knowledge/Design Standards.md §2"
+
+materials_and_gaskets:
+  - id: SAN-MAT-001
+    tube_spec: "ASTM A270 S2"
+    tube_wall_in_by_od: {"3.0": 0.065, "2.0": 0.065, "1.5": 0.065, "1.0": 0.065}
+    grade_product_contact: "per project: <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml SAN-MAT-001 (designation: project, CPME practice)"
+    basis: "Design Standards §2 (ASTM A270 S2); ASME BPE Part DT tube dimensions, summarized; CPME practice."
+    tube_wall_3in_basis: >-
+      "3.0": 0.065 in is the standard sanitary wall for 3 in OD A270 S2 tube
+      (ASME BPE Part DT tube dimensions, summarized), the same wall as the
+      other sizes listed. Designation: harness (CPME practice).
+    drain_piping: >-
+      Drains off a hygienic line (relief valve discharges, strainer and
+      low-point drains) take the same tube spec,
+      wall and grade as the hygienic lines they drain (tube_spec,
+      tube_wall_in_by_od, and the project's grade_product_contact); never a
+      lower grade (no 304 for them). Basis: they see the same fluids and
+      temperatures as those lines and use the same ferrules, clamps and gaskets
+      (CPME practice). Designation: harness (CPME practice).
+    gasket_standard_basis: >-
+      (1) 21 CFR 177.2600, summarized: FDA list of ingredients permitted in rubber
+      articles for repeated food contact, with extractives limits in water and in
+      n-hexane; compliance is shown by the compound maker's written statement.
+      (2) 21 CFR 177.1550, summarized: FDA conditions for perfluorocarbon resins
+      (PTFE and related resins) in food contact. (3) 3-A Sanitary Standard 18-
+      (multiple-use rubber and rubber-like materials), summarized: material and
+      performance criteria for elastomers in product contact, with materials
+      grouped in classes by the service conditions they were tested for; this
+      summary and the class required on a project are to be confirmed against the
+      edition text, which is not on file. 3-A Sanitary Standard 20- (multiple-use
+      plastics) plays the same role for PTFE and plastic seats and bodies.
+      (4) ASME BPE Part MC (seals; clamp-union gasket intrusion) with Part PM
+      (polymeric materials, for the seal material and its compliance
+      documentation), summarized: select every seal for the whole exposure
+      envelope (process, every cleaning chemical, temperature cycling), document
+      its material compliance, and design the joint so the compressed seal sits
+      flush with the bore, neither intruding into the flow nor recessed into a
+      crevice. (Part names from the BPE-2024 contents page; BPE has no Part SG.)
+      (5) Design Standards.md §1 (21 CFR 177 for elastomer selection).
+    gasket_selection: "per project: <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml SAN-MAT-001 (defaults, by service, scope)"
+
+piping_design:
+  - id: SAN-PIPE-001
+    governing_code: "per project"   # a project value, `unknown` until the customer or AHJ sets it (Bob, chat, 2026-10-26)
+    governing_code_basis: "The governing piping code is set per project by the owner or the authority having jurisdiction (Bob, chat, 2026-10-26). Candidates, summarized: ASME B31.3 (process piping, including piping within packaged equipment, para 300.1); ASME B31.1 (power piping, including boiler external piping and steam systems where the owner applies it); ASME B31.9 (building services piping: steam and condensate and hot water within its pressure and temperature limits). ASME BPE and 3-A AP 605 apply alongside on hygienic lines for hygienic design; neither is a pressure-design code. Until the project value is set, no design is checked against a pressure-design code and the project file records `unknown`."
+    job_values: "per project: <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml SAN-PIPE-001 (governing code, code scope on the skid, design temperature and pressure, fluid service, examination)"
+
+personnel_protection:
+  - id: SAN-PP-001
+    hot_surface_threshold_f: 140
+    method: guard or standoff first; on hygienic lines insulation only sealed, stainless-jacketed, sealed ends; on other lines the job's insulation method applies (job/design-rules/piping.yaml insulation_method; PIPE-SVC-001 skid_wide)
+    basis: "Design Standards §5 (ISO 12100, ISO 14120); ASTM C1055 / ISO 13732-1 contact-burn practice (standards-register rows needed); SAN-FRAME-001 no water-holding surfaces; CPME practice."
+
+frame:
+  - id: SAN-FRAME-001
+    rules:
+      - no open tube ends; members sealed or fully open for cleaning
+      - no horizontal ledges or pockets that hold water
+      - minimum clearance under skid for cleaning: null
+      - minimum clearance behind skid: null
+    clearance_status: >-
+      UNRESOLVED, not guessed. The standards recognized in this repo that
+      govern a beverage plant were checked. 21 CFR 117.20(b) requires plant and
+      equipment placement with enough space for cleaning, but gives no number.
+      The 3-A Sanitary Standards and EHEDG Doc 8 are the likely sources of a
+      numeric floor and wall clearance, but no text of either is on file. No
+      clause number can therefore be cited, and without a citable clause no
+      number is entered. Settled by: the purchased 3-A general-requirements
+      text (3-A 00-01, if that is the governing edition) or EHEDG Doc 8, or a
+      written customer requirement on the project. Not used: NSF/ANSI 2 and the
+      FDA Food Code (foodservice and retail scope, not beverage plant
+      equipment, and not in Design Standards.md).
+    basis: "CPME practice; EHEDG principles; 21 CFR 117.20(b) adequate space for cleaning (no numeric value)"
+
+access:
+  - id: SAN-ACC-001
+    operator_access_min_in: null
+    maintenance_pull_space: see <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml
+    panel_working_space: >-
+      Not held here. Working space in front of a control panel is NFPA 70
+      para. 110.26(A). It is owned by electrical-engineer in
+      harness/design-rules/electrical-interface.yaml panel_working_clearance
+      (one place per fact).
+    access_status: >-
+      UNRESOLVED, not guessed. No recognized standard on file gives a
+      clause-citable minimum operator access width around process equipment.
+      OSHA 29 CFR 1910.36(g) (exit route width) applies only if the space around
+      the skid is part of a plant exit route, which is a site-layout fact.
+      OSHA 1910.22 (walking-working surfaces) gives no clearance width.
+      ISO 14122-2 (machinery walkways) and ISO 14159 / EN 1672-2 (hygiene access)
+      are not on file, and ISO 14122-2 is not in Design Standards.md. Settled by:
+      the purchased ISO 14122-2 or ISO 14159 text added to Design Standards.md
+      with Bob's agreement, or a written customer / site requirement.
+    basis: "CPME practice"

@@ -1,0 +1,17 @@
+# Paths the human engineer must review before merge. Enforced only when the
+# GitHub ruleset on main is active and "Require review from Code Owners" is on.
+#
+# `Bob-Biedrzycki` is the one account that commits, pushes and opens the daily
+# PR through track.py, and Bob merges it himself (CPME practice).
+
+harness/design-rules/   @Bob-Biedrzycki
+# Job-wide design rules, every project in the job (level 2; Bob, 2026-10-26).
+/job/design-rules/      @Bob-Biedrzycki
+# Every project folder (job/Project-*/, Bob 2026-10-26): its rules, lists, registers and decisions.
+/job/*/01_Design_Basis/05_Standards_Specifications/Design_Rules/   @Bob-Biedrzycki
+/job/*/03_Working_Design/PID/02_Tag_Lists/                         @Bob-Biedrzycki
+/job/*/00_Project_Admin/07_Project_Controls/Registers/             @Bob-Biedrzycki
+/job/*/00_Project_Admin/05_Decision_Log/                           @Bob-Biedrzycki
+CLAUDE.md           @Bob-Biedrzycki
+.claude/            @Bob-Biedrzycki
+.github/            @Bob-Biedrzycki

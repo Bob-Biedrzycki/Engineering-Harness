@@ -1,0 +1,68 @@
+# cadgen (text-to-cad 0.6.6 runtime) environment: harness/tools/venv-cadgen/ (gitignored).
+# Exact pip freeze of the working work\venv-cadgen on 2026-09-25, Python 3.14.7.
+# Source: text-to-cad plugin skills/cad/requirements.txt (cadgen[snapshot]==0.6.6) plus pyyaml and pandas.
+# cadgen 0.6.6 needs build123d 0.11.1, which conflicts with the 0.13.0 pin in requirements.txt,
+# so it lives in its own environment. Rebuild:
+#   py -3.14 -m venv harness\tools\venv-cadgen
+#   harness\tools\venv-cadgen\Scripts\python.exe -m pip install -r harness\requirements-cadgen.txt
+anytree==2.13.0
+asttokens==3.0.2
+build123d==0.11.1
+cadgen==0.6.6
+cadquery-ocp-novtk==7.9.3.1.1
+cadquery-ocp-proxy==7.9.3.1.1
+certifi==2026.7.22
+charset-normalizer==3.5.1
+cloudpickle==3.1.2
+colorama==0.4.6
+contourpy==1.4.0
+cycler==0.12.1
+executing==2.2.1
+ezdxf==1.4.4
+fonttools==4.66.0
+greenlet==3.5.6
+idna==3.20
+ipython==9.17.1
+ipython_pygments_lexers==1.1.1
+jedi==0.20.0
+joblib==1.6.0
+kiwisolver==1.5.1
+lib3mf==2.5.0
+matplotlib==3.11.2
+matplotlib-inline==0.2.2
+mpmath==1.3.0
+narwhals==2.26.0
+numpy==2.5.3
+ocp_gordon==0.2.2
+ocpsvg==0.6.0
+packaging==26.3
+pandas==3.0.6
+parso==0.8.7
+pillow==12.3.0
+playwright==1.63.0
+prompt_toolkit==3.0.53
+psutil==7.2.2
+pure_eval==0.2.4
+pyee==13.0.1
+Pygments==2.21.0
+pyparsing==3.3.3
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3
+requests==2.34.2
+scikit-learn==1.9.1
+scipy==1.18.1
+shapely==2.1.2
+six==1.17.0
+stack-data==0.6.3
+svgelements==1.9.6
+svgpathtools==1.8.0
+svgwrite==1.4.3
+sympy==1.14.0
+threadpoolctl==3.7.0
+traitlets==5.16.1
+trianglesolver==1.2
+typing_extensions==4.16.0
+tzdata==2026.4
+urllib3==2.8.0
+wcwidth==0.9.1
+webcolors==24.8.0

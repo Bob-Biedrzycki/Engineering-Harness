@@ -1,0 +1,20 @@
+# Harness-owned paths (CPME practice; Bob, 2026-10-27): what is true for every CPME skid job. The master copy holds
+# these, every job holds the same files, and harness/scripts/harness_sync.py compares and pulls them; a fix is made in
+# the master and pulled into each job. Everything not listed here is job-owned: job/**, the two question files
+# (Agent-to-Agent Questions.md, Agent-to-Bob Questions.md), README.md, .claude/launch.json and
+# .claude/settings.local.json; harness_sync.py never writes a job-owned file.
+#
+# Format: one repo-relative glob per line (forward slashes; `*` and `**` match across folders); `!glob` excludes;
+# `<file>#core` owns only the lines of <file> outside its drive-store managed block (written by drive_store.py from
+# the job's job/drive-store.yaml, so it is job-owned). Blank lines and `#` lines are comments.
+harness/**
+!harness/tools/**
+!**/__pycache__/**
+!**/*.pyc
+.claude/agents/**
+.claude/skills/**
+.claude/settings.json
+CLAUDE.md
+.github/**
+.gitattributes
+.gitignore#core

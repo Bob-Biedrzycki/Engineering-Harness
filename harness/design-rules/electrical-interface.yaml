@@ -1,0 +1,11 @@
+# Electrical space and interface rules, company-wide (harness) — electrical-engineer maintains; engineer approves.
+# Project values (enclosure type, hazardous area) are in <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/electrical-interface.yaml
+# (<project> = the project folder, job/Project-*). A new rule is added only after Bob says which level it belongs at (harness, job or project; harness/design-rules/README.md).
+meta: {revision: 1, status: "skeleton; harness and project levels; CPME practice"}
+panel_working_clearance:
+  depth_in: null    # NEC 110.26 — record condition
+  width_in: null
+  height_in: null
+disconnect: {height_in: null, visible_from: null}
+power_signal_separation_in: null
+grounding_lug_location: null

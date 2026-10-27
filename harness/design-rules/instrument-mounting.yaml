@@ -1,0 +1,31 @@
+# Instrument and valve mounting rules, company-wide (harness) — controls-engineer maintains; engineer approves.
+# Per-instrument values for a project are in <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/instrument-mounting.yaml
+# (<project> = the project folder, job/Project-*). A new rule is added only after Bob says which level it belongs at (harness, job or project; harness/design-rules/README.md).
+# Scope by service class (PIPE-SVC-001, harness/design-rules/piping.yaml): INST-POS-001 and INST-LEAK-001 apply to
+# hygienic, clamp-mounted instruments (3-A position and telltale-port practice). On steam, condensate and utility
+# lines, instrument taps follow that service's practice (TR-21: threaded or socket-weld boss, siphon for steam
+# gauges). INST-SR-001 (maker's straight run) applies to every inline instrument whatever its class.
+meta: {revision: 2, status: "rev 2: straight-run, position and leakage-port rules; bases are CPME practice and the makers' instructions cited"}
+straight_run:
+  # The flow meter keys stay null: they are the company default, no value applies to every flow meter.
+  # Each instrument's value is in the project file (<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/instrument-mounting.yaml, straight_run INST-SR-001).
+  # Designation: harness (principle), project (per-instrument value); CPME practice.
+  flow_meter_upstream_D: null
+  flow_meter_downstream_D: null
+  INST-SR-001:
+    rule: "Every inline instrument meets its maker's published straight-run requirement, upstream and downstream, measured along the pipe centreline from the sensor to the nearest disturbance (elbow, tee used as a turn, valve, reducer, pump or vessel nozzle)."
+    value: "maker's published value, per instrument; the project file carries each value and the tags it applies to"
+    basis: "CPME practice: every probe meets its maker's straight-run requirement. Designation: harness (principle), project (per-instrument value); CPME practice."
+    assumption: "ASSUMPTION: the distance is measured to the nearest flow disturbance on either side; a tee carrying straight-through flow with a dead-ended instrument branch is not a disturbance (common practice; confirm with the maker where the value's text says otherwise)."
+position:
+  INST-POS-001:
+    rule: "No instrument at the bottom of a horizontal pipe (3-A position 5). Prefer side mounting on a horizontal pipe, and a rising pipe on a vertical run."
+    basis: "ifm operating instructions 11659025/02 §6.1, 11394632/01 §5.1, 11412706/01 §4.1, 11577874/00 §5.1, summarized; 3-A 74-07 as stated by the makers (standard text not purchased). Designation: harness (CPME practice)."
+    assumption: "ASSUMPTION: a maker's narrower position limit for one instrument (for example 3-A positions 1-3 only, never pointing up from below) is a per-instrument value for the project file, not this rule."
+leakage_port:
+  INST-LEAK-001:
+    rule: "The leakage (telltale) port of an instrument or its adapter is visible after mounting and sits at the lowest point of the connection."
+    basis: "3-A 74-07 as stated by the makers (ifm operating instructions); 3-A 00-02 3rd ed. 2026, leak paths at the lowest point, >= 1/8 in, as reported by the 3-A SSI blog (standard text not purchased). Designation: harness (CPME practice)."
+    assumption: "ASSUMPTION: the 1/8 in figure is secondhand until 3-A 00-02 is purchased."
+service_access_min_in: null
+air_header_rule: null

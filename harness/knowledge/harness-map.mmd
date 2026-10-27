@@ -1,0 +1,110 @@
+%% CPME design harness map: where agents, skills, memory, rules and records live, and how a prompt is routed.
+%% Source for harness/knowledge/harness-map.png. Text updated 2026-10-27: job-neutral (the harness holds only what is
+%% true for every CPME skid job), the Engineering Harness master and its two scripts; the PNG predates this text and
+%% needs re-rendering. Paths are repo-relative unless absolute.
+%% Job = the product line and its repo (job/JOB.md says which); project = one order, job/Project-*/ (Bob, chat, 2026-10-26).
+flowchart TB
+  classDef person fill:#ffe6a8,stroke:#8a6d00,color:#000
+  classDef ctx fill:#e8f0ff,stroke:#2b5aa8,color:#000
+  classDef agent fill:#e6f7e6,stroke:#2e7d32,color:#000
+  classDef tool fill:#fff0e6,stroke:#c05a00,color:#000
+  classDef store fill:#f4f4f4,stroke:#555,color:#000
+  classDef ext fill:#f3e6ff,stroke:#6a1b9a,color:#000
+
+  BOB(["Bob, the engineer<br/>chat in the Claude Code desktop app"]):::person
+  MAIN["Main agent: the Claude Code session<br/>shared checkout of the job's repo<br/>reads the context below on every turn, then routes"]:::agent
+
+  subgraph CTX["1. Context loaded into every turn"]
+    direction LR
+    CL["CLAUDE.md (harness-owned)<br/>master instructions, hard rules, work cycle<br/>loads job/JOB.md: the job and its current project"]:::ctx
+    TR["harness/knowledge/Todd Requirements.md<br/>TR-01..TR-26, binding on every agent<br/>job notes in job/knowledge/"]:::ctx
+    MEM["Memory: MEMORY.md index + one file per fact<br/>C:/Users/Bob/.claude/projects/(checkout folder)/memory/"]:::ctx
+    SET[".claude/settings.json: allow and deny rules, plugins (harness-owned)<br/>.claude/settings.local.json, .claude/launch.json (job-owned)"]:::ctx
+  end
+
+  subgraph ROUTE["2. How the main agent routes a prompt"]
+    direction LR
+    AGT["Agent tool<br/>spawns the role whose deliverable it is (skill agent-task)"]:::tool
+    SKT["Skill tool<br/>loads a packaged procedure"]:::tool
+    MCP["MCP tools<br/>linear-server (task board), browsers"]:::tool
+    PS["PowerShell tool<br/>runs the harness scripts"]:::tool
+  end
+
+  subgraph AGENTS["3. Role subagents: .claude/agents/ (one .md per role, mirrors harness/knowledge/Team.md)"]
+    direction LR
+    PM["project-manager.md<br/>scrum master: Linear issues, track.py, question log, HOLDs"]:::agent
+    PE["process-engineer.md<br/>P&ID lists, tag integrity, sizing record where a project DEC brings sizing in"]:::agent
+    CAD["cad-design-engineer.md<br/>layout, frame, piping, STEP/DXF, BOM, cut lists"]:::agent
+    MPE["mechanical-piping-engineer.md<br/>review by service class (PIPE-SVC-001):<br/>SAN-* hygienic; the job's class rules and review addendum"]:::agent
+    CE["controls-engineer.md and electrical-engineer.md<br/>instrument and panel interfaces"]:::agent
+    EM["engineering-manager.md<br/>last review before Bob"]:::agent
+    SD["software-developer.md<br/>harness code, checks, CI"]:::agent
+  end
+
+  subgraph SKILLS["4. Skills"]
+    direction LR
+    SK1[".claude/skills/: agent-task, pid-digitize, skid-layout, pipe-route,<br/>model-iterate, model-accept, model-file, closeout, github-tracking, ..."]:::tool
+    SK2["text-to-cad plugin skills: cad, dxf, engineering-drawing, step-parts, ...<br/>pinned version in the project's tooling.md"]:::tool
+  end
+
+  subgraph HARN["5. harness/ : reused unchanged by every CPME skid job (owned paths in harness/harness-manifest.txt)"]
+    direction LR
+    TRK["scripts/track.py<br/>GitHub through gh, Bob's rules built in"]:::tool
+    MOD["scripts/model_iterate.py, model_accept.py, model_file.py, closeout.py<br/>the three model tiers"]:::tool
+    DRV["scripts/drive_store.py<br/>Google Drive store: pointers, push, pull, verify"]:::tool
+    SYNC["scripts/harness_sync.py (check, pull from the master)<br/>scripts/job_new.py (a new job repo from the master)<br/>scripts/project_new.py (a new project folder)"]:::tool
+    REV["cad-lib/revfile.py, cpme_titleblock.py<br/>dxf-to-dwg.ps1, dwg-to-pdf.ps1: drawing filing"]:::tool
+    CHK["checks/*.py<br/>pid_consistency, sanitary, interference, envelope, pipe_supports, drive_pointers<br/>report, never block"]:::tool
+    RP["lib/repo_paths.py<br/>every location by name"]:::tool
+    RULES["Rule level 1, harness: design-rules/*.yaml (company-wide)<br/>knowledge/: Design Standards, Team, Setup, Approval Ladder<br/>templates/: review checklist, project-folder/"]:::store
+    VENV["tools/venv, tools/venv-cadgen<br/>gitignored, from requirements*.txt"]:::store
+  end
+
+  subgraph JOB["6. job/ : this job (the product line) and one folder per project, job/Project-*/"]
+    direction LR
+    JMD["job/JOB.md<br/>what the job builds, current project, origin repo, Drive remote, Linear project"]:::store
+    JR["Rule level 2, job: job/design-rules/*.yaml (the job's product rules)<br/>job/knowledge/: research, design framework, product standards,<br/>review addendum, Todd Direction, Todd Requirements job notes"]:::store
+    PR["Rule level 3, project: Project-*/01_Design_Basis/05_Standards_Specifications/Design_Rules/<br/>scope and project values (rule_ref entries)"]:::store
+    DATA["Project-*/03_Working_Design/PID/02_Tag_Lists/ P&ID lists (CSV)<br/>00_Project_Admin/07_Project_Controls/Registers/<br/>00_Project_Admin/05_Decision_Log/DEC-####.md<br/>01_Design_Basis/01_Customer_Requirements/ intake, holds.md"]:::store
+    SRC["Project-*/03_Working_Design/CAD/ build123d source, one folder per model<br/>CAD/05_Purchased_Components/ project-only components<br/>job/components/ job component library and component-register.csv<br/>04_Vendor_Data/ supplier documents and CAD"]:::store
+    FILED["Project-*/06_Issued_Revisions/Drawings/DOC-ID/ and Models/MODEL-ID/<br/>filed revisions, immutable (TR-08)<br/>large files as file.drive pointers"]:::store
+    QST["Agent-to-Agent Questions.md and Agent-to-Bob Questions.md at the repo root<br/>questions between agents and to Bob<br/>project: tooling.md, project.yaml; job: drive-store.yaml"]:::store
+    WORK["Project-*/_work/ and 03_Working_Design/Exports/ gitignored<br/>build/, preview/, filing/, daily/, tracking/"]:::store
+  end
+
+  subgraph EXT["7. Outside the checkout"]
+    direction LR
+    MASTER["Engineering Harness master<br/>C:/Users/Bob/Documents/Engineering Harness<br/>harness fixes are made here, then pulled into each job"]:::ext
+    GH["GitHub: the job's repo (TR-09; origin in job/JOB.md)<br/>daily/YYYY-MM-DD branch, one PR per day<br/>CI .github/workflows/checks.yml, engineer merges"]:::ext
+    GD["Google Drive folder named in job/drive-store.yaml (one for the job)<br/>large files at their repo paths<br/>rclone remote named there"]:::ext
+    LIN["Linear<br/>one issue per agent task, [agent] prefix, role label"]:::ext
+  end
+
+  BOB -->|"prompt"| MAIN
+  MAIN -->|"handoff, question, PR link"| BOB
+  CTX -.->|"read first, every turn"| MAIN
+  CL -.->|"@job/JOB.md"| JMD
+  MAIN -->|"saves durable facts"| MEM
+  MAIN --> ROUTE
+  AGT -->|"one role per deliverable"| AGENTS
+  SKT --> SKILLS
+  MCP --> LIN
+  PS -->|"runs the harness scripts"| HARN
+  AGENTS -->|"read company rules and standards"| RULES
+  AGENTS -->|"read job and project rules; draft and check lists, models, reviews, decisions, questions"| JOB
+  RULES -->|"narrowed by"| JR
+  JR -->|"narrowed by"| PR
+  SK1 --> TRK
+  SK1 --> MOD
+  SK2 -->|"build123d geometry"| SRC
+  SRC -->|"tier 1 build outputs"| WORK
+  MOD -->|"tier 2: next letter, read-only"| FILED
+  REV -->|"next letter, DWG + PDF + DXF, sha256 row"| FILED
+  FILED -->|"file.drive pointers stay in git"| DRV
+  DRV <-->|"push, pull, verify"| GD
+  TRK -->|"daily commit, push, one PR"| GH
+  CHK -->|"same checks run in CI"| GH
+  GH -->|"review and merge"| BOB
+  PM -->|"session opens issues; PM audits and closes"| LIN
+  MASTER -->|"harness_sync.py pull; job_new.py for a new job"| SYNC
+  SYNC -->|"harness-owned files only; job/ never touched"| HARN

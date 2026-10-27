@@ -1,0 +1,22 @@
+# Normalize to LF in the repo and on checkout; STEP/DXF and binaries untouched.
+* text=auto eol=lf
+*.step binary
+*.STEP binary
+*.stp binary
+*.dxf -text
+*.igs -text
+*.iges -text
+*.pdf binary
+*.PDF binary
+*.dwg binary
+*.DWG binary
+*.png binary
+*.jpg binary
+*.xlsx binary
+*.docx binary
+*.glb binary
+*.blend binary
+*.zip binary
+*.mp4 binary
+# Drive-store pointers (harness/scripts/drive_store.py) are small JSON text files.
+*.drive text eol=lf

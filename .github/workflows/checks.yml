@@ -1,0 +1,45 @@
+name: checks
+
+# Runs the unit tests and every script in harness/checks/ on each pull request and
+# on pushes to main, and writes one row per check to the run summary. ("CI job"
+# below is the GitHub Actions job, not a CPME job.)
+#
+# Design findings never fail the PR (Bob, chat, 2026-10-07: "The PR should not be
+# flagging design findings."). The CI job goes red only when the tooling is broken,
+# the unit tests fail, or a repo-integrity check fails. The policy and the list of
+# hard-fail checks (HARD_FAIL_CHECKS) live in harness/scripts/run_checks.sh, which
+# runs the same way locally; the exit-code contract is in harness/checks/README.md:
+#   0 = PASS
+#   1 + "<name>: FAIL ..." summary = FINDINGS -> ::warning; CI job passes
+#        (a HARD_FAIL_CHECKS check)    = FAIL -> ::error; CI job fails
+#   2 = NOT IMPLEMENTED                       -> ::warning; CI job passes
+#   1 without that summary, any other code,
+#   or a Python traceback  = ERROR (broken)   -> ::error; CI job fails
+# Once the GitHub ruleset on main is active, make this CI job a required status check.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install pinned dependencies
+        run: python -m pip install --disable-pip-version-check -r harness/requirements.txt
+
+      - name: Unit tests of the checks (harness/tests)
+        run: python -m unittest discover -s harness/tests -v
+
+      - name: Run checks
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: bash harness/scripts/run_checks.sh
