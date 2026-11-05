@@ -143,7 +143,7 @@ Harness master copy: `harness/scripts/harness_sync.py check .` compares it, `pul
 | Item | Value |
 |---|---|
 | Current project | none yet (`harness/scripts/project_new.py`) |
-| GitHub | `{repo}`, the job's one repo (TR-09) |
+| GitHub | `{repo}`, this folder's one repo (global "Git and backup") |
 | Linear | `unknown` |
 | Google Drive store | `job/drive-store.yaml` (folder `unknown`) |
 | Presentation site | none |

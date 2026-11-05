@@ -1,11 +1,11 @@
 """Drawing revision filing for every drawing generator in this repository.
 
-Rules (CLAUDE.md "Git and drawing revisions"; harness/knowledge/Todd Requirements.md
+Rules (CLAUDE.md "Drawing and design revisions"; harness/knowledge/Todd Requirements.md
 TR-06, TR-07, TR-08; Bob 2026-09-24: revision letters are sequential, nobody
 assigns them, NO EXCEPTIONS):
 
-  * Every drawing handed off is filed under <project>/06_Issued_Revisions/Drawings/<DOC-ID>/
-    as <DOC-ID>-rev<X>.dxf, .dwg (native, AutoCAD Core Console) and .pdf
+  * Every drawing handed off is filed under <project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>/
+    (one folder per revision; Bob, chat, 2026-10-30) as <DOC-ID>-rev<X>.dxf, .dwg (native, AutoCAD Core Console) and .pdf
     (exported from that DWG). Nothing else counts as a hand-off.
   * <X> is the next letter after the last revision in that folder's
     revisions.csv: A..Z, then AA, AB, ... Nobody picks, skips or reuses one.
@@ -76,8 +76,22 @@ def _int_to_letter(n: int) -> str:
     return out
 
 
+def use_job_level() -> None:
+    """File into the job's drawings (rp.JOB_DRAWINGS) instead of the active project's: for drawings that serve
+    every project in the job, such as the typical P&IDs. Call before next_rev. CPME_DRAWINGS_ROOT still wins."""
+    global DRAWINGS, WORK
+    if not os.environ.get("CPME_DRAWINGS_ROOT"):
+        DRAWINGS = rp.JOB_DRAWINGS
+    WORK = rp.JOB_FILING
+
+
 def doc_dir(doc_id: str) -> Path:
     return DRAWINGS / doc_id
+
+
+def rev_dir(doc_id: str, rev: str) -> Path:
+    """The folder of one filed revision, <DOC-ID>/<DOC-ID>-rev<X>/ (rp.rev_folder; Bob, chat, 2026-10-30)."""
+    return doc_dir(doc_id) / rp.rev_folder(doc_id, rev)
 
 
 def manifest_rows(doc_id: str) -> list[dict]:
@@ -99,10 +113,9 @@ def next_rev(doc_id: str) -> str:
     """Next sequential revision letter: A for a new drawing, else the letter after the last filed one."""
     last = last_rev(doc_id)
     nxt = "A" if last is None else _int_to_letter(_letter_to_int(last) + 1)
-    for ext in (".dxf", ".dwg", ".pdf"):
-        if (doc_dir(doc_id) / f"{doc_id}-rev{nxt}{ext}").exists():
-            raise SystemExit(f"{doc_id} rev {nxt}{ext} already exists but is not in revisions.csv; "
-                             "fix the manifest before filing (never overwrite)")
+    if rev_dir(doc_id, nxt).exists():
+        raise SystemExit(f"{doc_id} rev {nxt} folder already exists but is not in revisions.csv; "
+                         "fix the manifest before filing (never overwrite)")
     return nxt
 
 
@@ -201,7 +214,7 @@ def previous_dxf(doc_id: str) -> Path | None:
     last = last_rev(doc_id)
     if last is None:
         return None
-    p = doc_dir(doc_id) / f"{doc_id}-rev{last}.dxf"
+    p = rev_dir(doc_id, last) / f"{doc_id}-rev{last}.dxf"
     return p if p.exists() else None
 
 
@@ -358,12 +371,11 @@ def file_drawing(doc_id: str, rev: str, doc, layouts: list[str], note: str, desc
     """Write DXF, DWG and PDF for one revision and file them. Refuses to overwrite anything."""
     if rev != next_rev(doc_id):
         raise SystemExit(f"{doc_id}: rev {rev} is not the next sequential letter ({next_rev(doc_id)})")
-    stem = f"{doc_id}-rev{rev}"
-    dest = doc_dir(doc_id)
+    stem = rp.rev_folder(doc_id, rev)
+    dest = rev_dir(doc_id, rev)
     targets = {ext: dest / f"{stem}{ext}" for ext in (".dxf", ".dwg", ".pdf")}
-    for p in targets.values():
-        if p.exists():
-            raise SystemExit(f"refusing to overwrite filed drawing {p}")
+    if dest.exists():
+        raise SystemExit(f"refusing to overwrite filed drawing revision {dest}")
 
     stage = WORK / stem
     if stage.exists():
@@ -381,23 +393,22 @@ def file_drawing(doc_id: str, rev: str, doc, layouts: list[str], note: str, desc
         if not p.exists() or p.stat().st_size == 0:
             raise SystemExit(f"{p.name} was not produced; nothing filed")
 
-    dest.mkdir(parents=True, exist_ok=True)
-    for p in targets.values():  # re-check just before moving
-        if p.exists():
-            raise SystemExit(f"refusing to overwrite filed drawing {p}")
+    if dest.exists():  # re-check just before moving
+        raise SystemExit(f"refusing to overwrite filed drawing revision {dest}")
+    dest.mkdir(parents=True)
     stamp = _dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     rows = []
     for ext, src in ((".pdf", spdf), (".dwg", sdwg), (".dxf", sdxf)):
         dst = targets[ext]
         shutil.move(str(src), str(dst))
         os.chmod(dst, stat.S_IREAD | stat.S_IRGRP | stat.S_IROTH)  # filed = read-only
-        rows.append({"document_id": doc_id, "revision": rev, "file": dst.name, "file_date": stamp,
+        rows.append({"document_id": doc_id, "revision": rev, "file": f"{stem}/{dst.name}", "file_date": stamp,
                      # notes = the revision-block note exactly as on the sheet (empty for line-segment-diagram
                      # Revs A and B, which carried it only at the head of description; fixed 2026-10-02)
                      "sha256": _sha(dst), "bytes": dst.stat().st_size, "source": source, "notes": note,
                      "description": description or note})
 
-    man = dest / "revisions.csv"
+    man = doc_dir(doc_id) / "revisions.csv"
     existing = manifest_rows(doc_id)
     cols = list(MANIFEST_COLS)
     for r in existing:

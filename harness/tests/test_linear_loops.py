@@ -1,4 +1,4 @@
-"""Unit tests for harness/lib/linear_loops.py: the TR-12 Linear loop-closing audit (Bob, 2026-10-07).
+"""Unit tests for harness/lib/linear_loops.py: the Linear loop-closing audit (Bob, 2026-10-07).
 Pure functions plus a temp-dir test of handoff_files: no git, no gh, no network. Stdlib unittest:
 
     .\\harness\\tools\\venv\\Scripts\\python.exe -m unittest discover -s harness\\tests -v

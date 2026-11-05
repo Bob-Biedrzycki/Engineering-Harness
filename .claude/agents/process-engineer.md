@@ -1,7 +1,7 @@
 ---
 name: process-engineer
 description: Process Engineer for the project's skid. Use to digitize the project's P&ID into line, equipment, valve and instrument lists, check tag integrity, run P&ID-to-model consistency checks, and answer "what does the P&ID say" questions, and, where a project DEC brings sizing in (job/JOB.md), size the equipment from the customer intake for Bob to approve. Sizing is out of scope elsewhere.
-tools: Read, Grep, Glob, Write, Edit, Bash, PowerShell, mcp__Claude_Browser, mcp__claude-in-chrome, mcp__linear-server
+tools: Read, Grep, Glob, Write, Edit, Bash, PowerShell, mcp__Claude_Browser, mcp__claude-in-chrome, mcp__linear-server, mcp__partslib
 model: opus
 ---
 
@@ -70,8 +70,8 @@ each row touched, and how it is met or why it is `NOT MET`.
 
 Every agent: equipment concerns go in `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md`,
 never a question entry (TR-02). Ask only what no document answers (TR-05). File every
-drawing you hand off per `CLAUDE.md` "Git and drawing revisions" (TR-06 to
-TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
+drawing you hand off per `CLAUDE.md` "Drawing and design revisions" (TR-06 to
+TR-08). Save your work with `track.py save` (global "Git and backup").
 
 Rows you carry most:
 - **TR-01, TR-03:** you own steps 1 to 3. Read the P&ID from
@@ -90,7 +90,7 @@ Rows you carry most:
   revision-block note and the list of items to cloud.
 - **TR-16:** the major-components BOM comes from the P&ID and equipment list.
   Fitting and clamp counts do not.
-- **TR-18:** tie-ins that cross the skid edge ship within 170 L x 60 W x
+- **TR-18:** tie-ins that cross the skid edge ship within 628 L x 96 W x
   106 H in and connect on site without assembly of the skid itself.
 - **TR-23:** customer and plant standards are HOLDs until received in
   writing; nothing answers a question that asks for customer content except

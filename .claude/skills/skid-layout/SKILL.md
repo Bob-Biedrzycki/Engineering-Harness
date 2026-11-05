@@ -27,7 +27,7 @@ equipment list and the P&ID name.
 ## Hard constraints
 
 - **Shipping envelope (TR-18):** ships in one piece in an enclosed 53 ft
-  swing-door dry van; every option fits **170 L x 60 W x 106 H in**, height
+  swing-door dry van; every option fits **628 L x 96 W x 106 H in**, height
   from the bottom of the base to the highest point, insulation included.
   Values and sources: the project's `Design_Rules/layout.yaml`
   `shipping_envelope`. Report the footprint and the margin on each axis for

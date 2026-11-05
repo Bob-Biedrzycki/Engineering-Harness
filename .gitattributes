@@ -18,5 +18,6 @@
 *.blend binary
 *.zip binary
 *.mp4 binary
+*.hdr binary
 # Drive-store pointers (harness/scripts/drive_store.py) are small JSON text files.
 *.drive text eol=lf

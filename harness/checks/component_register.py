@@ -13,6 +13,12 @@ every file the row names (cut_sheet_file, vendor_step_file, cpme_step_file; rela
 in the working tree or as a Drive store pointer, and its sha256 matches vendor_step_sha256 / cpme_step_sha256 when
 given; every COMP-nnnn_* folder has a row for its id in its own library's register. `unknown` or blank = not named.
 
+Completeness of every current row (Bob, chat, 2026-10-29: "get to the bottom of why there still seems to be loose
+ends and fix them"; the check passed parts that were not ready, so nobody saw them): a cut sheet; a CPME STEP (the
+part is ready to place); a maker model, or a search record that covers every place in SEARCH_PLACES with none left
+"not checked" (skill component-add); and no item parked on a vendor or on a later decision (PARKED), since Bob does
+not contact vendors and an open choice is decided or asked at once.
+
 Reports, never blocks (CLAUDE.md: checks report; a design-record finding, not a repo-integrity one, so CI shows it as
 a warning). Exit contract (harness/checks/README.md): 0 PASS, 1 with the "component_register: FAIL" summary =
 findings, 3 ERROR (a register could not be read). No rows and no folders yet = PASS.
@@ -23,6 +29,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import re
 import sys
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -30,6 +37,43 @@ from pathlib import Path
 sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
 import repo_paths as rp  # noqa: E402
 import components as C  # noqa: E402
+
+
+# Where a maker model is searched for (skill component-add step 2; McMaster-Carr added by Bob, chat, 2026-10-29).
+SEARCH_PLACES = ("maker's site", "TraceParts", "3Dfindit", "BIMobject", "McMaster")
+# Text that leaves a part waiting on a vendor, on Bob or on a later decision.
+PARKED = re.compile(r"for bob\b|bob: (ask|sign in|bimobject|amtrol|spirotherm)|\bask (the )?(emerson|spirax|alfa laval|"
+                    r"amtrol|spirotherm|watts|jumo|rep|sales|vendor)|confirm with (spirax|the vendor|the maker)|"
+                    r"waits on a decision|when bob downloads|before a set needs it", re.I)
+
+
+def completeness(r: dict, tag: str) -> list[str]:
+    """Findings that keep a current row from being a finished part."""
+    if r.get("status", "").lower() != "current":
+        return []
+    named = lambda col: r.get(col, "").lower() not in ("", "unknown")
+    out = []
+    if not named("cut_sheet_file"):
+        out.append(f"{tag}: no cut sheet")
+    if not named("cpme_step_file"):
+        out.append(f"{tag}: no CPME STEP (not ready to place)")
+    if not named("vendor_step_file"):
+        src = r.get("vendor_step_source", "")
+        record = src[src.lower().find("search record"):] if "search record" in src.lower() else ""
+        missing = [p for p in SEARCH_PLACES if p.lower() not in record.lower()]
+        if "pending" in src.lower():
+            out.append(f"{tag}: maker model found, download pending")
+        elif not record or missing or "not checked" in record.lower():
+            out.append(f"{tag}: no maker model and the search record is incomplete"
+                       + (f" (missing {', '.join(missing)})" if record and missing else ""))
+    elif "download pending" in r.get("vendor_step_source", "").lower():
+        out.append(f"{tag}: a size's maker model is still a download pending")
+    for col in ("vendor_step_source", "notes"):
+        m = PARKED.search(r.get(col, ""))
+        if m:
+            out.append(f"{tag}: {col} parks the part on a vendor, on Bob or a later decision ({m.group(0)!r}): "
+                       "decide, take an equal part, or ask Bob once now")
+    return out
 
 
 def _sha256(p: Path) -> str:
@@ -80,6 +124,7 @@ def findings(libs: list[C.Library] | None = None) -> tuple[int, int, list[str]]:
                 current[cid] += 1
             if cid:
                 library_of[cid].add(lib.level)
+            out += completeness(r, tag)
             for col, sha_col in C.FILE_COLUMNS:
                 p = C.resolve(r, r.get(col, ""))
                 if p is None:

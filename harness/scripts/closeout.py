@@ -3,12 +3,13 @@
 The three-tier model pipeline (CPME practice). Skill: .claude/skills/closeout.
 Run by the project-manager when Bob says to close out the day. It leaves the day ready for the one commit and
 one PR, which go through harness/scripts/track.py on Bob's go (skill github-tracking).
-Steps 4, 5 and 9 (the site framework: project tracker, quoting/estimating portal, landing page) are CPME practice
-and dormant until Bob defines the job's site. No project yet: closeout.py refuses with exit 2.
+Steps 4, 5 and 9 (the site framework: project tracker, Mobile Optimized, landing page) are CPME practice
+and dormant until Bob defines the job's site. This job has no Fabrication Estimating Portal and no Customer Portal
+(Bob, chat, 2026-10-30). No project yet: closeout.py refuses with exit 2.
 
 Steps, in this order:
     1. checks       every harness/checks/*.py, as CI runs them (pid_consistency, interference, envelope,
-                    pipe_supports, sanitary, tag_crosscheck, drive_pointers); first line and exit of each.
+                    pipe_supports, sanitary, tag_crosscheck, drive_pointers, filed_layout); first line and exit of each.
                     portal_terms.py runs at the end of step 5 instead, on the portal revision just filed
     2. frame calc   <project>/02_Engineering/06_Mechanical_Structural/frame-calc/frame_calc.py is run separately on a filed revision (as now): reports which
                     revision <project>/02_Engineering/06_Mechanical_Structural/frame-calc-results.md is for, and whether that is the newest; --frame-calc
@@ -27,17 +28,13 @@ Steps, in this order:
                     2026-10-12: older revisions are not rebuilt for a look change, build_portal keeps their newest
                     copy of any look; a current revision with no current-look GLB is a WARNING row, not a stop), then
                     build_portal.py --rev <X> --file: the portal filed as the next <project>/06_Issued_Revisions/Portals/project-portal/ letter
-                    (skipped if one was already filed today for the same model revision); then the quoting
-                    portal, --audience fabricator --file, the next <project>/06_Issued_Revisions/Portals/quoting-portal/ letter once per model
-                    revision; then Mobile Optimized (2026-10-17): web_glbs.py --phone and --audience mobile --file, the
-                    next <project>/06_Issued_Revisions/Portals/mobile-portal/ letter once per model revision; and build_landing.py --file, the
-                    site landing page, filed only when it changed.
-                    One refile flag per document, neither implies the other (2026-10-03): --refile-portal files the
-                    tracker again on a day it was already filed; --refile-quoting files the quoting portal again for
-                    a model revision it was already issued for
+                    (skipped if one was already filed today for the same model revision; --refile-portal files it
+                    again); then Mobile Optimized (2026-10-17): web_glbs.py --phone and --audience mobile --file, the
+                    next <project>/06_Issued_Revisions/Portals/mobile-portal/ letter once per model revision; and
+                    build_landing.py --file, the site landing page, filed only when it changed
     6. Drive        drive_store.py pointers, push (every pointer whose file is not in Drive yet), verify (nothing
                     goes outside the repo before this). Push runs after the portal so the portal's large files go too.
-    7. Linear loops TR-12 (Bob, 2026-10-07; harness/lib/linear_loops.py): today's <project>/_work/daily/<date>* handoffs and
+    7. Linear loops (Bob, 2026-10-07; harness/lib/linear_loops.py): today's <project>/_work/daily/<date>* handoffs and
                     today's Agent-to-Agent Questions.md entries with no CPM-nn ref; issues touched today with no comment today; NEXT: lines
                     naming an agent with no issue opened for it today; handoffs saying LINEAR: unavailable. Linear is
                     read from the export the project-manager writes first (<project>/_work/daily/<date>-linear.json, or
@@ -45,9 +42,9 @@ Steps, in this order:
     8. commit body  <project>/_work/daily/<date>-commit.md: Why, Changed IDs, Sources and rules cited, TR rows touched,
                     Drawings filed, Checks run, Linear loops, with the day's filed revisions and the --tag list; and
                     <project>/_work/daily/<date>-paths.txt, candidate paths from git status, for Bob's track.py run
-    9. site plan    publish_site.py --rev <P> --quoting <Q> --landing <L> --dry-run, each the newest filed revision
+    9. site plan    publish_site.py --rev <P> --quoting none --landing <L> --mobile <M> --dry-run, each the newest filed revision
                     (harness/lib/site_revs.py, shared with track.py after-merge): the presentation site publish plan
-                    and the command (C-08). Never publishes on its own; track.py after-merge publishes
+                    and the command. Never publishes on its own; track.py after-merge publishes
                     after the day's PR merges, on the day's go
 
 Steps 4, 5 and 9 and the portal wording lint are the presentation site's. While the project has none
@@ -89,11 +86,10 @@ import site_revs  # noqa: E402
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 # Repo-integrity checks whose FAIL is a failure, not a design finding. Mirrors HARD_FAIL_CHECKS in
 # harness/scripts/run_checks.sh (CI); harness/tests/test_track_daily.py fails if the two lists differ.
-HARD_FAIL_CHECKS = {"drive_pointers"}
+HARD_FAIL_CHECKS = {"drive_pointers", "filed_layout"}
 BLENDER = Path(r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe")
 PRESENT = rp.PRESENTATIONS
 PORTAL_REVS = rp.PORTAL_FILED / "revisions.csv"
-QUOTING_REVS = rp.QUOTING_FILED / "revisions.csv"
 MOBILE_REVS = rp.MOBILE_FILED / "revisions.csv"
 PRR = rp.OPEN_ITEMS / "pid-revision-requests.md"
 PRR_HEADER = "# P&ID revision requests\n"   # the seed's one-line header (harness/templates/project-folder)
@@ -226,7 +222,8 @@ def step_list_delta(R: Report, dry: bool, newest: str | None, date: str) -> bool
     if not newest:
         print("   no filed revision")
         return False
-    d = list_delta.compute(mb.FILED, f"{mb.MODEL_ID}-rev{newest}-")
+    stem = rp.rev_folder(mb.MODEL_ID, newest)
+    d = list_delta.compute(mb.FILED / stem, f"{stem}-")
     n = len(d["rows"])
     lsd = [r for r in rcsv(rp.DRAWINGS / "line-segment-diagram" / "revisions.csv")]
     pfd = [r for r in rcsv(rp.DRAWINGS / "process-flow-diagram" / "revisions.csv")]
@@ -271,7 +268,7 @@ def presentation_media(rev: str) -> Path | None:
     """A presentation render folder (<project>/_work/portal-media/presentation-rev<P>/) made from design Rev <rev>,
     complete with the hero still and the web GLB; its material-assignments.json names the design revision.
     Order (2026-10-03): the newest presentation letter first, and within it the highest re-render -r<n>
-    (presentation-revA-r2, Quote Site Rev 2 media, before presentation-revA); a name sort would put -r10 before -r2."""
+    (presentation-revA-r2 before presentation-revA); a name sort would put -r10 before -r2."""
     import json
     import re
 
@@ -297,7 +294,7 @@ def media_dir(rev: str) -> Path:
 def step_looks(R: Report, newest: str) -> None:
     """The required_looks line for the newest filed GLB (presentation_materials.py --looks-only; Bob
     2026-10-12). Read-only, so it runs in --dry-run too; a report, never a failure (CLAUDE.md: checks report)."""
-    glb = mb.FILED / f"{mb.MODEL_ID}-rev{newest}.glb"
+    glb = mb.filed_file(newest, ".glb")
     if not glb.is_file():
         R.step("looks", f"not checked: {rp.rel(glb)} not here (drive_store.py pull)", ok=True)
         return
@@ -328,7 +325,7 @@ def step_media(R: Report, dry: bool, newest: str) -> None:
         print(f"   {msg}") if dry else R.step("portal media", msg)
         return
     # from G1 (Bob, 2026-10-02) every render uses the materials map: resolve it, then the fast EEVEE studio pass
-    glb = mb.FILED / f"{mb.MODEL_ID}-rev{newest}.glb"
+    glb = mb.filed_file(newest, ".glb")
     resolve = [PY, PRESENT / "presentation_materials.py", "--rev", newest, "--out", out.resolve()]
     cmd = [BLENDER, "-b", "-P", (PRESENT / "portal_media.py").resolve(), "--", glb.resolve(), out.resolve(),
            "--materials", (out / "materials.json").resolve(), "--studio"]
@@ -347,7 +344,7 @@ def step_media(R: Report, dry: bool, newest: str) -> None:
     R.step("portal media", f"Blender exit {rc} in {(time.time() - t0) / 60:.1f} min -> {rp.rel(out)}", ok=rc == 0)
 
 
-def step_portal(R: Report, dry: bool, newest: str, date: str, refile: bool, refile_quoting: bool = False) -> None:
+def step_portal(R: Report, dry: bool, newest: str, date: str, refile: bool) -> None:
     head(5, "portal (build_portal.py --file)")
     why = site_revs.site_dormant(("build_portal.py", "web_glbs.py"))
     if why:
@@ -361,7 +358,8 @@ def step_portal(R: Report, dry: bool, newest: str, date: str, refile: bool, refi
     if done_today and not refile:
         msg = f"project-portal Rev {done_today[-1]['revision']} already filed today for Rev {newest}; not refiled (--refile-portal)"
         print(f"   {msg}") if dry else R.step("portal", msg)
-        step_quoting(R, dry, newest, date, refile_quoting)
+        step_mobile(R, dry, newest, date)
+        step_landing(R, dry, date)
         return
     cmd = [PY, PRESENT / "build_portal.py", "--rev", newest, "--media", media_dir(newest), "--out", rp.PORTAL_WORK,
            "--file", "--note", note]
@@ -374,7 +372,8 @@ def step_portal(R: Report, dry: bool, newest: str, date: str, refile: bool, refi
         print(f"   web GLB for Rev {newest} only (web_glbs.py --rev {newest}): "
               + "; ".join(ln.split(None, 1)[1].strip() for ln in out.splitlines() if ln.strip())[:600])
         print(f"   would build and file project-portal Rev {nxt}, note \"{note}\":\n   {' '.join(str(c) for c in cmd)}")
-        step_quoting(R, True, newest, date, refile_quoting)
+        step_mobile(R, True, newest, date)
+        step_landing(R, True, date)
         return
     rc, out = run(wg, LOG / f"{date}-web-glbs.log")
     R.step("web GLB", f"web_glbs.py --rev {newest} exit {rc}: "
@@ -384,7 +383,8 @@ def step_portal(R: Report, dry: bool, newest: str, date: str, refile: bool, refi
     filed = [ln for ln in out.splitlines() if ln.startswith("filed ")]
     R.step("portal", filed[-1] if filed else first(out), ok=rc == 0 and bool(filed))
     report_web_glb(R, out, "portal")
-    step_quoting(R, False, newest, date, refile_quoting)
+    step_mobile(R, False, newest, date)
+    step_landing(R, False, date)
 
 
 def report_web_glb(R: Report, out: str, what: str) -> None:
@@ -399,36 +399,13 @@ def report_web_glb(R: Report, out: str, what: str) -> None:
                ok=True)
 
 
-def step_quoting(R: Report, dry: bool, newest: str, date: str, refile: bool) -> None:
-    """The quoting portal (fabricator audience), filed as the next <project>/06_Issued_Revisions/Portals/quoting-portal/ letter once per
-    model revision (an issue for quotation follows the design, not the day), and the site landing page, filed as the
-    next <project>/06_Issued_Revisions/Portals/portal-landing/ letter only when it changed."""
-    rows = rcsv(QUOTING_REVS)
-    issued = [r for r in rows if f"; {mb.MODEL_ID} Rev {newest};" in r.get("description", "")]
-    nxt = mb.next_letter(rows[-1]["revision"] if rows else None)
-    note = f"Issue for model Rev {newest}"[:32]
-    cmd = [PY, PRESENT / "build_portal.py", "--rev", newest, "--media", media_dir(newest), "--out", rp.WORK / "quoting",
-           "--audience", "fabricator", "--file", "--note", note]
-    land = [PY, PRESENT / "build_landing.py", "--out", rp.WORK / "site-landing", "--file", "--note", f"Close-out {date}"[:32]]
+def step_landing(R: Report, dry: bool, date: str) -> None:
+    """The site landing page (tiles: Project Tracker and Mobile Optimized), filed as the next
+    <project>/06_Issued_Revisions/Portals/portal-landing/ letter only when it changed."""
+    land = [PY, PRESENT / "build_landing.py", "--out", rp.LANDING_WORK, "--file", "--note", f"Close-out {date}"[:32]]
     if dry:
-        if issued and not refile:
-            print(f"   quoting-portal Rev {issued[-1]['revision']} already issued for model Rev {newest}; not refiled (--refile-quoting)")
-        else:
-            print(f"   would build and file quoting-portal Rev {nxt}, note \"{note}\":\n   {' '.join(str(c) for c in cmd)}")
-        step_mobile(R, True, newest, date)
         print(f"   would build the landing page and file it only if it changed:\n   {' '.join(str(c) for c in land)}")
         return
-    if issued and not refile:
-        R.step("quoting portal", f"quoting-portal Rev {issued[-1]['revision']} already issued for model Rev {newest}; not refiled (--refile-quoting)")
-    else:
-        # the phone GLB first: the estimating portal carries a scrubbed copy for phones (2026-10-17)
-        rc, out = run([PY, PRESENT / "web_glbs.py", "--phone", "--rev", newest], LOG / f"{date}-phone-glb.log")
-        R.step("phone GLB", f"web_glbs.py --phone --rev {newest} exit {rc}", ok=rc == 0)
-        rc, out = run(cmd, LOG / f"{date}-quoting.log")
-        filed = [ln for ln in out.splitlines() if ln.startswith("filed ")]
-        R.step("quoting portal", filed[-1] if filed else first(out), ok=rc == 0 and bool(filed))
-        report_web_glb(R, out, "quoting portal")
-    step_mobile(R, False, newest, date)
     rc, out = run(land, LOG / f"{date}-landing.log")
     R.step("landing page", [ln for ln in out.splitlines() if ln.strip()][-1] if out.strip() else "(no output)", ok=rc == 0)
 
@@ -443,7 +420,7 @@ def step_mobile(R: Report, dry: bool, newest: str, date: str) -> None:
     nxt = mb.next_letter(rows[-1]["revision"] if rows else None)
     note = f"Mobile for model Rev {newest}"[:32]
     wg = [PY, PRESENT / "web_glbs.py", "--phone", "--rev", newest]
-    cmd = [PY, PRESENT / "build_portal.py", "--rev", newest, "--media", media_dir(newest), "--out", rp.WORK / "mobile",
+    cmd = [PY, PRESENT / "build_portal.py", "--rev", newest, "--media", media_dir(newest), "--out", rp.MOBILE_WORK,
            "--audience", "mobile", "--file", "--note", note]
     if issued:
         msg = f"mobile-portal Rev {issued[-1]['revision']} already filed for model Rev {newest}; not refiled"
@@ -498,9 +475,9 @@ def filed_today(date: str) -> dict[str, list[tuple[str, str, str]]]:
 
 
 def step_linear_loops(R: Report, dry: bool, date: str, export: Path | None) -> None:
-    """TR-12 loop-closing audit (Bob, 2026-10-07). Read-only, so it runs in --dry-run too. Every finding is a
+    """Linear loop-closing audit (Bob, 2026-10-07). Read-only, so it runs in --dry-run too. Every finding is a
     warning: recorded with ok=True and never added to R.failed, so it cannot change the exit code."""
-    head(7, "Linear loops (TR-12; read-only, warnings only)")
+    head(7, "Linear loops (read-only, warnings only)")
     import linear_loops as LL
     p = Path(export) if export else LL.export_path(LOG, date)
 
@@ -553,7 +530,7 @@ def step_commit_body(R: Report, dry: bool, date: str) -> None:
     L += [f"- {d} Rev {r} filed ({n})" for d, r, n in f["reviews"]]
     L += ["- <fill: DEC, Q, list rows, rules changed>", "",
           "**Sources and rules cited**", "<fill: design rule ids, standards, Bob's chat dates>", "",
-          "**TR rows touched**", "- TR-11 (documented commit, explicit paths)"]
+          "**TR rows touched**"]
     if f["models"] or f["drawings"] or f["reviews"]:
         L.append("- TR-08 (every filed revision new, read-only, sha256 in revisions.csv)")
     if f["drawings"]:
@@ -602,9 +579,7 @@ def main() -> int:
     ap.add_argument("--date", default=dt.date.today().isoformat(), help="close-out date (default today)")
     ap.add_argument("--frame-calc", action="store_true", help="also rerun <project>/02_Engineering/06_Mechanical_Structural/frame-calc/frame_calc.py (about 20 min)")
     ap.add_argument("--refile-portal", action="store_true",
-                    help="file the project tracker (project-portal) even if it was filed today for this rev; the quoting portal is not affected")
-    ap.add_argument("--refile-quoting", action="store_true",
-                    help="file the quoting portal again even if it was already issued for this rev; the tracker is not affected")
+                    help="file the project tracker (project-portal) even if it was filed today for this rev")
     ap.add_argument("--linear-json", type=Path, default=None,
                     help="the Linear export for step 7 (default <project>/_work/daily/<date>-linear.json, written by the project-manager)")
     ap.add_argument("--bob-go", default=None,
@@ -625,7 +600,7 @@ def main() -> int:
         return 3
     if newest:
         step_media(R, a.dry_run, newest)
-        step_portal(R, a.dry_run, newest, a.date, a.refile_portal, a.refile_quoting)
+        step_portal(R, a.dry_run, newest, a.date, a.refile_portal)
     step_portal_terms(R, a.dry_run, a.date)
     step_drive(R, a.dry_run, a.date)
     step_linear_loops(R, a.dry_run, a.date, a.linear_json)   # read-only: runs for real in --dry-run too

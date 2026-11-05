@@ -17,8 +17,10 @@ they are skipped while that folder has no builders. The site_revs and publish_si
 - portal_lib.data.folder_tags reads the tags an equipment-selection folder is named for (lists and ranges).
 - Bob, 2026-10-08: site_revs.hidden_pages reads site.yaml hidden_pages (the Quote page); the side menu carries
   "Launch floating model" only on a page with the floating window, under Expand all / Collapse all; the shared scripts
-  carry the Pan toggle, the hint, the larger window default and the smaller pick box; portal_terms on a filed revision
-  scans only the web GLBs its own pages name.
+  carry the Pan toggle, the hint, the larger window default and the smaller pick box.
+- Bob, chat, 2026-10-30: the site is the project tracker, its landing page and Mobile Optimized; publish_site lays out
+  tracker/ and mobile/ beside the landing page and refuses any --quoting but "none"; portal_terms has the tracker's
+  rules only (warn mode, never FAIL).
 
 Every case works in a scratch folder under <project>/_work/ (gitignored); nothing filed is read or written.
 
@@ -160,31 +162,23 @@ class ViewerAssets(unittest.TestCase):
         self.assertIn("max-width: min(300px, 50%)", css)      # the pick box: at most half by half of the viewer
 
 
-class PortalTermsFiledGlbs(unittest.TestCase):
-    """portal_terms on a filed revision scans only the web GLBs its own pages name, not an older revision's GLB in the
-    shared append-only store (found on a filed quoting portal)."""
+class PortalTermsTrackerOnly(unittest.TestCase):
+    """portal_terms has the tracker's rules only (Bob, chat, 2026-10-30: no estimating or customer portal): it lints a
+    tracker or mobile folder in warn mode and never fails; it takes no --audience."""
 
-    @staticmethod
-    def glb(names: list[str]) -> bytes:
-        import struct
-        j = json.dumps({"asset": {"version": "2.0"}, "nodes": [{"name": n} for n in names]}).encode()
-        j += b" " * (-len(j) % 4)
-        return b"glTF" + struct.pack("<II", 2, 20 + len(j)) + struct.pack("<I", len(j)) + b"JSON" + j
-
-    def test_only_the_revisions_own_glb(self):
+    def test_warn_mode_never_fails(self):
         sys.path.insert(0, str(REPO / "harness" / "checks"))
         import portal_terms as PT
         with scratch() as d:
-            root = Path(d) / "quoting-portal"
-            rev = root / "quoting-portal-revZ"
-            (root / "data" / "glb").mkdir(parents=True)
-            rev.mkdir()
-            (rev / "index.html").write_text('<html><body><div data-glbs=\'{"k": "glb/skid-quote-revN.glb"}\'>x</div></body></html>', encoding="utf-8")
-            (root / "data" / "glb" / "skid-quote-revN.glb").write_bytes(self.glb(["tube_T-901"]))
-            (root / "data" / "glb" / "skid-quote-revB.glb").write_bytes(self.glb(["adapter CMP-T032"]))
-            names = [n for n, _ in PT.texts(rev, fab=True)]
-            self.assertIn("../data/glb/skid-quote-revN.glb (part names)", names)
-            self.assertNotIn("../data/glb/skid-quote-revB.glb (part names)", names)
+            root = Path(d) / "mobile"
+            (root / "data").mkdir(parents=True)
+            (root / "index.html").write_text("<html><body><p>Open question Q-0001 about a HOLD (DRAFT)</p></body></html>",
+                                            encoding="utf-8")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                self.assertEqual(PT.report(root, "Mobile Optimized", None), 0)
+            self.assertIn("portal_terms: PASS (warn mode)", out.getvalue())
+            self.assertFalse(hasattr(PT, "fab_terms"))
 
 
 @needs_builders
@@ -247,6 +241,24 @@ class AssetsPlan(unittest.TestCase):
 
 
 class PublishPlan(unittest.TestCase):
+    def test_site_layout_is_tracker_and_mobile(self):
+        docs = PS.docs_for("C", "B", "A")
+        self.assertEqual([(r.name, f, pre) for r, f, pre in docs],
+                         [("portal-landing", "portal-landing-revB", ""), ("project-portal", "project-portal-revC", "tracker/"),
+                          ("mobile-portal", "mobile-portal-revA", "mobile/")])
+        self.assertEqual([pre for _, _, pre in PS.docs_for("C", None, "A")], ["project-portal-revC/"])   # no landing: tracker only
+        self.assertFalse(hasattr(PS, "QUOTING"))
+        self.assertFalse(hasattr(PS, "EST"))
+        self.assertFalse(hasattr(rp, "QUOTING_FILED"))
+
+    def test_publish_args_always_quoting_none(self):
+        self.assertEqual(site_revs.publish_args({"rev": "J", "landing": "D", "mobile": "B"}),
+                         ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "B"])
+        self.assertEqual(site_revs.publish_args({"rev": "J", "landing": None, "mobile": None}),
+                         ["--rev", "J", "--quoting", "none", "--landing", "none", "--mobile", "none"])
+        self.assertEqual(sorted(site_revs.DOCS), ["landing", "mobile", "rev"])
+
+
     def test_shared_assets_go_to_the_site_root(self):
         with scratch() as t:
             root = Path(t) / "project-portal"
@@ -315,7 +327,7 @@ class PublishPlan(unittest.TestCase):
         with scratch() as t:
             d = Path(t)
             docs = []
-            for name, body in (("project-portal", b"one"), ("quoting-portal", b"two")):
+            for name, body in (("project-portal", b"one"), ("mobile-portal", b"two")):
                 root = d / name
                 (root / f"{name}-revA").mkdir(parents=True)
                 (root / "assets").mkdir()
@@ -333,9 +345,10 @@ class FolderTags(unittest.TestCase):
     def test_lists_ranges_and_untagged(self):
         self.assertEqual(D.folder_tags("CV-901, CV-902, CV-951 - Check Valves"), ["CV-901", "CV-902", "CV-951"])
         self.assertEqual(D.folder_tags("XV-901..XV-904 - Butterfly Valves"), ["XV-901", "XV-902", "XV-903", "XV-904"])
-        self.assertEqual(D.folder_tags("TK-901 - Test Tank"), ["TK-901"])
+        self.assertEqual(D.folder_tags("HX-901 - Test Exchanger"), ["HX-901"])
+        self.assertEqual(D.folder_tags("HX-901"), ["HX-901"])                # 04_Vendor_Data/<category>/<tag>/
         self.assertEqual(D.folder_tags("Control Panel"), [])
-        self.assertEqual(D.folder_tags("Tanks - Other Vendor References"), [])
+        self.assertEqual(D.folder_tags("Pumps - Other Vendor References"), [])
 
 
 if __name__ == "__main__":

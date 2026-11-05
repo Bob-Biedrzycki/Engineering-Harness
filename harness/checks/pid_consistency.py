@@ -26,7 +26,7 @@ import repo_paths as rp  # noqa: E402
 import rule_scope  # noqa: E402
 
 REPO = rp.REPO
-if rp.HAS_PROJECT:
+if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
 
 # Untagged kinds and the id pattern each must carry (CLAUDE.md naming: FM-nnn, PS-nnn, PL-nnn). Leveling feet have no
@@ -39,7 +39,7 @@ UNTAGGED_KINDS = {"frame": r"^FM-\d{3}$", "support": r"^PS-\d{3}$", "plate": r"^
 
 
 def main() -> int:
-    if rp.skip_no_project("pid_consistency"):
+    if rp.skip_no_model("pid_consistency"):
         return 0
     missing = rule_scope.model_missing()
     if missing:

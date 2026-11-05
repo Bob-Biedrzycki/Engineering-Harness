@@ -8,12 +8,13 @@ tool never asks for it again unless `status` shows it gone. This script never
 reads, prints or stores a token. A push that changes .github/workflows/ is
 refused up front when the sign-in lacks `workflow`.
 
-Rules enforced (CLAUDE.md notice 2026-09-24; harness/knowledge/Todd Requirements.md
-TR-09..TR-12):
-  * Only the scrum master (project-manager) uses this tool.
-  * No GitHub issues or milestones: Linear is the task board (TR-12; CLAUDE.md "GitHub keeps the code"). The
+What it enforces (how this repo carries out the "Git and backup" rules in Bob's global instructions,
+%USERPROFILE%/.claude/CLAUDE.md):
+  * Any session or agent runs `save` (Bob, chat, 2026-11-03); every other command is the scrum master's
+    (project-manager).
+  * No GitHub issues or milestones: Linear is the task board (CLAUDE.md notice). The
     issue, milestone and issue-comment commands were removed 2026-10-26 (CPME practice).
-  * Pull requests: one per day, from branch daily/<YYYY-MM-DD> into main.
+  * Pull requests: from branch daily/<YYYY-MM-DD> into main, when Bob asks.
     Closing keywords ("Closes #7", "fixes #3", "please close #7" ...) are
     refused unless that issue is passed with --closes (a PR body once closed
     an undecided issue by accident).
@@ -22,7 +23,8 @@ TR-09..TR-12):
     No Drive-store file is ever added: .gitignore joins the paths when
     only its managed block changed, and a selected large file is refused unless
     its pointer exists and the committed .gitignore ignores it (2026-10-07).
-  * Anything that writes to GitHub or pushes needs --bob-go "<Bob's words>".
+  * Anything that writes to GitHub or pushes needs --bob-go "<Bob's words>", except `save`: saving and backing
+    up the day's branch is routine and carries Bob's standing words (STANDING_SAVE, 2026-11-03).
     --dry-run prints what would happen and sends nothing.
   * Writes go out as Bob-Biedrzycki (WRITER_ACCOUNT). Bob, 2026-10-07: one
     account writes; a separate agent account never got access, and Bob
@@ -32,6 +34,9 @@ TR-09..TR-12):
 
 Run with the repo venv from the repo root:
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\track.py status
+    .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\track.py save --paths-file P --message-file M [--tag DOC-revX ...] [--date YYYY-MM-DD]
+        the routine save after each piece of work (global "Git and backup"):
+        Drive pointers and push, then the documented commit on daily/<date>, pushed. No per-commit go.
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\track.py daily-commit --date YYYY-MM-DD --paths-file P --message-file M [--tag DOC-revX ...] [--local] [--start REF] [--moves-file CSV] [--removes-file F] --bob-go "..."
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\track.py daily-push --date YYYY-MM-DD --bob-go "..."
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\track.py daily-pr --date YYYY-MM-DD --title T --body-file F [--closes N ...] [--base daily/YYYY-MM-DD] --bob-go "..."
@@ -333,28 +338,30 @@ def cmd_status(a) -> None:
              f"NOT signed in (gh holds {', '.join(names) or 'nobody'}) - writes are refused until Bob runs:  {SIGNIN_CMD}"))
     persisted = os.environ.get("GH_CONFIG_DIR") and Path(os.environ["GH_CONFIG_DIR"]) == GH_CONFIG_DIR
     print(f"GH_CONFIG_DIR in this shell's environment: {'yes' if persisted else 'NO - gh_signin.ps1 persists it for new windows'}")
-    # TR-10: is the repo under an organization, and which organizations can the signed-in account see?
+    # Is the repo under an organization, and which organizations can the signed-in account see?
     info = gh("repo", "view", slug, "--json", "nameWithOwner,isInOrganization,visibility", check=False)
     try:
         j = json.loads(info or "{}")
-        print(f"TR-10: repo {j.get('nameWithOwner', slug)} is "
+        print(f"repo owner: {j.get('nameWithOwner', slug)} is "
               f"{'in an organization' if j.get('isInOrganization') else 'under a personal account (Bob, chat, 2026-10-19)'}"
               f" ({j.get('visibility', '?')})")
     except json.JSONDecodeError:
-        print("TR-10: could not read repo owner type")
+        print("repo owner: could not read repo owner type")
     orgs = gh("api", "user/orgs", "--jq", ".[].login", check=False).split()
     print(f"organizations visible to this sign-in: {', '.join(orgs) if orgs else '(none, or the token lacks read:org)'}")
-    print("tasks: Linear (TR-12); this tool opens no GitHub issue or milestone")
+    print("tasks: Linear; this tool opens no GitHub issue or milestone")
     print(f"current branch of the shared checkout: {git('branch', '--show-current').strip()} (never switched by this tool)")
 
 
 COMMIT_SECTIONS = ("Why", "Changed IDs", "Sources and rules cited", "TR rows touched", "Drawings filed", "Checks run")
+# Stage words (Bob, chat, 2026-11-03, CLAUDE.md "Stages"): "Locked" replaces "filed"; either heading is accepted.
+SECTION_ALIASES = {"Drawings filed": ("Drawings filed", "Drawings locked")}
 # Placeholders of the close-out skeleton (closeout.py step 8): a message still holding one was never filled in.
 SKELETON_MARKS = ("<fill:", "<area>:", "<what changed")
 
 
 def commit_inputs(a, check_exist: bool = True) -> tuple[list[str], str]:
-    """The paths and message of a daily commit, refused on any TR-11 rule. One copy of the rules, used by
+    """The paths and message of a daily commit, refused on any documented-commit rule. One copy of the rules, used by
     daily-commit and, before close-out runs, by daily (check_exist=False there: close-out has not filed yet)."""
     paths = [ln.strip() for ln in read_text(a.paths_file).splitlines() if ln.strip() and not ln.startswith("#")]
     if not paths:
@@ -366,15 +373,15 @@ def commit_inputs(a, check_exist: bool = True) -> tuple[list[str], str]:
             die(f"path does not exist in the working tree: {pth}")
     msg = read_text(a.message_file)
     for sect in COMMIT_SECTIONS:
-        if sect.lower() not in msg.lower():
-            die(f"commit message is missing the '{sect}' section (CLAUDE.md, TR-11)")
+        if not any(s.lower() in msg.lower() for s in SECTION_ALIASES.get(sect, (sect,))):
+            die(f"commit message is missing the '{sect}' section (CLAUDE.md, github-tracking)")
     if len(msg.splitlines()[0]) > 72:
         die("commit subject line is longer than 72 characters")
     if CLOSING.search(msg):
         die("commit messages must not contain closing keywords")
     left = [m for m in SKELETON_MARKS if m in msg]
     if left:
-        die(f"commit message still holds close-out skeleton placeholder(s) {', '.join(left)}; fill them in (TR-11)")
+        die(f"commit message still holds close-out skeleton placeholder(s) {', '.join(left)}; fill them in")
     for t in a.tag:
         if not re.fullmatch(r"[\w.-]+-rev[A-Z]+", t):
             die(f"tag {t!r} is not <DOC-ID>-rev<X>")
@@ -635,21 +642,50 @@ def cmd_daily_commit(a) -> None:
         git("worktree", "remove", "--force", str(wt), write=True, check=False)
 
 
+# Saving and backing up are routine (Bob, chat, 2026-11-03, adopting the shared git order in CLAUDE.md "Stages and
+# the git order": "Yes, adopt it"). A commit on the day's branch changes nothing official; Bob's merge does. So `save`
+# needs no per-commit go: this standing authorization is passed where daily-commit needs one.
+STANDING_SAVE = 'Bob, chat, 2026-11-03: "Yes, adopt it" (save and back up each piece of work as it is done)'
+
+
+def cmd_save(a) -> None:
+    """One piece of work done: Drive pointers and push (large files backed up), then the documented commit on the
+    day's branch by explicit paths, pushed to GitHub (daily-commit). Prints the stage reached. Nothing official
+    changes: the PR and the merge stay Bob's."""
+    a.date = check_date(a.date or dt.date.today().isoformat())
+    ds = [str(VENV_PY), str(rp.SCRIPTS / "drive_store.py")]
+    steps = [["push", "--dry-run"]] if DRY else [["pointers"], ["push"]]
+    for step in steps:
+        r = subprocess.run(ds + step, cwd=REPO, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        out = [ln for ln in (r.stdout + r.stderr).splitlines() if ln.strip()]
+        print(f"drive {step[0]}: {out[-1].strip() if out else '(no output)'}", flush=True)
+        if r.returncode != 0:
+            die(f"drive_store.py {' '.join(step)} failed; nothing committed. Stage: Locked only (not Saved, not "
+                f"Backed up).\n  " + "\n  ".join(out[-15:]))
+    a.bob_go = STANDING_SAVE
+    a.local, a.start, a.removes_file = False, None, None
+    cmd_daily_commit(a)
+    if not DRY:
+        sha = git("rev-parse", "--short", f"daily/{a.date}").strip()
+        print(f"Stage: Saved and Backed up on daily/{a.date} ({sha}), large files in Google Drive. Not merged: "
+              f"the PR goes to Bob when he asks for it.")
+
+
 INIT_MAIN_MSG = """repo: empty first commit, the base for the first daily PR
 
 **Why**
 A new job repo has no commits and GitHub has no `main`, so the day's branch has nothing to build on and
 the daily PR has no base. This commit holds no files: it only creates `main`, so the first day's work goes
-through the normal daily branch and one PR that Bob reviews and merges (TR-11, one PR a day).
+through the normal daily branch and a PR that Bob reviews and merges (global "Git and backup").
 
 **Changed IDs**
 none
 
 **Sources and rules cited**
-CLAUDE.md "Commits" and "Work cycle" step 6; harness/scripts/track.py init-main.
+Global "Git and backup"; CLAUDE.md "Git"; harness/scripts/track.py init-main.
 
 **TR rows touched**
-TR-11 (documented commit), TR-12 (daily PR flow unchanged).
+none
 
 **Drawings filed**
 none
@@ -704,7 +740,7 @@ def cmd_daily_push(a) -> None:
 
 
 def linear_pr_note(body: str, date: str) -> None:
-    """TR-12 (Bob, 2026-10-07): say whether the PR body names the day's Linear issues. A warning only:
+    """Linear (Bob, 2026-10-07): say whether the PR body names the day's Linear issues. A warning only:
     never refuses, never changes the exit code."""
     try:
         hand = linear_loops.read_handoffs(rp.DAILY, date)
@@ -720,7 +756,7 @@ def pr_body(a) -> str:
     used by daily-pr and, before close-out runs, by daily."""
     body = read_text(a.body_file)
     for need in ("Todd's requirements", "Drawings filed"):
-        if need.lower() not in body.lower():
+        if not any(s.lower() in body.lower() for s in SECTION_ALIASES.get(need, (need,))):
             die(f"PR body is missing the '{need}' section (.github/pull_request_template.md)")
     allowed = {f"#{n}" for n in a.closes}
     for m in CLOSING.finditer(body):
@@ -1179,6 +1215,12 @@ def main() -> None:
     p.add_argument("--moves-file", help="CSV with old_path,new_path; tracked old paths are git mv'd (renames)")
     p.add_argument("--removes-file", help="one tracked path per line; each is removed from the index (git rm --cached)")
     p.add_argument("--bob-go")
+    p = sub.add_parser("save", help="one piece of work done: Drive push, documented commit on the day's branch, push")
+    p.add_argument("--date", help="default today")
+    p.add_argument("--paths-file", required=True)
+    p.add_argument("--message-file", required=True)
+    p.add_argument("--tag", action="append", default=[])
+    p.add_argument("--moves-file", help="CSV with old_path,new_path; tracked old paths are git mv'd (renames)")
     p = sub.add_parser("daily-push")
     p.add_argument("--date", required=True)
     p.add_argument("--bob-go")
@@ -1212,7 +1254,7 @@ def main() -> None:
     DRY = a.dry_run
     if a.as_bob:
         print(f"--as-bob is ignored: {WRITER_ACCOUNT} is the writer (Bob, 2026-10-07)")
-    {"status": cmd_status, "init-main": cmd_init_main, "daily-commit": cmd_daily_commit, "daily-push": cmd_daily_push,
+    {"status": cmd_status, "init-main": cmd_init_main, "save": cmd_save, "daily-commit": cmd_daily_commit, "daily-push": cmd_daily_push,
      "daily-pr": cmd_daily_pr, "pr-retarget": cmd_pr_retarget, "sync-main": cmd_sync_main,
      "daily": cmd_daily, "after-merge": cmd_after_merge}[a.cmd](a)
 

@@ -1,12 +1,13 @@
 """publish_site.py - copy a filed project-portal revision to the presentation site repo and push it, on Bob's go.
 
-TR-09 conflict C-08 (Bob, chat, 2026-10-02). The site repo rp.SITE_REPO (<project>/project.yaml site_repo; checkout
+A separate folder and repo (Bob, chat, 2026-10-02). The site repo rp.SITE_REPO (<project>/project.yaml site_repo; checkout
 rp.PRESENTATION_SITE, a sibling of this repo) is a publishing target only: generated copies of filed portal
 revisions, never a source, record or decision. Nothing in this design repo is written or committed. While the
 project has no site (site_repo `unknown`, or no builders in <project>/03_Working_Design/CAD/09_Presentation/;
 site_revs.site_dormant) it prints "no presentation site yet" and exits 0, publishing nothing (CPME practice).
-The site framework (project tracker, quoting/estimating portal, landing page) is CPME practice and dormant
-until Bob defines the job's site. No project yet: it refuses with exit 2.
+The site framework (project tracker, its landing page and Mobile Optimized) is CPME practice and dormant
+until Bob defines the job's site. No project yet: it refuses with exit 2. This job has no Fabrication Estimating
+Portal and no Customer Portal (Bob, chat, 2026-10-30): --quoting takes only "none".
 
     1. Refuses unless <project>/06_Issued_Revisions/Portals/project-portal/project-portal-rev<X>/ is filed (rows in revisions.csv, every row's
        sha256 matching the file on disk), the filed folder is committed here, and the site checkout is on main with a
@@ -14,15 +15,14 @@ until Bob defines the job's site. No project yet: it refuses with exit 2.
     2. Large files (.drive pointers in the portal folder and the data store) missing from this checkout are pulled
        first (drive_store.py pull), so real files are copied, never pointers.
     3. The site's content (everything but .git, .gitattributes and README.md) becomes the filed trees. With a
-       portal-landing and a quoting-portal revision filed: the landing page portal-landing-rev<L>/ at the root,
-       project-portal-rev<X>/ as tracker/, quoting-portal-rev<Q>/ as estimating/ (the Fabrication Estimating
-       Portal), and the two shared stores merged as
-       data/ beside them, so every page's ../data/ resolves unchanged (a store path held by both with different
-       bytes is refused). Without them (or --quoting none): project-portal-rev<X>/ and data/ as filed, plus a root
+       portal-landing revision filed: the landing page portal-landing-rev<L>/ at the root, project-portal-rev<X>/ as
+       tracker/, mobile-portal-rev<M>/ as mobile/ once one is filed, and the shared stores merged as data/ beside
+       them, so every page's ../data/ resolves unchanged (a store path held by two with different bytes is refused).
+       Without a landing page (or --landing none): project-portal-rev<X>/ and data/ as filed, plus a root
        index.html that redirects to project-portal-rev<X>/.
        The shared assets each published portal revision lists in its shared-assets.json
        (content-hashed scripts, stylesheet, renders, turntable, drawings) go into the site root's assets/ beside the
-       landing page's own, from <project>/06_Issued_Revisions/Portals/<portal>/assets/, so both portals load one copy; and data/ carries
+       landing page's own, from <project>/06_Issued_Revisions/Portals/<portal>/assets/, so the portals load one copy; and data/ carries
        only what the published pages reach, never a model named in <project>/03_Working_Design/CAD/09_Presentation/site.yaml hidden_models
        (trim_store). Nothing filed is touched.
     4. README.md is rewritten from the template below, its Revisions table carried forward with a new row.
@@ -33,8 +33,9 @@ until Bob defines the job's site. No project yet: it refuses with exit 2.
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\publish_site.py --rev E --dry-run
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\publish_site.py --rev E --bob-go "<Bob's words>"
 
---quoting / --landing pick the quoting-portal and portal-landing revisions (default: the newest filed; "none" for
-the tracker-only layout).
+--landing / --mobile pick the portal-landing and mobile-portal revisions (default: the newest filed; "none" for
+the tracker-only layout, or no mobile/). --quoting none is accepted (site_revs.publish_args always passes it); any
+other value is refused: there is no estimating portal on this job.
 
 --as-bob: accepted and ignored since 2026-10-07; gh writes as Bob-Biedrzycki, the one writer (track.py).
 Exit 0 = published (or dry run listed); 2 = refused.
@@ -65,15 +66,11 @@ import track as T  # noqa: E402  (gh credential helper, account checks, die; set
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 PORTAL = rp.PORTAL_FILED
 STORE = PORTAL / "data"
-QUOTING = rp.QUOTING_FILED   # record ID of the Fabrication Estimating Portal (unchanged)
 LANDING = rp.LANDING_FILED
 # Mobile Optimized (Bob, chat, 2026-10-17: "a 3rd page selection from home called Mobile Optimized"): mobile-portal
-# revisions as mobile/, beside tracker/ and estimating/, once one is filed (closeout.py files it with the tracker)
+# revisions as mobile/, beside tracker/, once one is filed (closeout.py files it with the tracker)
 MOBILE = rp.MOBILE_FILED
 MOB = "mobile/"
-# site folder of the Fabrication Estimating Portal (Bob 2026-10-05: "Rename Quote portal to Fabrication
-# Estimating Portal, would like to use quoting for different purpose in the future")
-EST = "estimating/"
 KEEP = {".git", ".gitattributes", "README.md"}   # never replaced on the site
 GH_HARD_LIMIT = 100 * 2**20                      # GitHub rejects files over 100 MiB
 GH_WARN = 50 * 2**20                             # and warns over 50 MiB
@@ -86,16 +83,12 @@ PROJECT_FMT = dict(project_code=rp.PROJECT_CODE, skid_name=rp.PROJECT_INFO["skid
 README6 = """# CPME Project {project_code} — {skid_name} Presentation Site
 
 A static site that presents CPME USA project {project_code}, {skid_description}: a landing
-page with the **Fabrication Estimating Portal** (`estimating/`: frame and piping
-fabrication tables, plan set and 3D model, issued for estimate), the **Project
-Tracker** (`tracker/`: the full project portal) and, once filed, **Mobile Optimized** (`mobile/`:
-the tracker for phones, current revision only, mobile-portal{mob_note}).
+page with the **Project Tracker** (`tracker/`: the full project portal) and, once filed, **Mobile
+Optimized** (`mobile/`: the tracker for phones, current revision only, mobile-portal{mob_note}).
 
 **Content:** copies of documents filed in the job's repository (`{design_repo}`):
 portal-landing **Rev {land}** (`{portals}/portal-landing/portal-landing-rev{land}/`) at the root,
 project-portal **Rev {rev}** (`{portals}/project-portal/project-portal-rev{rev}/`) as `tracker/`,
-the Fabrication Estimating Portal, filed as quoting-portal **Rev {quote}**
-(`{portals}/quoting-portal/quoting-portal-rev{quote}/`), as `estimating/`,
 and the portals' shared data stores (`{portals}/*/data/`) merged as `data/`. They present model
 `{model}` **Rev {mrev}** and P&ID `{pid_doc_id}` **Rev {prev}**. Published {date} from
 design-repo commit `{commit}`.
@@ -227,7 +220,8 @@ def filed_revision(rev: str) -> tuple[list[dict], str, str, str]:
     if not mine or not folder.is_dir():
         die(f"project-portal Rev {rev} is not filed: no project-portal-rev{rev}/ rows in {rp.rel(PORTAL / 'revisions.csv')}"
             f" or no folder {rp.rel(folder)}")
-    m = re.match(r"(\S+) Rev (\w+); P&ID Rev (\w+)", mine[0].get("description", ""))
+    # build_portal.py: "<MODEL-ID> Rev <X>; P&ID <PID-DOC-ID> Rev <Y>" (the P&ID number optional, as filed before)
+    m = re.match(r"(\S+) Rev (\w+); P&ID (?:\S+ )?Rev (\w+)", mine[0].get("description", ""))
     if not m:
         die(f"cannot read the model and P&ID revisions from the Rev {rev} row description: {mine[0].get('description')!r}")
     return mine, m.group(1), m.group(2), m.group(3)
@@ -238,17 +232,17 @@ def newest_filed(root: Path) -> str | None:
     return site_revs.newest({"doc": root})["doc"]
 
 
-def docs_for(rev: str, quote: str | None, land: str | None, mob: str | None = None) -> list[tuple[Path, str, str]]:
+def docs_for(rev: str, land: str | None, mob: str | None = None) -> list[tuple[Path, str, str]]:
     """(document root, filed folder name, site prefix) of everything published; the stores are added by source_plan."""
-    if quote and land:
-        return [(LANDING, f"portal-landing-rev{land}", ""), (PORTAL, f"project-portal-rev{rev}", "tracker/"),
-                (QUOTING, f"quoting-portal-rev{quote}", EST)] + ([(MOBILE, f"mobile-portal-rev{mob}", MOB)] if mob else [])
+    if land:
+        return [(LANDING, f"portal-landing-rev{land}", ""), (PORTAL, f"project-portal-rev{rev}", "tracker/")] + (
+            [(MOBILE, f"mobile-portal-rev{mob}", MOB)] if mob else [])
     return [(PORTAL, f"project-portal-rev{rev}", f"project-portal-rev{rev}/")]
 
 
 def ensure_large_files(dry: bool) -> list[str]:
     """Every pointer under the portal folders / data stores must have its real file here; pull if not."""
-    roots = [r for r in (PORTAL, QUOTING, LANDING, MOBILE) if r.is_dir()]
+    roots = [r for r in (PORTAL, LANDING, MOBILE) if r.is_dir()]
     missing = [d.get("path", "") for p, d in pointers_under(*roots) if not p.with_suffix("").is_file()]
     if not missing:
         return []
@@ -429,8 +423,9 @@ def main() -> int:
     ap.add_argument("--bob-go", help="Bob's go, quoted verbatim (required for the real run)")
     ap.add_argument("--as-bob", action="store_true", help="ignored since 2026-10-07 (Bob-Biedrzycki is the writer)")
     ap.add_argument("--site", default=str(rp.PRESENTATION_SITE), help="site checkout (default: sibling of this repo)")
-    ap.add_argument("--quoting", help="filed quoting-portal revision (default the newest; 'none': tracker-only layout)")
-    ap.add_argument("--landing", help="filed portal-landing revision (default the newest)")
+    ap.add_argument("--quoting", default="none",
+                    help="'none' only: this job has no Fabrication Estimating Portal (kept for site_revs.publish_args)")
+    ap.add_argument("--landing", help="filed portal-landing revision (default the newest; 'none': tracker-only layout)")
     ap.add_argument("--mobile", help="filed mobile-portal revision, published as mobile/ (default the newest; 'none': "
                                      "no mobile/ folder)")
     a = ap.parse_args()
@@ -440,17 +435,18 @@ def main() -> int:
         return 0
     rev, site, dry = a.rev.strip(), Path(a.site), a.dry_run
     T.DRY = dry
-    quote = None if (a.quoting or "").lower() == "none" else (a.quoting or newest_filed(QUOTING))
-    land = None if quote is None else (a.landing or newest_filed(LANDING))
-    six = bool(quote and land)
+    if (a.quoting or "none").strip().lower() != "none":
+        die(f"--quoting {a.quoting}: this job has no Fabrication Estimating Portal (Bob, chat, 2026-10-30); use --quoting none")
+    land = None if (a.landing or "").lower() == "none" else (a.landing or newest_filed(LANDING))
+    six = bool(land)   # the site layout: landing page at the root, tracker/ and mobile/ beside it
     mob = None if not six or (a.mobile or "").lower() == "none" else (a.mobile or newest_filed(MOBILE))
-    what = (f"project-portal Rev {rev}" + (f", quoting-portal Rev {quote}, portal-landing Rev {land}" if six else "")
+    what = (f"project-portal Rev {rev}" + (f", portal-landing Rev {land}" if six else "")
             + (f", mobile-portal Rev {mob}" if mob else ""))
     go = None if dry else T.require_go(a.bob_go, f"publishing {what} to the presentation site")
 
     # 1. filed revisions, design-repo commit, site checkout state
     rows, model, mrev, prev = filed_revision(rev)
-    docs = docs_for(rev, quote, land, mob)
+    docs = docs_for(rev, land, mob)
     for root, f, _ in docs:
         if not (root / f).is_dir():
             die(f"{rp.rel(root / f)} is not filed")
@@ -498,11 +494,11 @@ def main() -> int:
     date = dt.date.today().isoformat()
     target = f"project-portal-rev{rev}/"
     index_html = None if six else INDEX.format(target=target, rev=rev, **PROJECT_FMT)
-    label = f"Rev {rev}" + (f" + quoting Rev {quote}, landing Rev {land}" if six else "") + (f", mobile Rev {mob}" if mob else "")
+    label = f"Rev {rev}" + (f" + landing Rev {land}" if six else "") + (f", mobile Rev {mob}" if mob else "")
     new_row = f"| {date} | {label} | {model} Rev {mrev} | Rev {prev} | {commit[:7]} | {rows[0].get('notes', '').strip() or '-'} |"
     old_rows = [r for r in carried_rows(site) if f"| Rev {rev} |" not in r or "hand copy" in r]
     fmt = dict(rev=rev, model=model, mrev=mrev, prev=prev, date=date, commit=commit[:7], rows="\n".join(old_rows + [new_row]), **PROJECT_FMT)
-    readme = (README6.format(quote=quote, land=land, mob_note=f" **Rev {mob}**" if mob else " not filed yet", **fmt)
+    readme = (README6.format(land=land, mob_note=f" **Rev {mob}**" if mob else " not filed yet", **fmt)
               if six else README.format(**fmt))
     current = site_files(site)
     remove = sorted(k for k in current if k not in plan and (six or k != "index.html"))
@@ -513,7 +509,7 @@ def main() -> int:
     total = sum(p.stat().st_size for p in plan.values())
     big = sorted(plan.items(), key=lambda kv: kv[1].stat().st_size, reverse=True)
     over = [k for k, p in big if p.stat().st_size > GH_HARD_LIMIT]
-    subject = (f"Site: project-portal Rev {rev}, quoting-portal Rev {quote}, landing Rev {land}"
+    subject = (f"Site: project-portal Rev {rev}, landing Rev {land}"
                + (f", mobile Rev {mob}" if mob else "") + f" (model Rev {mrev}, P&ID Rev {prev})"
                if six else f"Site: project-portal Rev {rev} (model Rev {mrev}, P&ID Rev {prev})")
 
@@ -523,11 +519,10 @@ def main() -> int:
     print(f"  site:    {site} on main, clean; origin {url}; newest commit: {last}")
     if six:
         print(f"  layout:  index.html + assets/ (landing Rev {land}), tracker/ (project-portal Rev {rev}), "
-              f"{EST} (Fabrication Estimating Portal, quoting-portal Rev {quote}), "
               + (f"{MOB} (Mobile Optimized, mobile-portal Rev {mob}), " if mob else "") + "data/ (stores merged)")
     print(f"  files:   {len(plan)} filed files, {mb(total)} "
-          + (f"(landing {sum(1 for k in plan if not k.startswith(('tracker/', EST, MOB, 'data/')))}, "
-             f"tracker {sum(1 for k in plan if k.startswith('tracker/'))}, estimating {sum(1 for k in plan if k.startswith(EST))}, "
+          + (f"(landing {sum(1 for k in plan if not k.startswith(('tracker/', MOB, 'data/')))}, "
+             f"tracker {sum(1 for k in plan if k.startswith('tracker/'))}, "
              f"mobile {sum(1 for k in plan if k.startswith(MOB))}, "
              if six else f"({sum(1 for k in plan if k.startswith('project-portal-'))} pages/assets, ")
           + f"{sum(1 for k in plan if k.startswith('data/'))} data store), plus {'' if six else 'index.html (redirect) and '}README.md")
@@ -550,7 +545,7 @@ def main() -> int:
     print(f"  commit:  \"{subject}\"")
     if dry:
         print(f"\nTo publish (Bob's go): .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\publish_site.py "
-              f"--rev {rev}" + (f" --quoting {quote} --landing {land}" if six else " --quoting none")
+              f"--rev {rev} --quoting none" + (f" --landing {land} --mobile {mob or 'none'}" if six else " --landing none")
               + " --bob-go \"<Bob's words>\"")
         return 0
 
@@ -588,9 +583,9 @@ def main() -> int:
     pf, mf = work / f"site-rev{rev}-paths.txt", work / f"site-rev{rev}-commit.md"
     pf.write_text("\n".join(paths) + "\n", encoding="utf-8", newline="\n")
     body = [subject, ""] + ([
-            f"Generated copies of the filed portal-landing Rev {land} (site root), project-portal Rev {rev} (tracker/)",
-            f"and quoting-portal Rev {quote} (the Fabrication Estimating Portal, {EST}), with the portals' shared data",
-            "stores merged as data/ so every",
+            f"Generated copies of the filed portal-landing Rev {land} (site root), project-portal Rev {rev} (tracker/)"
+            + (f" and mobile-portal Rev {mob} ({MOB})" if mob else ""),
+            "with the portals' shared data stores merged as data/ so every",
             "page's ../data/ paths resolve. Do not hand-edit; republish instead.", ""] if six else [
             f"Generated copy of the filed project-portal Rev {rev} ({rp.rel(PORTAL)}/project-portal-rev{rev}/)",
             f"and the shared portal data store ({rp.rel(PORTAL)}/data/), laid out as filed so the pages'",
@@ -598,7 +593,7 @@ def main() -> int:
             f"Design repo: {rp.DESIGN_REPO} commit {commit}",
             f"Model: {model} Rev {mrev}; P&ID {rp.PID_DOC_ID} Rev {prev}",
             f"Files: {len(plan)} filed files ({mb(total)}); {len(add)} added, {len(change)} changed, {len(remove)} removed",
-            "Basis: TR-09 conflict C-08 (Bob, chat, 2026-10-02); harness/scripts/publish_site.py",
+            "Basis: Bob, chat, 2026-10-02; harness/scripts/publish_site.py",
             f"Bob's go: \"{go}\""]
     mf.write_text("\n".join(body) + "\n", encoding="utf-8", newline="\n")
     git("add", "-A", f"--pathspec-from-file={pf}", cwd=site)

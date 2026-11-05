@@ -2,9 +2,23 @@
 
 This file is the master instruction set for AI agents working in this repository.
 
-> **TODD'S REQUIREMENTS GOVERN (Bob, 2026-09-24).** "All of Todd's asks must be
-> met and satisfied by ALL AGENTS, ALL OF THE TIME. INCLUDING HOW GIT IS
-> IMPLIMENTED." Every agent reads `harness/knowledge/Todd Requirements.md` (TR-01 to
+## Git: the global rules, and how this repo saves
+
+**Git, GitHub, branches, commits, pull requests and repos follow only the "Git and backup" section of Bob's global
+instructions** (`%USERPROFILE%\.claude\CLAUDE.md`; Bob, chat, 2026-11-04). This file says only *how* this repo
+carries those rules out; it never adds or changes one. If a git rule turns up anywhere in this repo (a skill, an
+agent file, a knowledge file), the global rules win and Bob is told so it can be removed.
+
+How this repo saves (the save tool the global rules name):
+- **Save:** `harness/scripts/track.py save --paths-file P --message-file M` (skill `github-tracking`). One command
+  pushes the listed large files to Google Drive, commits the listed paths on `daily/<date>` in a separate worktree,
+  and pushes the branch to GitHub; CI runs the checks on that push. A drawing revision is tagged with `--tag`.
+- **Pull request, when Bob asks for it:** `track.py daily-pr`. **After Bob merges:** `track.py after-merge`.
+- If `track.py` will not run, or reports the GitHub or Drive sign-in missing, stop and tell Bob (global failsafes).
+
+> **TODD'S REQUIREMENTS GOVERN (Bob, 2026-09-24), EXCEPT GIT (Bob, 2026-11-04).** "All of Todd's asks must be
+> met and satisfied by ALL AGENTS, ALL OF THE TIME." Git is no longer one of them: it follows the global rules
+> only (see above). Every agent reads `harness/knowledge/Todd Requirements.md` (TR-01 to
 > TR-26) on every task, complies with every row the task touches, and reports
 > compliance in its handoff. Where anything in this file conflicts with a TR
 > row, the TR row governs. **Moving forward there are NO EXCEPTIONS (Bob,
@@ -14,12 +28,8 @@ This file is the master instruction set for AI agents working in this repository
 > it is.
 
 > **NOTICE (Bob, 2026-09-24; replaces the 2026-09-23 suspension).**
-> - **One pull request per day.** The day's work goes on one branch,
->   `daily/<YYYY-MM-DD>`, and into one PR, made when Bob says (usually end of
->   day). Never a PR, branch or issue per file or per change.
-> - **Linear is the agent task board** (Bob, 2026-09-28; TR-12, C-06). This is
->   the move to a cloud-based workflow: Linear is linked to the GitHub repo and
->   manages the GitHub side. Every task an agent can complete is one Linear
+> - **Linear is the agent task board** (Bob, 2026-09-28). This is
+>   the move to a cloud-based workflow. Every task an agent can complete is one Linear
 >   issue, named to the agent that does it: title prefix `[<agent>]` (for
 >   example `[cad-design-engineer]`) and label `role:<agent>`. No cap on open
 >   issues. Teams, projects, gates (as project milestones) and cycles follow
@@ -31,18 +41,13 @@ This file is the master instruction set for AI agents working in this repository
 >   starts a task opens its Linear issue (body = the prompt verbatim) before
 >   the `Agent(...)` call; the agent posts its handoff verbatim as a comment;
 >   every handoff ends with one `NEXT:` line that the delegating session acts
->   on; close-out audits the loops and the daily PR carries the issue IDs,
+>   on; close-out audits the loops and the PR carries the issue IDs,
 >   both as warnings, never stops. The steps are in the skill
 >   `.claude/skills/agent-task`. **Verbatim copy only. Nothing blocks and
 >   nothing waits on Linear:** if the Linear tools are missing, not signed in
 >   or fail, do the work and write `LINEAR: unavailable (<reason>)` in the
 >   handoff. One extra tool call to open, one to comment, nothing else.
-> - **GitHub keeps the code**: the daily branch, the one daily PR, CI and
->   drawing tags. No new GitHub issues or milestones. **All GitHub work goes
->   through `harness/scripts/track.py`** (skill
->   `.claude/skills/github-tracking`), which wraps the `gh` CLI and enforces
->   these rules. No raw `gh`, `git push` or browser-pane GitHub work unless
->   Bob asks. Bob signs `gh` in himself; agents never handle tokens.
+> - **No GitHub issues or milestones**; work is tracked in Linear.
 > - **Questions** between agents and to Bob stay in root `Agent-to-Agent Questions.md` /
 >   `Agent-to-Bob Questions.md`.
 > - "Where things are tracked" and "Work cycle" below follow this notice.
@@ -56,7 +61,8 @@ checks; the human engineer reviews and approves through pull requests.
 
 @job/JOB.md
 
-**Job and project (Bob, chat, 2026-10-26).** A **job** is a product line and its one repo (TR-09). A **project** is one
+**Job and project (Bob, chat, 2026-10-26).** A **job** is a product line and its folder, which is one repo
+(global "Git and backup"). A **project** is one
 order within it, with its own folder `job/Project-<Project Number>-<Type>-<Top Level Version>/` (the Project Number in
 the folder name is the project code, e.g. 0000-00; `project_number` in project.yaml is CPME's short order number,
 e.g. 0000-0), laid out from `harness/templates/project-folder/` (every folder is explained in its
@@ -68,7 +74,8 @@ job (every project in the job) and project. `<project>` means the active project
 
 **Shipping envelope (TR-18; Bob, 2026-09-24):** the skid ships in one piece
 inside an enclosed 53 ft swing-door dry van. Every layout option fits
-**170 in L x 60 in W x 106 in H** as shipped, with height measured from the
+**628 in L x 96 in W x 106 in H** as shipped (a typical 53 ft van's inside
+length and door opening less 2 in; Bob, 2026-11-02), with height measured from the
 bottom of the base to the highest point, and is **as compact as possible**
 within that. Values and sources are in
 `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml` `shipping_envelope`.
@@ -109,7 +116,7 @@ certification, and anything that requires a professional engineer's seal.
    overwrites a design that has been shown or handed off** (TR-08; Bob,
    2026-09-24: "YOU ARE NO LONGER TO OVERWRITE DESIGNS. THEY MUST BE LABELED
    AS REVISIONS."). Every design change is filed as the next revision, per
-   "Designs" under "Git and drawing revisions".
+   "Designs" under "Drawing and design revisions".
 7. **The engineer decides at gates.** Agents do not sign off Gate 1–4 items.
 8. **One authoritative location per fact.** The project's lists in `<project>/03_Working_Design/PID/02_Tag_Lists/`
    and registers in `<project>/00_Project_Admin/07_Project_Controls/Registers/` are the source of truth; drawings
@@ -144,13 +151,17 @@ certification, and anything that requires a professional engineer's seal.
   Tube sizes are nominal OD (e.g. `2.0" OD`, `1.5" OD`); pipe is NPS and
   schedule (e.g. `2 in NPS Sch 40`).
 - Line numbers, equipment tags, valve tags and instrument tags: **exactly as
-  shown on the P&ID.** Do not normalize, reformat or abbreviate.
+  shown on the P&ID.** Do not normalize, reformat or abbreviate. Every P&ID
+  from 2026-10-30 assigns them by `harness/design-rules/tagging.yaml`: ISA-5.1
+  tags with loop numbers (`PI-101`, `TCV-201`) and line numbers
+  `<service>-<series><nn>` (`SS-101`, `HWS-201`), one size and spec per line
+  (TAG-*, LINE-NUM-001; Bob, chat, 2026-10-30).
 - Spools: `<LINE>-SP<nn>` (e.g. `<LINE>-SP03`, with `<LINE>` a line number exactly as on the P&ID). Welds: `<SPOOL>-W<nn>`.
 - Frame members: `FM-<nnn>`. Plates: `PL-<nnn>`. Supports: `PS-<nnn>`.
 - Files: **source files** (scripts, CSV, YAML, MD, build123d) keep stable
   working names, and git history is their revision record. **Every drawing
-  handed off** is also saved with its revision in the file name, per "Git and
-  drawing revisions" below (TR-07, TR-08; conflict C-01).
+  handed off** is also saved with its revision in the file name, per "Drawing
+  and design revisions" below (TR-07, TR-08; conflict C-01).
 - Dates ISO 8601. Materials by ASTM grade (`A270 S2 316L`, `A554 304`,
   `A106 Gr B`, `A53 Gr B`).
 - **Every new drawing carries the CPME sheet format** (border, header band,
@@ -222,7 +233,7 @@ job/
                          (placeholder for the other teams); Exports/ (gitignored build output)
     04_Vendor_Data/      Supplier documents and CAD, <category>/<tag>/ (Drive store)
     05_Reviews_Changes/  Internal, customer and vendor reviews, change requests, approvals
-    06_Issued_Revisions/ Drawings/<DOC-ID>/ and Models/<MODEL-ID>/: every handed-off revision,
+    06_Issued_Revisions/ Drawings/<DOC-ID>/ and Models/<MODEL-ID>/, one <ID>-rev<X>/ folder per handed-off revision,
                          immutable, revisions.csv per document (TR-08); large files in the Drive
                          store with <file>.drive pointers; Portals/; 00_Issue_Index/
                          (Issue_Register.csv) and ISS-###_<date>_<purpose>/ transmittal packages of
@@ -235,7 +246,11 @@ job/
 
 Bob: "The hard rules are prebuilt in and don't require creating or changing scripts, and flagging or BLOCKING
 progress towards the end goal." Every new instrument or component goes: pick it; save the maker's cut
-sheet; get the manufacturer STEP or build our own; research and cite the maker's installation practice;
+sheet; get the manufacturer STEP (the maker's own model is the default; we draw our own only after a recorded search of
+the maker's site, TraceParts, 3Dfindit, BIMobject and McMaster-Carr (Bob, chat, 2026-10-29) finds none and no equally
+good part has one, and it is deleted
+once the maker's model is obtained; Bob, chat, 2026-10-28: "that should not be a default"); research and
+cite the maker's installation practice;
 revise the STEP so the part carries it (straight run, ends for the line's service class, branch fitting,
 orientation), filed as a new component revision (TR-08); done, the modeller places it. Components live in
 the job library `job/components/`, shared by every project in the job, one `COMP-nnnn_<Maker>_<Model>/`
@@ -267,14 +282,14 @@ never hand-edited.
 | Review | mechanical-piping, controls, electrical, engineering-manager | Outputs of 4a-4c | Findings against the rules and the TR register | `gate-package` |
 
 Skills (`.claude/skills/`) hold the how; this file holds the rules. Also:
-`component-add` (any new part), `design-rule-add` (before any rule YAML edit,
+`component-add` (any new part), `partslib-load` (its facts and PDFs into Todd's PartsLib), `design-rule-add` (before any rule YAML edit,
 hard rule 11), `pid-fast-edit` (P&ID working copies; drafting rules in
 `harness/design-rules/drafting.yaml` apply to a brand new P&ID only, CPME practice),
-`agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout` and
-`github-tracking` (project-manager, end of day). When a rule here changes,
+`agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout`
+(optional full check run) and `github-tracking` (how this repo saves; see "Git" at the top). When a rule here changes,
 the skill that repeats it changes in the same edit.
 
-## Git and drawing revisions (TR-06 to TR-11)
+## Drawing and design revisions (TR-06 to TR-08)
 
 **Drawings.** The working steps (Bob's hand edits folded in first, preview,
 file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
@@ -296,8 +311,18 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   Bob says to convert it.
 - `--preview` writes to `<project>/03_Working_Design/Exports/preview/` (gitignored) for the agent's own
   check only. A preview is never shown, sent or described as a revision.
+- **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for
+  them should be in a folder for each rev."). A document folder under
+  `06_Issued_Revisions/Drawings/` or `06_Issued_Revisions/Models/` (job level
+  and every project) holds only its `revisions.csv` and one folder per
+  revision, `<DOC-ID>-rev<X>/`, with every file of that revision inside it.
+  `revisions.csv` `file` is `<DOC-ID>-rev<X>/<name>`. `revfile.py` and
+  `model_file.py` file this way (`rp.rev_folder`); nothing is filed by hand.
+  `harness/checks/filed_layout.py` fails CI and close-out on anything loose
+  (repo integrity, like `drive_pointers.py`); its `--fix` moves loose files in
+  without renaming them and records the moves in `path-crosswalk.csv`.
 - Every drawing handed to Bob or anyone else is filed under
-  `<project>/06_Issued_Revisions/Drawings/<DOC-ID>/` as a native DWG plus a PDF exported
+  `<project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>/` as a native DWG plus a PDF exported
   from that DWG, with the DXF beside them (TR-06).
 - File names carry the revision (TR-07): `<DOC-ID>-rev<X>.dwg` / `.pdf`.
   A drawing with no document ID yet uses its working name as `<DOC-ID>`.
@@ -308,15 +333,15 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   on (common drafting practice; no drawing is near Z yet).
 - **A filed drawing is never modified, overwritten, renamed or deleted**
   (TR-08). Any change after a hand-off is the next letter. Generators read
-  the next letter from `revisions.csv`, check that the target file does not
-  exist, and stop if it does.
+  the next letter from `revisions.csv`, check that the target revision folder
+  does not exist, and stop if it does.
 - Every revision adds a revision-block row with a note of what changed (at
   most 32 characters; detail goes in `--description`), and clouds with a
   revision delta around everything added, changed or removed since the
   previous filed revision (TR-07). The title-block band is not clouded.
 - Each document folder holds `revisions.csv` (document_id, revision, file,
   file_date, sha256, bytes, source, notes, description), one row per filed
-  file, written only by `revfile.py`.
+  file, written only by `revfile.py`, beside the revision folders.
 - Generators do not write drawings under `<project>/03_Working_Design/CAD/`.
 
 **Designs** (TR-08; Bob, 2026-09-24, verbatim: "YOU ARE NO LONGER TO
@@ -326,10 +351,21 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   from the model (spool list, weld map, cut lists, BOM, clamp schedule, layout
   note). The same rules as drawings apply.
 - Every design handed off is filed under
-  `<project>/06_Issued_Revisions/Models/<MODEL-ID>/` with the revision in every file name,
+  `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/` (one folder per
+  revision, as for drawings) with the revision in every file name,
   `<MODEL-ID>-rev<X>.<ext>` (takeoffs as `<MODEL-ID>-rev<X>-<list>.csv`), made
   read-only, with a `revisions.csv` row per file (sha256, bytes, note of what
   changed). Letters are sequential from Rev A, as for drawings.
+- **Inside a model revision folder** (Bob, chat, 2026-11-03: "Move them into
+  sub folders once"; `rp.model_subfolder`, checked by `filed_layout.py`): the
+  model (GLB, zipped STEP and their `.drive` pointers) at the top, then
+  `Takeoffs/` (BOM, cut lists, spool list, weld map, fittings by spool, clamp
+  schedule, piping mass), `Reports/` (layout note, list delta, manifest, pipe
+  support calc, routing report), `Views/` (the four review pictures) and, only
+  when one is made, `Presentations/P<nn>/`. File names keep the full
+  `<MODEL-ID>-rev<X>` prefix; folder names are short. Revisions locked before
+  2026-11-03 were moved once (`harness/scripts/model_subfolders.py`, moves in
+  `path-crosswalk.csv`). Drawing revision folders stay flat.
 - **The filed STEP is zipped** (CPME practice; Bob, 2026-10-02):
   `<MODEL-ID>-rev<X>.step.zip` holding one STEP named `<MODEL-ID>-rev<X>.step`.
   The `revisions.csv` row and the pointer hash the zip. Consumers (Blender,
@@ -338,12 +374,18 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
 - **GLBs** (Bob, 2026-10-02: "future models to
   primarily be stored where they have, and only done for presentation and
   stored that way when necessary"): the **filed GLB** of a design revision is
-  the plain build export, as today. A **presentation model** (realistic
-  materials, fab-shop set) is made only when a presentation is needed and is
-  filed under `<project>/06_Issued_Revisions/Models/Presentations/` as its own document,
-  `<MODEL-ID>-Presentation-rev<X>.glb`, with the design revision
-  it was made from in its `revisions.csv` row. The **web GLB** (decimated for
-  the browser) is a portal asset, not a filed file.
+  the plain build export, as today. A **presentation** (lifelike pictures, the
+  presentation model with realistic surfaces, and the Blender scene with the
+  shop and cameras) is made only on request and is locked inside the model
+  revision it was made from (Bob, chat, 2026-11-03: "filed in the Rev folder
+  with all of the other rev files"; names "match the files/revisions they came
+  from", no repeated words): `<MODEL-ID>-rev<X>/Presentations/P<nn>/` holding
+  `<MODEL-ID>-rev<X>-P<nn>.glb`, `<MODEL-ID>-rev<X>-P<nn>.blend` and
+  `<MODEL-ID>-rev<X>-P<nn>-<view>.png`, with rows in that model's
+  `revisions.csv` (notes start `P<nn>`). P numbers count within one revision;
+  a locked P folder never changes. Tool: `job/typical-models/_renders/`
+  (README.md). The **web GLB** (decimated for the browser) is a portal asset,
+  not a locked file.
 - **3D print files** (Bob, 2026-10-01: "make sure all future 3D Print files
   do so in the future") are filed under `<project>/06_Issued_Revisions/Models/3D Print Models/`, and
   **every file carries the revision in its own name**, including each
@@ -351,8 +393,8 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   never just a `revX` folder.
 - **A filed design is never modified, overwritten, renamed or deleted.** A
   change to the model, however small (removing a part, moving a nozzle), is
-  the next letter. Before any rebuild, check that the next revision's files do
-  not exist yet, and stop if they do.
+  the next letter. Before any rebuild, check that the next revision's folder does
+  not exist yet, and stop if it does.
 - The build's own output folder (e.g. `<project>/03_Working_Design/Exports/build/<MODEL-ID>/`) and `<project>/_work/` are
   working copies. Never point Bob at a working copy as the design: give him
   the filed revision's path. When he has been viewing a working copy, file it
@@ -381,14 +423,13 @@ with pointers referencing this folder.")
   path it has in the repo. Git holds a pointer beside that path,
   `<file>.drive` (path, bytes, sha256, md5, mtime, folder). The text records
   next to them (`revisions.csv`, takeoffs, notes, manifests, source records)
-  stay in git.
+  stay in git. `track.py save` runs the Drive push with every save.
 - `harness/scripts/drive_store.py` is the only writer of pointers and of the
   managed block in `.gitignore`: `pointers` after adding or filing a large
   file, `push` to copy it into the Drive folder, `pull` to fetch missing files
-  into a checkout, `verify` to hash both sides against the pointers. Filing a
-  design or importing a source is not finished until its pointer exists.
-  **`push` happens once a day at close-out, before the commit, and nothing
-  goes outside the repo before it** (CPME practice; Bob, 2026-10-02).
+  into a checkout, `verify` to hash both sides against the pointers. A
+  pointer exists for every large file before it is Saved; `push` runs before
+  the commit in every `track.py save`.
   A pointer whose file has changed is refused (TR-08); the change is the next
   revision.
 - Transport is rclone (Bob, 2026-09-28) through the remote named in
@@ -402,29 +443,18 @@ with pointers referencing this folder.")
 - `harness/checks/drive_pointers.py` fails CI if a large file is tracked or a
   pointer is malformed. Never use Git LFS here.
 
-**Commits** (TR-11).
-- Commits are made only when Bob says so, on the day's branch
-  `daily/<YYYY-MM-DD>`, which becomes the day's one PR. A day may hold
-  several commits, each documented as below. Stage by explicit path. Never
-  `git add -A` or `git commit -a`.
-- Message: a subject line `<area>: <what changed>` of at most 72 characters,
-  then a body with **Why**, **Changed IDs**, **Sources and rules cited**,
-  **TR rows touched**, **Drawings filed** (`<DOC-ID>-rev<X>`), and **Checks
-  run**. Write it to a file and use `git commit -F <file>`.
-- Tag each issued drawing revision with an annotated tag `<DOC-ID>-rev<X>` on
-  the commit that files it. Never move or delete a tag.
-- Never amend, rebase or force-push over a commit that contains filed
-  drawings.
+**What `track.py save` expects** (how this repo carries out the global rules).
+- The paths file lists only this piece of work's files (other sessions share the checkout).
+- The message file has a subject line `<area>: <what changed>` of at most 72 characters, then a body with **Why**,
+  **Changed IDs**, **Sources and rules cited**, **TR rows touched**, **Drawings filed** (`<DOC-ID>-rev<X>`), and
+  **Checks run**. `track.py` refuses a message without these sections.
+- `--tag` puts an annotated tag `<DOC-ID>-rev<X>` on the commit that saves a drawing revision. Never move or
+  delete a tag.
 - `.gitattributes` marks DWG, PDF, STEP, GLB, ZIP and images binary.
 
-**Remote.** One repo per job, each project a folder in it (TR-09): `origin` is the job's repo named in
-`job/JOB.md`. Never push to any other repo.
-
-**GitHub sign-in: one account, one folder, one time** (Bob, 2026-10-07,
-after two days lost to the daily PR). `track.py` writes as `Bob-Biedrzycki`,
-the one writer. The gh sign-in lives in
+**GitHub sign-in** (Bob, 2026-10-07). `track.py` writes as `Bob-Biedrzycki`. The gh sign-in lives in
 `%USERPROFILE%\.config\gh` (`GH_CONFIG_DIR`, persisted for every window) and
-stays in the Windows keyring, so the daily cycle never needs a new sign-in.
+stays in the Windows keyring, so saving never needs a new sign-in.
 **Never hand Bob a raw `gh auth ...`, `gh auth refresh` or `git push` command
 to type.** If `track.py status` reports NOT signed in or the `workflow` scope
 MISSING, give Bob exactly the one command `status` prints (the sign-in
@@ -507,13 +537,13 @@ Rules for agents:
   `<project>/_work/daily/` and `Agent-to-Agent Questions.md` entries dated today with no `CPM-nn`,
   today's Linear issues with no comment today, and `NEXT:` agents with no
   issue opened today. The three lists go under a "Linear loops" heading in
-  the commit-body skeleton and into the daily PR body.
+  the commit-body skeleton and into the PR body.
 - **Every assumption points at its record**: `ASSUMPTION: ... (Q-nnnn)`,
   `(H5)`, `(EC-03)`. If none exists, add an `Agent-to-Agent Questions.md` entry.
 - **Markdown logs are snapshots.** The project's logs (`<project>/00_Project_Admin/07_Project_Controls/`) are regenerated
   from the records at each release, never hand-edited between releases.
 - Labels on a Linear issue: `role:<agent>` always, plus the gate's project
-  milestone. `.github/labels.yml` still labels the daily PR.
+  milestone. `.github/labels.yml` still labels the PR.
 
 ## Work cycle
 
@@ -523,13 +553,13 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 |---|---|---|---|
 | 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
 | 2. Accept | Bob says he accepts, or would like to file, the fast edit as Rev <X> | `harness/scripts/model_accept.py`: preflight (lists written from the model, open items recorded as notes), full build, `model_file.py`, then the P&ID, LSD and PFD filed when changed, PRRs, pointers; no push | `model-accept` |
-| 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/`, `revisions.csv`, pointers, no push | `model-file` |
-| 3. Close-out | once a day, on the day's one go (step 6) | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |
+| 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
+| 3. Close-out (optional) | only when Bob asks for a full check run: CI already runs the checks on every save | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |
 
 1. Read this file, `harness/knowledge/Todd Requirements.md`, and the sources the task
    names.
-2. Work in the shared working tree. Never switch branches, reset or commit
-   there on your own; never commit to `main`; never merge locally.
+2. Work in the shared working tree. Never switch branches or reset there;
+   save only through `track.py save` (it commits in a separate worktree).
 3. Make the bounded change; update affected registers in the same change.
    For the model: tier 1 after every change, tier 2 before anything is shown.
    **Acceptance is one scripted pass** (Bob, chat, 2026-10-15: "they should be run
@@ -542,7 +572,9 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
    `<project>/03_Working_Design/PID/02_Tag_Lists/` lists, records every open item as a note in the description, and files the model and its drawings in
    one go. Only a model or drawing that cannot be produced stops it, and that is the agent's to fix. There are no side sessions during an acceptance and no filing by hand.
 4. Run `harness/checks/` relevant to the change. Report failures, skips and
-   limitations. CI (`.github/workflows/checks.yml`) runs them on the day's PR.
+   limitations. Then save it (`track.py save`, "Git" at the top); CI
+   (`.github/workflows/checks.yml`) runs every check on that push. The handoff
+   shows the `git status` check the global rules require.
 5. **Hand off** in chat or `Agent-to-Agent Questions.md`: files changed, changed IDs, checks,
    blockers, exact next action, a **`CAPABILITY GAP:`** line, a **`NEXT:`**
    line, and the **TR compliance list** (each TR row the work touched and
@@ -561,25 +593,19 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
    `tools:` line, so it does not speculate about tools beyond that line.
    The delegating session maps a gap to an existing tool with a one-line
    recommendation to Bob (`agent-task`); the **project-manager** rolls the
-   day's gap lines into the daily PR body at close-out. Bob decides; the
+   day's gap lines into the PR body. Bob decides; the
    fix is a `tools:` line edit with his approval, effective next session.
-6. **End of day: one go, then Bob's merge, then everything else runs on
-   its own** (Bob, 2026-10-07, verbatim: "THIS SHOULD BE 1 "GO" THEN MY
-   MERGE. THE SYNC SHOULD BE AUTOMATED." Replaces the five separate goes
-   used until then.) The project-manager prepares first: `closeout.py
-   --dry-run`, the paths file, the commit message, the PR body, and
-   `publish_site.py --dry-run`. It then names the whole set to Bob in one
-   message: close-out; the commit on `daily/<YYYY-MM-DD>` (paths, drawing
-   tags); the PR title; and what follows his merge (sync, and the site
-   publish when a portal, quoting or landing revision is newer than the
+6. **The pull request, when Bob asks for it, then Bob's merge, then
+   everything else runs on its own** (Bob, 2026-10-07, verbatim: "THIS SHOULD BE 1 "GO" THEN MY
+   MERGE. THE SYNC SHOULD BE AUTOMATED."). The day's work is already saved and
+   backed up. The project-manager writes
+   the PR body and names the PR to Bob in one message, with what follows his
+   merge (sync, and the site publish when a portal revision is newer than the
    site holds). **Bob answers once.** His words are saved verbatim to
-   `<project>/_work/daily/<date>-go.txt` and passed as `--bob-go` to every command
-   of the day. Two commands do it: `track.py daily` (close-out, commit, PR)
-   and, after the merge, `track.py after-merge` (sync, site publish); the
-   single commands remain as the fallback (`github-tracking`). Then, with
-   no further question: close-out (tier 3); the
-   commit by explicit paths with its documented message and drawing tags;
-   **one PR** from `.github/pull_request_template.md`, whose body lists
+   `<project>/_work/daily/<date>-go.txt` and passed as `--bob-go`:
+   `track.py daily-pr`, and after the merge `track.py after-merge` (sync,
+   site publish). The
+   **PR** from `.github/pull_request_template.md`, whose body lists
    every change of the day with its IDs and names each Linear issue it
    advances (`Relates to <ID>`; `Fixes <ID>` only when the whole issue is
    satisfied, since Linear closes it on merge); and the PR bound to the
@@ -595,7 +621,7 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
    dry run named a newer revision (Bob, 2026-10-07: "IF THE ORIGINAL PR WAS
    APPROVED, THE CONTENT HAS ALREADY BEEN APPROVED AND IT SHOULD BE DONE").
    While a job has no presentation site
-   (`site_repo` in `project.yaml` is `unknown`, C-08), `publish_site.py`
+   (`site_repo` in `project.yaml` is `unknown`), `publish_site.py`
    then finds no site and stops, and nothing is published. The desktop
    app's permission classifier may refuse `publish_site.py` from an agent
    shell as a production deploy; the allow rule is added only as under

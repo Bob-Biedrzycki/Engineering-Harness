@@ -1,5 +1,5 @@
 # Labels for the daily pull request. Apply with:  python harness/scripts/sync_labels.py
-# Colours are hex without '#'. Tasks are Linear issues (TR-12), not GitHub issues, so the issue-kind labels
+# Colours are hex without '#'. Tasks are Linear issues, not GitHub issues, so the issue-kind labels
 # (type:*) and the issue-state label (status:blocked) were removed 2026-10-26 (CPME practice). A daily PR carries the
 # role of each agent whose work it holds and the gate it advances.
 

@@ -31,16 +31,33 @@ records; the script appends the model_iterate check lines. `--failing-ok
 "<reason>"` files a build with a failing check, only on Bob's say-so, with the
 reason recorded.
 
+**Job-level typical models** (`HWS-TYP-<CL|DS>-R<n>-MODEL`; Bob, chat, 2026-10-29; Linear CPM-155). Add
+`--model-id <ID> --config <CFG>` to the command, for a configuration built by `model_iterate.py` with the same two
+flags:
+
+```
+.\harness\tools\venv\Scripts\python.exe harness\scripts\model_file.py --model-id HWS-TYP-CL-R4-MODEL --config B --note "<at most 32 chars>" --description-file <file>
+```
+
+Each configuration is its own document, `<MODEL-ID>-<CFG>`, with its own letters from Rev A (B and X are filed
+separately). Files are named `<MODEL-ID>-<CFG>-rev<X>...`, the STEP zipped, with the four review views, into
+`job/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/`, whose parent's one `revisions.csv` holds the rows of every configuration of
+that model. A switch string equal to B or X is refused with the right name. Commands: `job/typical-models/README.md`.
+
 **What it does.** Next letter after the last `revisions.csv` row (nobody
-assigns it); refuses if any target file exists; copies the build to
-`<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>*` (`<MODEL-ID>` is
+assigns it); refuses if the revision's folder exists; copies the build into that revision's own folder
+(Bob, chat, 2026-10-30: one folder per rev; `harness/checks/filed_layout.py` checks it),
+`<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/<MODEL-ID>-rev<X>*` (`<MODEL-ID>` is
 `rp.SKID_MODEL_ID`, named in `job/JOB.md`) with the STEP
 zipped as `-rev<X>.step.zip`; makes every file read-only; appends one
 `revisions.csv` row per file (sha256, bytes, note, description); runs
 `drive_store.py pointers`.
 
-**Never.** Push to Drive (that is close-out), refile or overwrite a letter,
-edit a filed file, rename or delete one, or give Bob a `<project>/_work/` path.
+**Then save it** (`github-tracking`, `track.py save`): the revision folder and its `revisions.csv`, with a documented
+message. That pushes the large files to Drive and backs the commit up on GitHub; no question to Bob.
 
-**Hand-off line.** `Filed <MODEL-ID> Rev <X>: <project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>.*`
-(file count, note), the checks recorded, "pointers written, push at close-out".
+**Never.** Refile or overwrite a letter, edit a locked file, rename or delete one, or give Bob a `<project>/_work/`
+path.
+
+**Hand-off line.** `Locked <MODEL-ID> Rev <X>: <project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`
+(file count, note), the checks recorded, and the `git status` check after the save (global "Git and backup").

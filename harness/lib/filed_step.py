@@ -6,7 +6,7 @@ call `unzipped(path)`, which extracts the one STEP into <project>/_work/unzipped
 copy) and returns its path. A plain .step (a revision filed before the zip rule, unzipped) is returned as is.
 
     sys.path.insert(0, str(<repo>/"harness"/"lib")); from filed_step import unzipped
-    step_path = unzipped(rp.SKID_FILED / f"{rp.SKID_MODEL_ID}-revA.step.zip")
+    step_path = unzipped(rp.SKID_FILED / f"{rp.SKID_MODEL_ID}-revA" / f"{rp.SKID_MODEL_ID}-revA.step.zip")
 """
 from __future__ import annotations
 

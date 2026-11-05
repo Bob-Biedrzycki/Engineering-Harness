@@ -1,4 +1,4 @@
-"""linear_loops.py - the Linear loop-closing audit (TR-12; Bob, 2026-10-07: "do it").
+"""linear_loops.py - the Linear loop-closing audit (Bob, 2026-10-07: "do it").
 
 Four rules in CLAUDE.md (notice block and "Where things are tracked"): every handoff and every question entry names its
 Linear issue (CPM-nn); every issue touched today carries a comment from today; every `NEXT:` line that names an agent
@@ -146,7 +146,7 @@ def pr_body_linear_warning(body: str, day_ids: list[str]) -> str | None:
         return None
     found = ", ".join(day_ids) if day_ids else "none found today (handoffs, Linear export)"
     return ("WARNING: the PR body names no Linear issue (CPM-nn). Name each issue the day advanced as "
-            f"'Relates to CPM-nn' (TR-12). The day's issue ids: {found}")
+            f"'Relates to CPM-nn'. The day's issue ids: {found}")
 
 
 # ------------------------------------------------------------------ read-only I/O

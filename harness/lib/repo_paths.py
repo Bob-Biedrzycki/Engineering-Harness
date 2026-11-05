@@ -22,6 +22,7 @@ main() starts with `if rp.skip_no_project("<check>"): return 0`; a script that n
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -38,7 +39,7 @@ TOOLS = HARNESS / "tools"
 AGENT_QUESTIONS = REPO / "Agent-to-Agent Questions.md"
 BOB_QUESTIONS = REPO / "Agent-to-Bob Questions.md"
 
-# Job and projects (Bob, chat, 2026-10-26; TR-09): a job is the product line and its repo; a project is one order
+# Job and projects (Bob, chat, 2026-10-26): a job is the product line and its folder (one repo); a project is one order
 # in it, job/Project-<Project Number>-<Type>-<Top Level Version>/, laid out from harness/templates/project-folder/
 # (README_Project_Guide.md there). The Project Number in the folder name is the project code (nnnn-nn);
 # `project_number` in project.yaml is CPME's short order number. PROJECT is the active project folder.
@@ -50,6 +51,56 @@ JOB_DESIGN_RULES = JOBS / "design-rules"  # level 2: job-wide rules (every proje
 # harness/lib/components.py.
 JOB_COMPONENTS = JOBS / "components"
 JOB_COMPONENT_REGISTER = JOB_COMPONENTS / "component-register.csv"
+# Drawings that serve every project in the job (typical P&IDs, standard details) are filed at job level (Bob, chat,
+# 2026-10-27: "Job level, unless directed otherwise"), laid out like a project's 06_Issued_Revisions/Drawings/.
+JOB_ISSUED = JOBS / "06_Issued_Revisions"
+JOB_DRAWINGS = JOB_ISSUED / "Drawings"
+JOB_FILING = JOBS / "_work" / "filing"   # gitignored staging for job-level filing
+
+
+def rev_folder(doc_id: str, rev: str) -> str:
+    """Name of one filed revision's own folder inside its document folder (Bob, chat, 2026-10-30: "Everything like
+    for them should be in a folder for each rev."): <DOC-ID>-rev<X>/ holds every file of that revision, and the
+    document folder holds only revisions.csv and these folders. revisions.csv `file` is "<DOC-ID>-rev<X>/<name>",
+    so <document folder> / row["file"] is the filed file. harness/checks/filed_layout.py checks it."""
+    return f"{doc_id}-rev{rev}"
+
+
+# Inside a model revision folder (Bob, chat, 2026-11-03: "Move them into sub folders once" and presentations "in the
+# Rev folder with all of the other rev files"): the model (GLB, zipped STEP, their pointers) at the top, then
+# Takeoffs/ (what the shop builds from), Reports/ (checks and notes), Views/ (review pictures) and
+# Presentations/P<nn>/ (lifelike renders, presentation GLB, Blender scene). File names keep the full
+# <DOC-ID>-rev<X>... prefix. Drawing revision folders stay flat (DWG, PDF, DXF).
+MODEL_TAKEOFFS = ("bom-model", "clamp-schedule", "cut-list-frame", "cut-list-piping", "fittings-by-spool",
+                  "piping-mass", "spool-list", "weld-map")
+MODEL_REPORTS = ("layout-note", "list-delta", "manifest", "pipe-support-calc", "routing-report",
+                 "frame-calc-results", "instrument-rules")
+_REV_PART = re.compile(r"-rev[A-Z]{1,2}(?P<rest>(?:-P\d{2})?(?:-.*)?)\.(?P<ext>[^.]+(?:\.[^.]+)*)$")
+
+
+def model_subfolder(name: str) -> str:
+    """Subfolder of a model revision folder that holds the filed file `name` ("" = the revision folder itself)."""
+    m = _REV_PART.search(name.removesuffix(".drive"))
+    rest = m.group("rest") if m else ""
+    p = re.match(r"-(P\d{2})(?:-|$)", rest)
+    if p:
+        return f"Presentations/{p.group(1)}"
+    if rest.startswith("-view-"):
+        return "Views"
+    kind = rest[1:]
+    if kind in MODEL_TAKEOFFS:
+        return "Takeoffs"
+    if kind in MODEL_REPORTS:
+        return "Reports"
+    return ""
+
+
+def model_rev_file(rev_dir: Path, name: str) -> Path:
+    """A model revision's filed file `name`, in its subfolder (model_subfolder), or at the revision folder's top when
+    it is still there (a record written before 2026-11-03, or a work build, which is flat)."""
+    sub = model_subfolder(name)
+    p = rev_dir / sub / name if sub else rev_dir / name
+    return p if p.exists() or Path(f"{p}.drive").exists() or not (rev_dir / name).exists() else rev_dir / name
 PROJECT_TEMPLATE = HARNESS / "templates" / "project-folder"
 ACTIVE_PROJECT_FILE = JOBS / "active-project.txt"   # names the project when job/ holds more than one
 DRIVE_STORE_CONFIG = JOBS / "drive-store.yaml"   # one Drive store for the whole job (Bob, chat, 2026-10-26); drive_store.py
@@ -81,17 +132,23 @@ def _active_project() -> Path | None:
                        f"in {ACTIVE_PROJECT_FILE.name} (new project: harness/scripts/project_new.py)")
 
 
-def _read_project_config(path: Path) -> dict[str, str]:
+def _read_flat(path: Path) -> dict[str, str]:
     """Flat `key: value` lines, `#` comments; no PyYAML so every venv can import this module."""
-    if not path.is_file():
-        raise RuntimeError(f"{path} is missing: every project names itself there (keys {', '.join(PROJECT_KEYS)}; "
-                           "harness/scripts/project_new.py)")
     out: dict[str, str] = {}
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.split(" #", 1)[0].strip() if not line.lstrip().startswith("#") else ""
         if ":" in line:
             k, v = line.split(":", 1)
             out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+
+def _read_project_config(path: Path) -> dict[str, str]:
+    """project.yaml as flat `key: value` lines (_read_flat)."""
+    if not path.is_file():
+        raise RuntimeError(f"{path} is missing: every project names itself there (keys {', '.join(PROJECT_KEYS)}; "
+                           "harness/scripts/project_new.py)")
+    out = _read_flat(path)
     missing = [k for k in PROJECT_KEYS if k not in out]
     if missing:
         raise RuntimeError(f"{path} lacks {', '.join(missing)}")
@@ -141,7 +198,7 @@ PROJECT_NUMBER = PROJECT_INFO["project_number"]  # CPME's short order number
 PROJECT_CODE = PROJECT_INFO["project_code"]      # title block NUMBER cell, <nnnn-nn>
 CUSTOMER = PROJECT_INFO["customer"]
 PID_DOC_ID = PROJECT_INFO["pid_doc_id"]        # <project_id>-PID-001; filed under DRAWINGS / PID_DOC_ID
-DESIGN_REPO = PROJECT_INFO["design_repo"]      # owner/name of this repo's origin (the job's repo, TR-09)
+DESIGN_REPO = PROJECT_INFO["design_repo"]      # owner/name of this repo's origin (the job folder's repo)
 SITE_REPO = PROJECT_INFO["site_repo"]          # owner/name of the presentation site repo
 
 # The skid model source, one folder per MODEL-ID (model_id in project.yaml).
@@ -170,17 +227,34 @@ FILING = WORK / "filing"
 TRACKING = WORK / "tracking"
 DAILY = WORK / "daily"                   # close-out output: commit body skeleton, candidate paths (closeout.py)
 PORTAL_MEDIA = WORK / "portal-media"     # portal_media.py output, one rev<X>/ folder per filed model revision
-PORTAL_WORK = WORK / "portal"            # build_portal.py working copy
+# The work site is laid out as the published site (publish_site.py): the landing page at its root, tracker/ and
+# mobile/ beside it, one shared assets/; so every link between the three works in the working copy too.
+SITE_WORK = WORK / "site"
+PORTAL_WORK = SITE_WORK / "tracker"      # build_portal.py working copy (the project tracker)
+MOBILE_WORK = SITE_WORK / "mobile"       # build_portal.py --audience mobile working copy (Mobile Optimized)
+LANDING_WORK = SITE_WORK                 # build_landing.py working copy (index.html at the site root)
+# the work builds' shared assets/ is the parent of each --out (WORK / "assets" for the three above)
 PORTALS = ISSUED / "Portals"             # filed portal revisions (was job/reviews/)
 PORTAL_FILED = PORTALS / "project-portal"  # filed portal revisions and the shared data store
-QUOTING_FILED = PORTALS / "quoting-portal"   # Fabrication Estimating Portal revisions (record ID quoting-portal)
 LANDING_FILED = PORTALS / "portal-landing"   # presentation site landing page revisions
 MOBILE_FILED = PORTALS / "mobile-portal"     # Mobile Optimized: the tracker for phones (Bob, 2026-10-17)
 INTERNAL_REVIEWS = REVIEWS / "01_Internal_Reviews"   # gate packages, review renders, frame-calc reports
 PRESENTATIONS = CAD / "09_Presentation"  # presentation builders and portal assets (was job/cad/Presentations/)
 SITE_CONFIG = PRESENTATIONS / "site.yaml"    # site settings: hidden_models (model IDs kept off the site), hidden_pages
+PRESENTATION_RENDERS = PRESENTATIONS / "Renders"   # presentation stills kept with the source; the landing page's photo
 EQUIPMENT_SELECTION = VENDOR_DATA        # vendor references, <category>/<tag>/ (Drive store)
-# presentation site checkout, a sibling of this repo: publishing target only (TR-09 conflict C-08; publish_site.py)
+# Records the project tracker shows (build_portal.py; a record that does not exist gives an empty section)
+QUESTION_LOG = ADMIN / "07_Project_Controls" / "question-log.md"   # Q-nnnn snapshot of Agent-to-Agent Questions.md
+HOLDS = CUSTOMER_REQUIREMENTS / "holds.md"                        # customer HOLDs (TR-23)
+EQUIPMENT_CONCERNS = OPEN_ITEMS / "equipment-concerns.md"         # TR-02 concerns
+FRAME_CALC_RESULTS = FRAME_CALC.parent / "frame-calc-results.md"  # frame_calc.py results (closeout.py step 2)
+FRAME_CALC_REPORTS = INTERNAL_REVIEWS / "frame-calc-report"       # filed frame calc reports, frame-calc-report-rev<X>.html
+LSD_DRAWINGS = DRAWINGS / "line-segment-diagram"   # the line segment diagram's filed revisions
+PFD_DRAWINGS = DRAWINGS / "process-flow-diagram"   # the process flow diagram's filed revisions
+# Filed model revisions as the presentation builders read them: MODELS, or CPME_PORTAL_MODELS_ROOT for a test or a
+# fixture build (never a filing: the builders only read model revisions, TR-08)
+PORTAL_MODELS = Path(os.environ["CPME_PORTAL_MODELS_ROOT"]) if os.environ.get("CPME_PORTAL_MODELS_ROOT") else MODELS
+# presentation site checkout, a sibling of this repo: publishing target only (its own folder and repo; publish_site.py)
 PRESENTATION_SITE = REPO.parent / SITE_REPO.rsplit("/", 1)[-1]
 
 _PROJECT_NAMES = frozenset(n for n in set(globals()) - _BEFORE_PROJECT if not n.startswith("_"))
@@ -191,6 +265,74 @@ if not HAS_PROJECT:
     del _n
     PROJECT = None
     PROJECT_INFO = {}
+
+# ---- which model the model tools work on (Linear CPM-155; Bob, chat, 2026-10-29). Default: the project's skid model
+# (model_id in project.yaml), everything above unchanged. A job-level model is chosen by ID: model_iterate.py,
+# model_file.py and the model checks take --model-id <ID> and --config <CFG>, or the environment variables
+# CPME_MODEL_ID / CPME_MODEL_CONFIG. This module takes both flags out of sys.argv when it is imported and puts them in
+# the environment, so every script accepts them and every check a script starts inherits them. An ID with a folder
+# in the job-level models folder (JOB_MODELS, job/typical-models/: models that serve every project in the job) is a
+# job-level model; its configuration CFG (default B) is a document of its own, <MODEL-ID>-<CFG>, with its own
+# letters. For a job-level model the names below are redirected:
+#     SKID_MODEL   JOB_MODELS/<MODEL-ID>/                         source (model.yaml, model.py, skidlib shim, exports)
+#     SKID_BUILD   job/_work/typical-models/build/<MODEL-ID>/<CFG>/   work build (gitignored)
+#     FAST_BUILDS  job/_work/typical-models/fast/<MODEL-ID>/<CFG>/    fast builds (gitignored)
+#     MODELS       job/06_Issued_Revisions/Models/                 filed; SKID_FILED = MODELS/<MODEL-ID>/, document
+#                                                                  id MODEL_DOC_ID = <MODEL-ID>-<CFG>
+#     DESIGN_RULES job/design-rules/   (a job-level model has no project level: its rules are the harness's and job's)
+#     DATA         the list set named by `lists:` in the model's model.yaml (relative to the model folder)
+JOB_MODELS = Path(os.environ["CPME_JOB_MODELS_ROOT"]) if os.environ.get("CPME_JOB_MODELS_ROOT") \
+    else JOBS / "typical-models"         # CPME_JOB_MODELS_ROOT points a test run at a scratch folder
+JOB_MODELS_WORK = JOBS / "_work" / "typical-models"   # gitignored (job/_work/)
+JOB_MODELS_FILED = JOB_ISSUED / "Models"
+
+
+def _take_arg(flag: str) -> str | None:
+    """Remove `flag value` or `flag=value` from sys.argv and return the value (None when absent)."""
+    argv = sys.argv
+    for i in range(1, len(argv)):
+        a = argv[i]
+        if a == flag and i + 1 < len(argv):
+            v = argv[i + 1]
+            del argv[i:i + 2]
+            return v
+        if a.startswith(flag + "="):
+            del argv[i]
+            return a.split("=", 1)[1]
+    return None
+
+
+for _flag, _env in (("--model-id", "CPME_MODEL_ID"), ("--config", "CPME_MODEL_CONFIG")):
+    _v = _take_arg(_flag)
+    if _v is not None:
+        os.environ[_env] = _v.strip()
+MODEL_ID_ARG = os.environ.get("CPME_MODEL_ID", "").strip()
+MODEL_CONFIG_ARG = os.environ.get("CPME_MODEL_CONFIG", "").strip().upper()
+JOB_MODEL: Path | None = None            # the job-level model folder, or None (the project's model)
+MODEL_LEVEL = "project"
+MODEL_INFO: dict[str, str] = {}          # the job-level model's model.yaml
+MODEL_CONFIG = ""                        # the configuration of a job-level model ("" for a project model)
+if MODEL_ID_ARG and not (HAS_PROJECT and MODEL_ID_ARG == PROJECT_INFO.get("model_id")):
+    if not (JOB_MODELS / MODEL_ID_ARG / "model.yaml").is_file():
+        raise RuntimeError(f"model {MODEL_ID_ARG!r} is not the project's model_id and has no "
+                           f"{JOB_MODELS.name}/{MODEL_ID_ARG}/model.yaml")
+    JOB_MODEL = JOB_MODELS / MODEL_ID_ARG
+    MODEL_LEVEL = "job"
+    MODEL_INFO = _read_flat(JOB_MODEL / "model.yaml")
+    MODEL_CONFIG = MODEL_CONFIG_ARG or "B"
+    SKID_MODEL_ID = MODEL_ID_ARG
+    SKID_MODEL = JOB_MODEL
+    MODEL_DOC_ID = f"{SKID_MODEL_ID}-{MODEL_CONFIG}"
+    SKID_BUILD = JOB_MODELS_WORK / "build" / SKID_MODEL_ID / MODEL_CONFIG
+    FAST_BUILDS = JOB_MODELS_WORK / "fast" / SKID_MODEL_ID / MODEL_CONFIG
+    MODELS = JOB_MODELS_FILED
+    SKID_FILED = MODELS / SKID_MODEL_ID
+    DESIGN_RULES = JOB_DESIGN_RULES
+    DATA = (JOB_MODEL / MODEL_INFO.get("lists", "lists")).resolve()
+    RETIRED_MODEL_ID, RETIRED_MODEL = "", None
+elif HAS_PROJECT:
+    MODEL_DOC_ID = SKID_MODEL_ID         # a project model is one document: its MODEL-ID
+HAS_MODEL = HAS_PROJECT or JOB_MODEL is not None   # a model to build or check (the project's, or a job-level one)
 
 
 def __getattr__(name: str):
@@ -209,11 +351,38 @@ def skip_no_project(check: str) -> bool:
     return True
 
 
+def skip_no_model(check: str) -> bool:
+    """skip_no_project for a model check: False when there is a model to check, the project's or a job-level one
+    (--model-id); else True after printing the not-checked line."""
+    if HAS_MODEL:
+        return False
+    return skip_no_project(check)
+
+
 def require_project(script: str) -> None:
     """For a script that works on a project: exit 2 with a plain message when the job has none yet."""
     if not HAS_PROJECT:
         print(f"{script}: REFUSED - {NO_PROJECT_HINT}", file=sys.stderr)
         raise SystemExit(2)
+
+
+def require_model(script: str) -> None:
+    """For a model tool: a job-level model (--model-id) needs no project; otherwise as require_project. A --config
+    given for the project's model is refused (a project model has no configurations)."""
+    if JOB_MODEL is None:
+        require_project(script)
+        if MODEL_CONFIG_ARG:
+            print(f"{script}: REFUSED - --config {MODEL_CONFIG_ARG} needs a job-level model (--model-id <ID> with a "
+                  f"folder in {JOB_MODELS.name}/); the project's model has no configurations", file=sys.stderr)
+            raise SystemExit(2)
+
+
+def add_model_args(ap) -> None:
+    """Document --model-id / --config on a script's argparse (this module has already taken them out of sys.argv)."""
+    ap.add_argument("--model-id", dest="_model_id", metavar="ID",
+                    help="job-level model (a folder in the job-level models folder); default: the project's model")
+    ap.add_argument("--config", dest="_model_config", metavar="CFG",
+                    help="configuration of a job-level model: B, X or its switch string (default B)")
 
 
 def rel(p: Path) -> str:

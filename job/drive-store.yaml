@@ -1,0 +1,33 @@
+# Drive store for the Engineering Harness master (Bob, chat, 2026-11-04: "Yes, set it up", so the master saves with
+# track.py like every job). The master holds no job or project files, so normally nothing here is large; the rules
+# below are the Hot-Water-Set job's, written by job_new.drive_store_yaml. Job repos never copy this file (job-owned).
+# Bob, 2026-09-28: large files use Google Drive as the database with pointers referencing this folder.
+# Large files live in the Google Drive folder below at the same path they have in the repo; git holds a pointer per
+# file (<file>.drive), written by harness/scripts/drive_store.py, which also keeps the managed block in .gitignore.
+# A directory key may use `*` for one folder name. Edit this file, then run `drive_store.py pointers`.
+# The local path of the Drive folder is machine-specific and is not stored here: pass --root, set CPME_DRIVE_ROOT,
+# or write it to job/_work/drive-root.txt (gitignored).
+
+# Drive folder "Engineering Harness" at the top of Bob's My Drive (made 2026-11-04 through the cpme-drive sign-in).
+# Transport: rclone. Each machine makes this remote once, an alias of its existing `cpme-drive` sign-in re-rooted at
+# the folder (no new Google sign-in):
+#   rclone config create cpme-drive-harness alias remote="cpme-drive,root_folder_id=11h_Zaqysh6hJyW9fli8H5MeRfN-gqqv5:"
+drive_folder_url: https://drive.google.com/drive/folders/11h_Zaqysh6hJyW9fli8H5MeRfN-gqqv5
+drive_folder_id: 11h_Zaqysh6hJyW9fli8H5MeRfN-gqqv5
+rclone_remote: cpme-drive-harness
+
+# Large file: any file at or above this size, anywhere in the repo, goes to the Drive store.
+large_file_bytes: 5242880
+
+# Large directories: under each, every file with one of these extensions goes to the Drive store whatever its size.
+directories:
+  job/*/06_Issued_Revisions: [step, stp, glb, blend, blend1, mp4, stl, 3mf, npz, zip]
+  job/06_Issued_Revisions: [step, stp, glb, blend, blend1, mp4, stl, 3mf, npz, zip, dwg, pdf]
+  job/06_Issued_Revisions/Models/*/*/Presentations: [png, jpg, jpeg]
+  job/*/06_Issued_Revisions/Models/*/*/Presentations: [png, jpg, jpeg]
+  job/*/04_Vendor_Data: [step, stp, igs, iges, dwg, dxf, zip, pdf, docx]
+  job/components: [step, stp, pdf, dwg, dxf, zip, igs, iges]
+  job/*/03_Working_Design/CAD/05_Purchased_Components: [step, stp, pdf, dwg, dxf, zip, igs, iges]
+
+# Never scanned (gitignored working copies and tool environments).
+exclude: [.git, harness/tools, .venv, job/_work, job/*/_work, job/*/03_Working_Design/Exports, job/*/03_Working_Design/CAD/Fast_Builds, job/*/03_Working_Design/PID/Fast_Edits]

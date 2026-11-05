@@ -46,9 +46,9 @@ What it does, with no judgement in between:
 - Start a side session during an acceptance (Bob approved, 2026-10-15: two sessions editing the model at once
   can build against a withdrawn filing); it stays in this session from the word to the report.
 - Say "done" while `accepted.md` lists anything under NOT DONE.
-- Commit or push: that is close-out.
+- Stop at Locked: once the script finishes, save it (`track.py save`, skill `github-tracking`) and report the stage.
 
-**Report.** `accepted.md` as written, the filed GLB path (`<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>.glb`), and
+**Report.** `accepted.md` as written, the filed GLB path (`<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/<MODEL-ID>-rev<X>.glb`), and
 "nothing committed or pushed". On exit 3: fix the defect it names and rerun; tell Bob only if it cannot be fixed.
 
 **Testing the script** (software-developer only): `--sandbox <new folder>` files into a scratch folder and reuses

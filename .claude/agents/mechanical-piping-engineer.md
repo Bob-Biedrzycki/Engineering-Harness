@@ -98,8 +98,8 @@ each row touched, and how it is met or why it is `NOT MET`.
 
 Every agent: equipment concerns go in `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md`,
 never a question entry (TR-02). Ask only what no document answers (TR-05). File every
-drawing you hand off per `CLAUDE.md` "Git and drawing revisions" (TR-06 to
-TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
+drawing you hand off per `CLAUDE.md` "Drawing and design revisions" (TR-06 to
+TR-08). Save your work with `track.py save` (global "Git and backup").
 
 Rows you carry most:
 - **TR-02, TR-05:** a concern about specified or approved equipment is a row

@@ -1,9 +1,13 @@
 ---
 name: closeout
-description: Tier 3 of the skid-model pipeline for the project, the daily close-out, run by the project-manager only on Bob's word. Runs every check, reviews the list delta, renders portal media and files the portal (once the job has a site; dormant until then), pushes the day's large files to the Google Drive store and verifies them, and writes the commit body skeleton. Use when Bob says to close out the day. Does not commit.
+description: Optional full check run before the PR, when Bob asks for one, or the fallback inside track.py daily for a day not saved as it went; run by the project-manager only on Bob's word. Runs every check, reviews the list delta, renders portal media and files the portal (once the job has a site; dormant until then), pushes the day's large files to the Google Drive store and verifies them, and writes the commit body skeleton. Use when Bob says to close out the day. Does not commit.
 ---
 
-# Close-out (tier 3, once a day, on Bob's word)
+# Close-out (tier 3, optional, on Bob's word)
+
+**Optional, only when Bob asks.** Work is saved and backed up as it is done (`track.py save`: Drive push, commit,
+branch push; CI runs the checks on every save; global "Git and backup"). Close-out is a full check run before the PR
+when Bob wants one, or the fallback inside `track.py daily` for a day not saved as it went.
 
 **When.** On the day's one go (Bob, 2026-10-07; `github-tracking`): the
 project-manager runs `--dry-run` first, drafts the commit message and PR
@@ -30,12 +34,13 @@ failure, so it never stops `track.py daily`.
 Run `--dry-run` first: it lists every step and the pointers push would copy,
 and changes nothing. `--frame-calc` also reruns the frame calc (about 20 min;
 its input revision is named in `frame_calc.py`). The portal flags below
-belong to the site framework (project tracker, quoting/estimating portal,
-landing page), dormant until Bob defines the job's presentation site. One refile flag per document, and neither implies the other: `--refile-portal` files the project
-tracker (project-portal) again when it was already filed today for the same
-model revision; `--refile-quoting` files the quoting portal again when it was
-already issued for the same model revision. The landing page is filed only
-when it changed (`build_landing.py`).
+belong to the site framework (project tracker, Mobile Optimized, landing
+page; no Customer Portal or Fabrication Estimating Portal on this job, Bob,
+chat, 2026-10-30), dormant until Bob defines the job's presentation site.
+`--refile-portal` files the project tracker (project-portal) again when it was
+already filed today for the same model revision. Mobile Optimized is filed
+once per model revision; the landing page is filed only when it changed
+(`build_landing.py`).
 
 **Steps.** (1) every `harness/checks/*.py`, as CI, except `portal_terms.py`,
 which runs at the end of step 5 on the portal revision just filed; (2) frame-calc basis vs the
@@ -43,10 +48,10 @@ newest filed revision; (3) list delta of the newest filed revision vs the lists:
 non-empty means it is appended to `<project>/01_Design_Basis/06_Assumptions_Open_Items/pid-revision-requests.md` and
 close-out STOPS (exit 3) for the process-engineer step, then you rerun it;
 **(4), (5) and (9) are the presentation site, dormant until the job has one**: the
-site framework (project tracker, quoting/estimating portal, landing page) is
+site framework (project tracker, Mobile Optimized, landing page) is
 dormant until Bob defines the job's presentation site (Bob,
-chat, 2026-10-26: a site/portal for the job is planned; while `site_repo` in `project.yaml` is `unknown` and the project's
-`09_Presentation/` has no builders). Until then each prints one skip line and is not a failure.
+chat, 2026-10-30: the builders are in the project's `09_Presentation/`; the site stays dormant while `site_repo` in
+`project.yaml` is `unknown`). Until then each prints one skip line and is not a failure.
 Once the job has a site: (4) the looks line for the newest filed GLB
 (`looks: n of m required instruments realistic; missing: ...`,
 `materials.yaml` `required_looks`; read-only, also in `--dry-run`, a report
@@ -54,15 +59,16 @@ in Checks run, never a failure), then portal media (Blender) if missing; (5)
 `web_glbs.py --rev <newest>`, the viewer's web GLB for the newest filed
 revision only (Bob, 2026-10-12: older revisions are not rebuilt for a look
 change; a current revision with no current-look GLB is a `WARNING web GLB`
-row, reported, not a stop), then `build_portal.py --file` (the tracker), the
-quoting portal once per model revision, and the landing page if it changed;
+row, reported, not a stop), then `build_portal.py --file` (the tracker),
+Mobile Optimized (`web_glbs.py --phone`, `build_portal.py --audience mobile
+--file`) once per model revision, and the landing page if it changed;
 each portal files its content-hashed shared assets, listed in the revision's
 `shared-assets.json`, into
 `<project>/06_Issued_Revisions/Portals/<portal>/assets/`,
 append-only; (6)
 `drive_store.py pointers`, `push`, `verify` (nothing goes outside the repo
 before this; push runs after the portal so its large files go too); (7)
-Linear loops (TR-12; Bob, 2026-10-07; `harness/lib/linear_loops.py`): today's
+Linear loops (Bob, 2026-10-07; `harness/lib/linear_loops.py`): today's
 `<project>/_work/daily/<date>*` `.md`/`.txt` handoffs and today's `Agent-to-Agent Questions.md` entries
 with no `CPM-nn`, issues touched today with no comment today, `NEXT:` lines
 naming an agent with no issue opened for it today, and handoffs saying
@@ -71,12 +77,12 @@ only**: never a failure, never a change to the exit code; (8)
 `<project>/_work/daily/<date>-commit.md` (Why, Changed IDs, Sources and rules cited,
 TR rows touched, Drawings filed, Checks run, Linear loops, `--tag` list) and
 `<project>/_work/daily/<date>-paths.txt` (candidate paths); (9)
-`harness/scripts/publish_site.py --rev <P> --quoting <Q> --landing <L> --dry-run`,
+`harness/scripts/publish_site.py --rev <P> --quoting none --landing <L> --mobile <M> --dry-run`,
 each the newest filed revision (`harness/lib/site_revs.py`): the
-presentation site publish plan (C-08), dormant as above; it publishes the listed
+presentation site publish plan, dormant as above; it publishes the listed
 shared assets as the site's `assets/` and only the data-store files the
 published pages reach (the dry run names how much is left off). Publishing runs after
-the day's PR merges, on the day's go, with no new ask (Bob, 2026-10-07):
+the PR merges, on the day's go, with no new ask (Bob, 2026-10-07):
 `track.py after-merge`.
 
 **Linear export, written first.** `closeout.py` has no Linear access, so before

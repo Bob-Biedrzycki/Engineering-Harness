@@ -1,14 +1,17 @@
 """site_revs - the newest filed revision of each document the presentation site publishes.
 
 One reader for closeout.py step 9 (the publish plan), track.py after-merge (the publish after the day's PR merges)
-and publish_site.py (its --quoting / --landing defaults), so the three never disagree about what "newest" means:
+and publish_site.py (its --landing / --mobile defaults), so the three never disagree about what "newest" means:
 the last row of the document's revisions.csv (model_build.last_revision; revision letters are sequential, TR-08).
 
     import site_revs
-    revs = site_revs.newest()            # {"rev": "J", "quoting": "E", "landing": "D"}; None where nothing is filed
-    args = site_revs.publish_args(revs)  # ["--rev", "J", "--quoting", "E", "--landing", "D"]
-    site_revs.hidden_models()            # ("<retired MODEL-ID>",): <project>/03_Working_Design/CAD/09_Presentation/site.yaml
+    revs = site_revs.newest()            # {"rev": "J", "landing": "D", "mobile": "B"}; None where nothing is filed
+    args = site_revs.publish_args(revs)  # ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "B"]
+    site_revs.hidden_models()            # model IDs kept off the site: <project>/03_Working_Design/CAD/09_Presentation/site.yaml
     site_revs.hidden_pages()             # ("quote",): tracker pages not built (site.yaml, 2026-10-08)
+
+The site is the project tracker, its landing page and Mobile Optimized (Bob, chat, 2026-10-30: no Customer Portal and
+no Fabrication Estimating Portal on this job), so every publish runs with "--quoting none".
     site_revs.site_dormant()             # "no presentation site yet (...)" while the project has none, else None
 """
 from __future__ import annotations
@@ -44,13 +47,13 @@ def site_dormant(needs: tuple[str, ...] = ("build_portal.py",), site_repo: str |
     return None
 
 # publish_site.py argument -> filed document folder (<project>/06_Issued_Revisions/Portals/<doc>/revisions.csv)
-DOCS: dict[str, Path] = ({"rev": rp.PORTAL_FILED, "quoting": rp.QUOTING_FILED, "landing": rp.LANDING_FILED,
+DOCS: dict[str, Path] = ({"rev": rp.PORTAL_FILED, "landing": rp.LANDING_FILED,
                           "mobile": rp.MOBILE_FILED}   # Mobile Optimized, mobile/ (Bob, 2026-10-17)
                          if rp.HAS_PROJECT else {})    # no project yet: nothing filed, nothing to publish
 
 
 def newest(docs: dict[str, Path] | None = None) -> dict[str, str | None]:
-    """{"rev", "quoting", "landing"} -> the newest filed revision letter of each, or None if none is filed."""
+    """{"rev", "landing", "mobile"} -> the newest filed revision letter of each, or None if none is filed."""
     return {k: last_revision(root) for k, root in (docs or DOCS).items()}
 
 
@@ -84,12 +87,10 @@ def hidden_pages(config: Path | None = None) -> tuple[str, ...]:
 
 
 def publish_args(revs: dict[str, str | None]) -> list[str]:
-    """publish_site.py arguments naming each revision explicitly. No quoting portal filed: "--quoting none" (the
-    pre-Phase 6 layout); no landing page: publish_site.py's own default (it then falls back the same way)."""
+    """publish_site.py arguments naming each revision explicitly: always "--quoting none" (no estimating portal on
+    this job); the landing page and Mobile Optimized when filed, else "none" (publish_site.py then lays out the
+    tracker alone at the root)."""
     if not revs.get("rev"):
         raise ValueError("no project-portal revision is filed")
-    args = ["--rev", revs["rev"], "--quoting", revs.get("quoting") or "none"]
-    if revs.get("quoting") and revs.get("landing"):
-        args += ["--landing", revs["landing"]]
-        args += ["--mobile", revs.get("mobile") or "none"]
-    return args
+    return ["--rev", revs["rev"], "--quoting", "none", "--landing", revs.get("landing") or "none",
+            "--mobile", revs.get("mobile") or "none"]

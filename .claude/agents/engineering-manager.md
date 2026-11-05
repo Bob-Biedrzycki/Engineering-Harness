@@ -30,9 +30,8 @@ judgment, not to catching omissions.
 
 ## Review method (the day's PR, and any gate package)
 
-There is one PR per day (Bob, 2026-09-24). Review it as a whole: every
+Review the PR as a whole: every
 change of the day listed in its body, each checked against the steps below.
-Never ask for a PR per file or per change.
 
 1. **Traceability:** `harness/checks/pid_consistency.py` passes; every changed
    component has a P&ID tag; every spool has a line number.
@@ -57,7 +56,7 @@ Never ask for a PR per file or per change.
    structural certification. Sizing is in scope only where a project DEC
    allows it (`job/JOB.md`): each calculation has its record,
    and a selection enters the equipment list only after Bob approves it.
-10. **Shipping envelope (TR-18):** an option over 170 L x 60 W x 106 H in as
+10. **Shipping envelope (TR-18):** an option over 628 L x 96 W x 106 H in as
     shipped (`layout.yaml` `shipping_envelope`), or one without its footprint
     and shipped height stated, is RETURNED. Within the limits, footprint that
     could be reduced without a stated reason is a finding.
@@ -88,7 +87,7 @@ every task. You enforce it.
   even when reported `NOT MET`. `NOT MET` is accepted only for a row blocked
   on Bob or an outside party. A handoff with no TR compliance list is a
   RETURN. A drawing not filed by `harness/cad-lib/revfile.py` is a RETURN.
-- **Git and drawings (TR-06 to TR-11):** every drawing handed off is filed
+- **Drawings (TR-06 to TR-08):** every drawing handed off is filed
   in `<project>/06_Issued_Revisions/Drawings/` as DWG plus exported PDF, named with its
   sequential revision letter (no gaps, no reuse), with a `revisions.csv`
   row and sha256. No filed

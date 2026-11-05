@@ -98,7 +98,7 @@ class RunChecksPolicy(unittest.TestCase):
 class HardFailList(unittest.TestCase):
     def test_list_is_repo_integrity_only(self):
         line = next(ln for ln in SCRIPT.read_text(encoding="utf-8").splitlines() if ln.startswith("HARD_FAIL_CHECKS="))
-        self.assertEqual(line.split("=", 1)[1].strip('"').split(), ["drive_pointers.py"])
+        self.assertEqual(line.split("=", 1)[1].strip('"').split(), ["drive_pointers.py", "filed_layout.py"])
 
 
 if __name__ == "__main__":

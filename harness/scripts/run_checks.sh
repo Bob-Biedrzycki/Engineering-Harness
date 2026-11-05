@@ -23,6 +23,8 @@
 # HARD_FAIL_CHECKS: repo-integrity checks, whose findings are not design findings.
 #   drive_pointers.py - a large file committed to git or a malformed Drive pointer
 #                       (CPME practice); the repo itself is wrong, not the design.
+#   filed_layout.py   - a filed drawing or model revision not in its own <DOC-ID>-rev<X>/ folder
+#                       (Bob, chat, 2026-10-30); the filing is wrong, not the design.
 # Every other check measures the design or its output (sanitary, pipe_supports,
 # interference, envelope, pid_consistency, portal_terms, tag_crosscheck, component_register) and reports.
 #
@@ -30,7 +32,7 @@
 # harness/checks), GITHUB_STEP_SUMMARY (default /dev/null).
 set +e
 
-HARD_FAIL_CHECKS="drive_pointers.py"
+HARD_FAIL_CHECKS="drive_pointers.py filed_layout.py"
 
 PYTHON="${PYTHON:-python}"
 CHECKS_DIR="${CHECKS_DIR:-harness/checks}"

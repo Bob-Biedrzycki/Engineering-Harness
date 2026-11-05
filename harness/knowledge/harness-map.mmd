@@ -75,7 +75,7 @@ flowchart TB
   subgraph EXT["7. Outside the checkout"]
     direction LR
     MASTER["Engineering Harness master<br/>C:/Users/Bob/Documents/Engineering Harness<br/>harness fixes are made here, then pulled into each job"]:::ext
-    GH["GitHub: the job's repo (TR-09; origin in job/JOB.md)<br/>daily/YYYY-MM-DD branch, one PR per day<br/>CI .github/workflows/checks.yml, engineer merges"]:::ext
+    GH["GitHub: the job's repo (origin in job/JOB.md)<br/>daily/YYYY-MM-DD branch, PR when Bob asks<br/>CI .github/workflows/checks.yml, engineer merges"]:::ext
     GD["Google Drive folder named in job/drive-store.yaml (one for the job)<br/>large files at their repo paths<br/>rclone remote named there"]:::ext
     LIN["Linear<br/>one issue per agent task, [agent] prefix, role label"]:::ext
   end
@@ -102,7 +102,7 @@ flowchart TB
   REV -->|"next letter, DWG + PDF + DXF, sha256 row"| FILED
   FILED -->|"file.drive pointers stay in git"| DRV
   DRV <-->|"push, pull, verify"| GD
-  TRK -->|"daily commit, push, one PR"| GH
+  TRK -->|"save, push, PR"| GH
   CHK -->|"same checks run in CI"| GH
   GH -->|"review and merge"| BOB
   PM -->|"session opens issues; PM audits and closes"| LIN
