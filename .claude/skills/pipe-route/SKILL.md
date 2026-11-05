@@ -88,7 +88,7 @@ Company-wide practice, carried to every project; each applies only to the classe
 
 ## Envelope and orientation
 
-- Stay inside TR-18 (170 x 60 x 106 in), insulation included. Growth on the
+- Stay inside TR-18 (628 x 96 x 106 in), insulation included. Growth on the
   piping face is the usual risk; give the margin in the hand-off.
 - Go by member tags for front and rear.
 - Don't rotate a pump casing; turn the discharge elbow instead.

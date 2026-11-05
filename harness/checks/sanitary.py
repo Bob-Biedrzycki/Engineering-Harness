@@ -76,7 +76,7 @@ sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / 
 import repo_paths as rp  # noqa: E402
 import rule_scope  # noqa: E402
 
-if rp.HAS_PROJECT:
+if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
 
 MM_PER_IN = 25.4
@@ -852,7 +852,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--report", type=Path, help="write instrument-rules.csv / .json into this folder")
     a = ap.parse_args(argv)
-    if rp.skip_no_project("sanitary"):
+    if rp.skip_no_model("sanitary"):
         return 0
     try:
         cfg = load_rules()

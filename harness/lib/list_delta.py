@@ -38,7 +38,7 @@ import rule_scope
 
 if str(rp.CHECKS) not in sys.path:
     sys.path.insert(0, str(rp.CHECKS))
-if rp.HAS_PROJECT and str(rp.SKID_MODEL) not in sys.path:
+if rp.HAS_MODEL and str(rp.SKID_MODEL) not in sys.path:
     sys.path.insert(0, str(rp.SKID_MODEL))
 
 TAG_LISTS = ("equipment-list.csv", "valve-list.csv", "instrument-list.csv", "tie-in-list.csv")
@@ -59,6 +59,17 @@ def _unknown(s) -> bool:
     return not str(s or "").strip() or str(s).strip().lower().startswith("unknown")
 
 
+def _list(name: str) -> list[dict]:
+    """The rows of one P&ID list (rp.DATA/<name>). A model whose skidlib.inputs has list_rows(name) gives them
+    itself: a job-level model keeps only the rows its configuration carries (Linear CPM-155)."""
+    try:
+        from skidlib import inputs
+        fn = getattr(inputs, "list_rows", None)
+    except ImportError:
+        fn = None
+    return fn(name) if fn else _csv(rp.DATA / name)
+
+
 def list_material(row: dict) -> str:
     """'ASTM A270 S2 316L' from spec 'ASTM A270 S2 (rule ...)' and material '316L'."""
     spec = re.sub(r"\s*\(.*\)\s*$", "", (row.get("spec") or "").strip())
@@ -70,13 +81,14 @@ def compute(folder: Path, prefix: str = "") -> dict:
     from pid_consistency import UNTAGGED_KINDS   # one definition of the untagged kinds
     from skidlib.params import OFF_SKID           # one definition of the off-skid tags and lines
 
-    man = json.loads((folder / f"{prefix}manifest.json").read_text(encoding="utf-8"))
-    spools = _csv(folder / f"{prefix}spool-list.csv")
-    welds = _csv(folder / f"{prefix}weld-map.csv")
-    lines = {r["line_no"].strip(): r for r in _csv(rp.DATA / "line-list.csv")}
+    # a locked revision keeps these in Reports/ and Takeoffs/ (rp.model_subfolder); a work build is flat
+    man = json.loads(rp.model_rev_file(folder, f"{prefix}manifest.json").read_text(encoding="utf-8"))
+    spools = _csv(rp.model_rev_file(folder, f"{prefix}spool-list.csv"))
+    welds = _csv(rp.model_rev_file(folder, f"{prefix}weld-map.csv"))
+    lines = {r["line_no"].strip(): r for r in _list("line-list.csv")}
     expected: dict[str, str] = {}
     for name in TAG_LISTS:
-        for r in _csv(rp.DATA / name):
+        for r in _list(name):
             t = (r.get("tag") or "").strip()
             if t and t.lower() != "unknown":
                 expected[t] = name

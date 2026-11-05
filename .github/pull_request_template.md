@@ -3,7 +3,7 @@
 Date:
 
 ## Linear issues advanced
-<!-- Agent tasks live in Linear (Bob, 2026-09-28; TR-12, C-06). One line per issue, by its Linear ID. -->
+<!-- Agent tasks live in Linear (Bob, 2026-09-28). One line per issue, by its Linear ID. -->
 Relates to    (use "Fixes <ID>" only if this merge satisfies the whole issue; Linear closes it on merge)
 
 ## Role / agent

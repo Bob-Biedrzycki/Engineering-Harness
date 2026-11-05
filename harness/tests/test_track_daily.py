@@ -57,7 +57,7 @@ x
 **Checks run**
 x
 """
-BODY = "## Todd's requirements\n- TR-11\n## Drawings filed\n- none\nRelates to CPM-152\n"
+BODY = "## Todd's requirements\n- TR-08\n## Drawings filed\n- none\nRelates to CPM-152\n"
 
 
 def tearDownModule() -> None:
@@ -270,7 +270,7 @@ class AfterMerge(Base):
 
 
 class PublishAfterMerge(Base):
-    REVS = {"rev": "J", "quoting": "E", "landing": "D"}
+    REVS = {"rev": "J", "landing": "D", "mobile": None}
 
     def dry_out(self, added=0, changed=0, removed=0):
         return (f"publish_site (DRY RUN: nothing written, committed or pushed)\n"
@@ -301,7 +301,7 @@ class PublishAfterMerge(Base):
         self.assertIsNone(code)
         self.assertEqual(len(calls), 1, "only the dry run runs")
         self.assertIn("--dry-run", calls[0])
-        self.assertEqual(calls[0][2:10], ["--rev", "J", "--quoting", "E", "--landing", "D", "--mobile", "none"])
+        self.assertEqual(calls[0][2:10], ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "none"])
         self.assertIn("publish skipped", out)
 
     def test_publishes_when_the_site_differs(self):
@@ -320,7 +320,7 @@ class PublishAfterMerge(Base):
     def test_refused_publish_prints_command_and_exits_2(self):
         code, calls, out = self.run_pub([(0, self.dry_out(changed=1)), (2, "")])
         self.assertEqual(code, 2)
-        self.assertIn(r"harness\scripts\publish_site.py --rev J --quoting E --landing D --mobile none --bob-go '1 \"GO\"'",
+        self.assertIn(r"harness\scripts\publish_site.py --rev J --quoting none --landing D --mobile none --bob-go '1 \"GO\"'",
                       out)
 
     def test_dry_run_refused_exits_2(self):
@@ -343,20 +343,21 @@ class PublishAfterMerge(Base):
 
 class SiteRevs(unittest.TestCase):
     def test_publish_args(self):
-        self.assertEqual(site_revs.publish_args({"rev": "J", "quoting": "E", "landing": "D"}),
-                         ["--rev", "J", "--quoting", "E", "--landing", "D", "--mobile", "none"])
-        self.assertEqual(site_revs.publish_args({"rev": "J", "quoting": "E", "landing": "D", "mobile": "B"}),
-                         ["--rev", "J", "--quoting", "E", "--landing", "D", "--mobile", "B"])
-        self.assertEqual(site_revs.publish_args({"rev": "J", "quoting": None, "landing": "D"}),
-                         ["--rev", "J", "--quoting", "none"])
+        # always "--quoting none": no estimating portal on this job (Bob, chat, 2026-10-30)
+        self.assertEqual(site_revs.publish_args({"rev": "J", "landing": "D"}),
+                         ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "none"])
+        self.assertEqual(site_revs.publish_args({"rev": "J", "landing": "D", "mobile": "B"}),
+                         ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "B"])
+        self.assertEqual(site_revs.publish_args({"rev": "J", "landing": None}),
+                         ["--rev", "J", "--quoting", "none", "--landing", "none", "--mobile", "none"])
         with self.assertRaises(ValueError):
             site_revs.publish_args({"rev": None})
 
     def test_newest_is_last_row(self):
         with tempfile.TemporaryDirectory() as d:
             (Path(d) / "revisions.csv").write_text("document_id,revision,file\nx,A,a\nx,B,b\nx,B,c\n", encoding="utf-8")
-            self.assertEqual(site_revs.newest({"rev": Path(d), "quoting": Path(d) / "none"}),
-                             {"rev": "B", "quoting": None})
+            self.assertEqual(site_revs.newest({"rev": Path(d), "mobile": Path(d) / "none"}),
+                             {"rev": "B", "mobile": None})
 
     def test_closeout_and_publish_share_it(self):
         src = (REPO / "harness" / "scripts" / "closeout.py").read_text(encoding="utf-8")

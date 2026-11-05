@@ -17,6 +17,21 @@ STEP itself):
 .\harness\tools\venv\Scripts\python.exe harness\scripts\model_iterate.py
 ```
 
+**Job-level typical models** (`HWS-TYP-<CL|DS>-R<n>-MODEL`; Bob, chat, 2026-10-29; Linear CPM-155). Add
+`--model-id <ID> --config <CFG>` (or set `CPME_MODEL_ID` / `CPME_MODEL_CONFIG`; the checks it starts inherit
+them). `<CFG>` is `B`, `X` or a switch string such as `E-OPT1-OPT3` (default `B`); a string equal to B or X is
+refused with the right name, and one that is not a row of `job/knowledge/size-range/config-matrix.csv` is refused
+with the reason. Source is `job/typical-models/<MODEL-ID>/`, the build goes to
+`job/_work/typical-models/build/<MODEL-ID>/<CFG>/` (with the iso, plan, front and side review PNGs), and the rules
+are the harness and job levels only: `envelope.py` reads `job/design-rules/layout.yaml` `shipping_envelope`. The
+list delta compares against the configuration's rows of `job/typical-models/_lists/<CL|DS>/`. `--fast` needs a filed
+revision of that configuration and skips the P&ID drawing checks. Commands and the model-writing rules:
+`job/typical-models/README.md`. Without `--model-id` everything below is the project's model, as before.
+
+```
+.\harness\tools\venv\Scripts\python.exe harness\scripts\model_iterate.py --model-id HWS-TYP-CL-R4-MODEL --config X
+```
+
 `--keep-going` continues past model problems reported by `export_lists.py`
 (default: stop and fix, as in the fast loop). `--no-glb` skips the GLB, but a
 build without a GLB cannot be filed.

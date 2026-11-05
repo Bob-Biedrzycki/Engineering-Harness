@@ -12,8 +12,8 @@ sign-off (engineering-manager). Agents never sign a gate (hard rule 7).
 
 ## Steps
 
-1. **Pin the inputs:** the filed revisions only (`<project>/06_Issued_Revisions/Models/<MODEL-ID>/...-rev<X>`,
-   `<project>/06_Issued_Revisions/Drawings/<DOC-ID>/...-rev<X>`). Never a `<project>/_work/` copy.
+1. **Pin the inputs:** the filed revisions only (`<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`,
+   `<project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>/`). Never a `<project>/_work/` copy.
 2. **Run the checks** (repo venv; exit 0 PASS, 1 FAIL, 2 NOT IMPLEMENTED;
    first line is the summary):
    - `harness/checks/pid_consistency.py` (lists vs model; builds the model)

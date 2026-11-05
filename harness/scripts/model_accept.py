@@ -26,7 +26,7 @@ In order; nothing is filed until step 4:
        own next letter only when its content changed (its revision clouds against the last filed sheet; the model
        revision text is not counted); then the P&ID revision requests raised since the last issued one are marked
        issued.
-    6. drive_store.py pointers (no push: close-out), a fast-log row, <project>/_work/accept/rev<X>/accepted.md.
+    6. drive_store.py pointers (Locked; `track.py save` saves and backs it up), a fast-log row, <project>/_work/accept/rev<X>/accepted.md.
 
 --preflight-only runs step 1 and prints the list; it changes no state and files nothing.
 --sandbox <folder> (testing this script only) reuses the current work build instead of step 3 and files into the
@@ -150,6 +150,7 @@ def seed_sandbox(box: Path) -> None:
             w.writerows(keep)
         for r in keep[-6:]:
             if (src / r["file"]).is_file():
+                (dst / r["file"]).parent.mkdir(parents=True, exist_ok=True)   # <DOC-ID>-rev<X>/ (rp.rev_folder)
                 shutil.copyfile(src / r["file"], dst / r["file"])
     if PRR_FILE.is_file():   # a new project may have no P&ID revision requests file yet
         shutil.copyfile(PRR_FILE, box / PRR_FILE.name)
@@ -370,7 +371,7 @@ def main() -> int:
     print("[6/6] done", flush=True)
     print("\n".join(report))
     print(f"model_accept: {'ACCEPTED' if not failed else 'ACCEPTED WITH STEPS NOT DONE'} - model "
-          f"<project>/06_Issued_Revisions/Models/{mb.MODEL_ID}/{mb.MODEL_ID}-rev{letter}.glb; nothing committed or pushed (close-out).")
+          f"<project>/06_Issued_Revisions/Models/{mb.MODEL_ID}/{mb.MODEL_ID}-rev{letter}/{mb.MODEL_ID}-rev{letter}.glb; Stage: Locked. Next: track.py save.")
     return 0 if not failed else 1
 
 

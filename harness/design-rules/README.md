@@ -36,13 +36,13 @@ like to be asked which designation it belongs in."
 - Rule owners: mechanical-piping-engineer (`piping.yaml`, `sanitary.yaml`, and the
   job's piping and product rules), electrical-engineer (`electrical-interface.yaml`),
   controls-engineer (`instrument-mounting.yaml`), the project engineer
-  (`layout.yaml`, `structural.yaml`, `drafting.yaml`). Bob approves.
+  (`layout.yaml`, `structural.yaml`, `drafting.yaml`, `tagging.yaml`). Bob approves.
 
 ## Designations of the rules in this repo
 
 | Rule | Level | Basis of the designation |
 |---|---|---|
-| PIPE-SVC-001 service classes (`piping.yaml`) | harness; each line's class and each class's scope per project | Bob, chat, 2026-10-26: "The rules need to be specific to the function." Product rules for each class moved to the job level (Bob, chat, 2026-10-27) |
+| PIPE-SVC-001 service classes (`piping.yaml`) | harness; each line's class and each class's scope per project | Bob, chat, 2026-10-26: "The rules need to be specific to the function." Product rules for each class moved to the job level (Bob, chat, 2026-10-27). Steam and condensate `standards` (pipe, fitting and flange standards): harness, Bob, chat, 2026-10-30: "Company-wide" |
 | SAN-SLOPE-001, SAN-DL-001, SAN-DL-002, SAN-DRAIN-001, SAN-RA-001, SAN-WELD-001, SAN-PP-001, SAN-FRAME-001, SAN-ACC-001 (`sanitary.yaml`) | harness (rule and value); line scope, drain points and each instrument's values per project | CPME practice |
 | SAN-MAT-001 tube spec and walls, incl. 3.0 in, and `drain_piping` | harness; product-contact grade and gasket selection per project | CPME practice |
 | SAN-PIPE-001 governing code | the rule harness; the code (B31.1, B31.9 or B31.3) a project value, `unknown` until the customer or AHJ sets it | Bob, chat, 2026-10-26 |
@@ -53,8 +53,9 @@ like to be asked which designation it belongs in."
 | INST-POS-001, INST-LEAK-001 (hygienic clamp-mounted instruments) | harness | CPME practice |
 | STR-PS-001 tube clamp hanger, STR-PS-002 support spacing incl. 3.0 in (`structural.yaml`) | harness; lines in scope per project | CPME practice |
 | DRF-LBL-*, DRF-ARR-*, DRF-PLC-* P&ID drafting (`drafting.yaml`) | harness; a brand new P&ID only | CPME practice |
+| TAG-LOOP-001, TAG-ISA-001, TAG-EQ-001, TAG-ITEM-001, LINE-NUM-001 tag and line numbering (`tagging.yaml`) | harness; every project and every new P&ID from 2026-10-30, the typicals at their next revision | ISA-5.1; Bob, chat, 2026-10-30: "for the whole company and every project moving forward including this one" |
 | `panel_working_clearance`, `disconnect` and the other electrical-interface fields (`electrical-interface.yaml`, values null) | harness; enclosure type and hazardous area per project | CPME practice |
-| Shipping envelope and lift points (TR-18, TR-19) | project (`layout.yaml` `shipping_envelope`, `lift_points`) | CPME practice |
+| Shipping envelope and lift points (TR-18, TR-19) | shipping envelope and footprint job (`job/design-rules/layout.yaml`); lift points project (`layout.yaml` `lift_points`) | CPME practice; envelope moved to job, Bob, chat, 2026-10-29 |
 | The job's product rules (`job/design-rules/`) | job; listed in `job/design-rules/README.md` | per that file |
 
 Background for these rules: `harness/knowledge/Design Standards.md`; the job's own background is in `job/knowledge/`.

@@ -11,16 +11,26 @@ What it does, in order (it stops at the first refusal and writes nothing):
        component models, design rules), or the GLB is older than the STEP;
     2. takes the next letter after the last row of <project>/06_Issued_Revisions/Models/<MODEL-ID>/revisions.csv (sequential, nobody
        assigns it); --rev X makes it refuse unless X is that letter; refuses if any target file exists;
-    3. copies the build into <project>/06_Issued_Revisions/Models/<MODEL-ID>/ with the revision in every name, the STEP zipped as
-       <MODEL-ID>-rev<X>.step.zip holding <MODEL-ID>-rev<X>.step, every file read-only;
-    4. appends one revisions.csv row per file (sha256, bytes, note <= 32 chars, description + checks);
-    5. runs drive_store.py pointers. No push: that happens once a day at close-out.
+    3. copies the build into the revision's own folder <project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/
+       (Bob, chat, 2026-10-30: "Everything like for them should be in a folder for each rev.") with the revision in
+       every name, the STEP zipped as <MODEL-ID>-rev<X>.step.zip holding <MODEL-ID>-rev<X>.step, every file read-only;
+       refuses if that folder exists already;
+    4. appends one revisions.csv row per file to the document folder's revisions.csv, `file` = <MODEL-ID>-rev<X>/<name>
+       (sha256, bytes, note <= 32 chars, description + checks);
+    5. runs drive_store.py pointers. The revision is then Locked; `track.py save` saves and backs it up
+       (Drive push, commit, branch push; global "Git and backup").
 
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_file.py --note "<= 32 chars" --description-file <utf-8 file> [--rev X] [--dry-run]
 
 --description "<text>" works too, but PowerShell 5.1 mangles embedded double quotes in native arguments, so
 long descriptions with quotes go through --description-file. --models-root <folder> files into another
 folder (a scratch copy, for testing this script; pointers are skipped there).
+
+--model-id <ID> --config <CFG> (Linear CPM-155; harness/lib/repo_paths.py) files a job-level model's configuration
+from its work build: document <MODEL-ID>-<CFG> (B and X each with their own letters from Rev A), every file named
+<MODEL-ID>-<CFG>-rev<X>..., the STEP zipped, plus the four review views, into
+job/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/, whose parent's revisions.csv holds the rows of
+every configuration of that model.
 Exit 0 = filed (or dry run shown); 1 = filed but drive_store pointers reported a problem; 2 = refused.
 """
 from __future__ import annotations
@@ -41,7 +51,7 @@ from pathlib import Path
 sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
 import repo_paths as rp  # noqa: E402
 if __name__ == "__main__":
-    rp.require_project("model_file.py")   # no project yet: exit 2, nothing to file
+    rp.require_model("model_file.py")   # no project and no --model-id: exit 2, nothing to file
 import model_build as mb  # noqa: E402
 
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
@@ -69,6 +79,9 @@ def check_build(failing_ok: str | None) -> dict:
     if not mb.SUMMARY.is_file():
         refuse(f"no {rp.rel(mb.SUMMARY)}: run harness/scripts/model_iterate.py first")
     s = json.loads(mb.SUMMARY.read_text(encoding="utf-8"))
+    if mb.JOB_LEVEL and s.get("document_id") != mb.DOC_ID:
+        refuse(f"{rp.rel(mb.SUMMARY)} is for {s.get('document_id')}, not {mb.DOC_ID}; rerun model_iterate.py "
+               f"--model-id {mb.MODEL_ID} --config {rp.MODEL_CONFIG}")
     if not s.get("complete"):
         refuse(f"the last model_iterate run did not complete every step ({', '.join(s['steps'])}); rerun it")
     if s["failed"] and not failing_ok:
@@ -90,9 +103,10 @@ def check_build(failing_ok: str | None) -> dict:
 
 def checks_text(s: dict) -> str:
     order = ["interference", "envelope", "pipe_supports", "list_delta", "lists", "step", "glb"]
+    order += [f"view_{v}" for v, _ in mb.VIEWS] if mb.JOB_LEVEL else []
     parts = [s["steps"][k]["summary"] for k in order if k in s["steps"]]
     return (f"Checks (harness/scripts/model_iterate.py, {s['finished']}): " + "; ".join(parts)
-            + ". pid_consistency, frame calc and sanitary run at close-out (harness/scripts/closeout.py).")
+            + ". pid_consistency, frame calc and sanitary run in CI on the next save (harness/scripts/run_checks.sh).")
 
 
 def same_as_previous(root: Path, prev: str | None) -> list[str]:
@@ -117,7 +131,12 @@ def main() -> int:
     ap.add_argument("--failing-ok", metavar="REASON", help="file a build whose checks failed; the reason is recorded")
     ap.add_argument("--dry-run", action="store_true", help="show the file set and the rows; write nothing")
     ap.add_argument("--models-root", type=Path, help="file into this folder instead (testing; pointers skipped)")
+    rp.add_model_args(ap)
     a = ap.parse_args()
+    if mb.JOB_LEVEL:
+        name, why = mb.canonical_config()
+        if name != rp.MODEL_CONFIG:
+            refuse(f"--config {rp.MODEL_CONFIG}: " + (why or f"this is configuration {name}; use --config {name}"))
 
     root = (a.models_root or mb.FILED).resolve()
     real = root == mb.FILED.resolve()
@@ -139,19 +158,20 @@ def main() -> int:
     if any(r["revision"] == letter for r in mb.filed_rows(root)):
         refuse(f"Rev {letter} already has rows in {root / 'revisions.csv'} (TR-08)")
     plan = [(p, root / mb.filed_name(p.name, letter)) for p in mb.build_files()]
-    exists = [rp.rel(d) if real else str(d) for _, d in plan if d.exists()]
-    if exists:
-        refuse(f"Rev {letter} files already exist, a filed design is never overwritten (TR-08): {', '.join(exists)}")
+    folder = root / rp.rev_folder(mb.DOC_ID, letter)
+    if folder.exists():
+        refuse(f"Rev {letter} folder already exists, a filed design is never overwritten (TR-08): "
+               f"{rp.rel(folder) if real else folder}")
 
     full_desc = desc + (" " if desc else "") + checks_text(s)
     if a.failing_ok:
         full_desc += f" FILED WITH FAILING CHECKS ({', '.join(s['failed'])}): {a.failing_ok}"
     same = same_as_previous(root, prev)
-    print(f"model_file: {mb.MODEL_ID} Rev {letter} (last filed {prev or 'none'}) -> {rp.rel(root) if real else root}"
+    print(f"model_file: {mb.DOC_ID} Rev {letter} (last filed {prev or 'none'}) -> {rp.rel(root) if real else root}"
           f"{'  [DRY RUN, nothing written]' if a.dry_run else ''}")
     for src, dst in plan:
         extra = " (zipped)" if src == mb.STEP else ""
-        print(f"  {src.stat().st_size:>12,} B  {src.name:<34} -> {dst.name}{extra}")
+        print(f"  {src.stat().st_size:>12,} B  {src.name:<34} -> {dst.relative_to(root).as_posix()}{extra}")
     print(f"  revisions.csv: {len(plan)} row(s), note \"{note}\"")
     print(f"  description: {full_desc[:400]}{' ...' if len(full_desc) > 400 else ''}")
     if same:
@@ -160,10 +180,11 @@ def main() -> int:
         print(f"model_file: dry run; a real run files Rev {letter} and runs drive_store.py pointers (no push)")
         return 0
 
-    root.mkdir(parents=True, exist_ok=True)
+    folder.mkdir(parents=True)
     stamp = dt.datetime.now().strftime("%Y-%m-%d %H:%M")
     rows = []
     for src, dst in plan:
+        dst.parent.mkdir(parents=True, exist_ok=True)   # Takeoffs/, Reports/, Views/ (rp.model_subfolder)
         if src == mb.STEP:
             part = dst.with_name(dst.name + ".partial")
             inner = dst.name[:-len(".zip")]
@@ -176,11 +197,11 @@ def main() -> int:
         else:
             shutil.copy2(src, dst)
             source = rp.rel(src).replace("/", "\\")
-        rows.append({"document_id": mb.MODEL_ID, "revision": letter, "file": dst.name, "file_date": stamp,
+        rows.append({"document_id": mb.DOC_ID, "revision": letter, "file": dst.relative_to(root).as_posix(), "file_date": stamp,
                      "sha256": sha256(dst), "bytes": dst.stat().st_size, "source": source, "notes": note,
                      "description": full_desc})
         os.chmod(dst, stat.S_IREAD | stat.S_IRGRP | stat.S_IROTH)
-        print(f"  filed {dst.name}")
+        print(f"  filed {dst.relative_to(root).as_posix()}")
     manifest = root / "revisions.csv"
     new = not manifest.exists()
     with open(manifest, "a", newline="", encoding="utf-8") as f:
@@ -188,14 +209,14 @@ def main() -> int:
         if new:
             w.writeheader()
         w.writerows(rows)
-    print(f"model_file: filed {mb.MODEL_ID} Rev {letter}, {len(rows)} files, rows appended to {manifest.name}")
+    print(f"model_file: filed {mb.DOC_ID} Rev {letter}, {len(rows)} files, rows appended to {manifest.name}")
     if not real:
         print("model_file: --models-root given; drive_store.py pointers skipped")
         return 0
     r = subprocess.run([str(PY), str(rp.SCRIPTS / "drive_store.py"), "pointers"], cwd=rp.REPO,
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     print("  " + "\n  ".join((r.stdout + r.stderr).strip().splitlines()))
-    print("model_file: pointers written; Drive push waits for close-out. Give Bob the filed paths, never <project>/_work/.")
+    print("model_file: Stage: Locked (pointers written). Next: track.py save. Give Bob the locked paths, never <project>/_work/.")
     return 0 if r.returncode == 0 else 1
 
 

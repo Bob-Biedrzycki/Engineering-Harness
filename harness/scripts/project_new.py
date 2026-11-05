@@ -31,8 +31,8 @@ NAME = re.compile(r"^Project-(?P<number>\d+-\d+)-(?P<type>[A-Z]+)-(?P<version>\d
 
 def project_yaml(m: re.Match) -> str:
     pid = f"{m['number']}-{m['type']}-{m['version']}"
-    return f"""# Project identity: the one place a project names itself (TR-09; project folders, Bob 2026-10-26).
-# A job is the product line and its repo; a project is one order in it, this folder (Bob, chat, 2026-10-26; TR-09).
+    return f"""# Project identity: the one place a project names itself (project folders, Bob 2026-10-26).
+# A job is the product line and its repo; a project is one order in it, this folder (Bob, chat, 2026-10-26).
 # harness/lib/repo_paths.py reads this file; harness code takes every ID from here, never as literals.
 # Flat `key: value` lines only (read without PyYAML, so the cadgen venv can import it).
 # Values are exactly as on the project's records; do not normalize. `unknown` = not received yet.

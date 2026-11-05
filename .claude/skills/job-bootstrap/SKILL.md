@@ -1,6 +1,6 @@
 ---
 name: job-bootstrap
-description: Start a new CPME job or a new project. A new job is its own repo (TR-09) made by harness/scripts/job_new.py from the Engineering Harness master (the harness copied unchanged, plus job/JOB.md, drive-store, carryover terms, components, design-rules and knowledge stubs, question files); a new project is a numbered folder job/Project-<Project Number>-<Type>-<Top Level Version>/ made by harness/scripts/project_new.py from the project template, with its project.yaml, empty lists and registers, design-rule scope files, Drive store, Linear project and gate milestones, and job/JOB.md's current-project paragraph. Harness updates come from the master through harness/scripts/harness_sync.py. Use when Bob starts a new job or project, or wants to restart a project's design from scratch.
+description: Start a new CPME job or a new project. A new job is its own folder in Bob's Documents and so its own repo (global "Git and backup"), made by harness/scripts/job_new.py from the Engineering Harness master (the harness copied unchanged, plus job/JOB.md, drive-store, carryover terms, components, design-rules and knowledge stubs, question files); a new project is a numbered folder job/Project-<Project Number>-<Type>-<Top Level Version>/ made by harness/scripts/project_new.py from the project template, with its project.yaml, empty lists and registers, design-rule scope files, Drive store, Linear project and gate milestones, and job/JOB.md's current-project paragraph. Harness updates come from the master through harness/scripts/harness_sync.py. Use when Bob starts a new job or project, or wants to restart a project's design from scratch.
 ---
 
 # Job bootstrap
@@ -14,8 +14,8 @@ folder name without `Project-`: `0000-00-TST-001-PID-001`,
 `0000-00-TST-001-MODEL`. `harness/` (with `.claude/agents`, `.claude/skills`,
 `CLAUDE.md` and `.github/`) is what every CPME job reuses unchanged; `job/`
 holds the job's projects plus `job/JOB.md`, `job/knowledge/`,
-`job/design-rules/` and `job/components/` for the whole job (CPME practice,
-TR-09). A new job is a new repo with the same harness; a new project is a
+`job/design-rules/` and `job/components/` for the whole job (CPME practice). A new job is a new folder in Bob's Documents, one
+repo (global "Git and backup"), with the same harness; a new project is a
 new folder under its job's `job/`. Nothing from another job or project is
 copied except as a reference the new one cites. Every project folder is
 explained in `harness/templates/project-folder/README_Project_Guide.md`.
@@ -153,6 +153,6 @@ before the lists exist.
 ## Hand-off
 
 Repo, job stubs or project folder created, files with headers, rules in scope with `unknown`
-values, Bob items still open, TR rows (TR-01, TR-09, TR-12), CAPABILITY GAP,
+values, Bob items still open, TR rows (TR-01), CAPABILITY GAP,
 `NEXT: process-engineer intake questions first (the job's design framework;
 sizing only where a DEC allows it), then pid-digitize`.

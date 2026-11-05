@@ -34,7 +34,8 @@ Everything that stays on the PC, inside the repo rules. Edit any source file. Ru
 Build the model (tier 1, `model_iterate.py`). File the next model or drawing revision
 (tier 2, `model_file.py` / `revfile.py`; next letter, read-only, never overwrite, TR-08).
 Write lists, registers, questions, handoffs and DEC drafts. Open and comment Linear issues.
-Make previews.
+Make previews. Download public vendor cut sheets, manuals and CAD (Bob, chat, 2026-10-27,
+verbatim: "you have permission to download on your own"); sign-ins stay Bob's.
 
 ### Rung 2: Bob's decision, no Git involved
 Engineering and policy calls, answered in chat or `Agent-to-Bob Questions.md`, then recorded.
@@ -109,7 +110,7 @@ a filed revision. Delete a tag. Hand Bob a raw gh or git command to type. Blocke
 ### Site changes (portal builders, their media, the presentation site repo)
 
 Dormant: the site is planned but the job has none yet (`site_repo` in `project.yaml` is
-`unknown`, C-08), so `publish_site.py` finds no site and stops. The rungs apply once it exists.
+`unknown`), so `publish_site.py` finds no site and stops. The rungs apply once it exists.
 
 | Change | Rung |
 |---|---|

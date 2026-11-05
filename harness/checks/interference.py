@@ -23,7 +23,7 @@ import repo_paths as rp  # noqa: E402
 import rule_scope  # noqa: E402
 
 REPO = rp.REPO
-if rp.HAS_PROJECT:
+if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
 
 TOL = 0.05   # in; touching faces are not clashes
@@ -33,7 +33,7 @@ ACCEPTED: dict[frozenset, str] = {}
 
 
 def main() -> int:
-    if rp.skip_no_project("interference"):
+    if rp.skip_no_model("interference"):
         return 0
     missing = rule_scope.model_missing()
     if missing:

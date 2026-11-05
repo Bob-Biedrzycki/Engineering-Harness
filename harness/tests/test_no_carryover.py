@@ -26,6 +26,13 @@ SKIP_PREFIXES = (REPO / "harness" / "tools",)
 
 # Lines that match a pattern but are not carry-over: the model line of an agent file's frontmatter.
 ALLOWED_LINE = re.compile(r"^\s*model:\s*opus\s*$")   # in .claude/agents/*.md only
+# A DXF line that is only a number or a hex entity handle (group code values: coordinates, handles, pointers) is
+# drawing data, not words: the CL-R4 GA revA DXF has an LWPOLYLINE whose handle reads like the old job number
+# (2026-11-03). Text in a DXF (TEXT, MTEXT, attributes) still has letters or spaces and is still scanned.
+DXF_DATA_LINE = re.compile(r"^\s*[-+]?[0-9A-Fa-f]+(?:\.[0-9]*)?(?:[eE][-+]?\d+)?\s*$")
+# PDF content is compressed streams; a match there is noise, not text (a maker's installation manual, 2026-11-03).
+# The words of our own drawings are scanned in their DXF.
+SKIP_SUFFIXES = {".pdf"}
 
 
 def _is_text(path: Path) -> bool:
@@ -59,14 +66,19 @@ def hits(root: Path = REPO, terms_file: Path | None = None) -> list[str]:
         return []
     out: list[str] = []
     for path in _files(root, (root / "harness" / "tools",)):
+        if path.suffix.lower() in SKIP_SUFFIXES:
+            continue
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
         except OSError:
             continue
         rel = path.relative_to(root).as_posix()
         agent_file = rel.startswith(".claude/agents/") and rel.endswith(".md")
+        dxf = path.suffix.lower() == ".dxf"
         for n, line in enumerate(text.splitlines(), 1):
             if agent_file and ALLOWED_LINE.match(line):
+                continue
+            if dxf and DXF_DATA_LINE.match(line):
                 continue
             for label, pat in patterns:
                 m = pat.search(line)
@@ -129,6 +141,17 @@ class TermsFormat(unittest.TestCase):
                                                                encoding="utf-8")
             (root / "a.md").write_text("ok\nthe Zorblax skid\n", encoding="utf-8")
             self.assertEqual(hits(root), ["a.md:2: old name: 'Zorblax'"])
+
+    def test_dxf_numbers_and_pdf_skipped(self):
+        """A DXF handle or coordinate line, and PDF content, are data; DXF text is still scanned."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            (root / "job").mkdir()
+            (root / "job" / "carryover-terms.txt").write_text(CT.entry_line("old number", r"\b4321\b") + "\n",
+                                                               encoding="utf-8")
+            (root / "a.dxf").write_text("  5\n4321\n 10\n4321.0\n  1\nJOB 4321 NOTE\n", encoding="utf-8")
+            (root / "b.pdf").write_text("stream 4321 endstream\n", encoding="utf-8")
+            self.assertEqual(hits(root), ["a.dxf:6: old number: '4321'"])
 
     def test_next_job_text(self):
         s = CT.parse("\n".join([CT.entry_line("old", r"\bOLDJOB\b"), CT.sample_line("spare", "goldjob"),

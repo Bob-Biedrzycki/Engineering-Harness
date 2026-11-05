@@ -63,14 +63,14 @@ each row touched, and how it is met or why it is `NOT MET`.
 
 Every agent: equipment concerns go in `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md`,
 never a question entry (TR-02). Ask only what no document answers (TR-05). File every
-drawing you hand off per `CLAUDE.md` "Git and drawing revisions" (TR-06 to
-TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
+drawing you hand off per `CLAUDE.md` "Drawing and design revisions" (TR-06 to
+TR-08). Save your work with `track.py save` (global "Git and backup").
 
 Rows you carry most:
 - **TR-02, TR-04:** the specified panel enclosure and motors stand. Record
   only what layout needs: envelope, door swing, clearances, entries.
 - **TR-18, TR-19:** the panel envelope, door swing and working clearance fit
-  inside the 170 L x 60 W x 106 H in shipping envelope (one piece, enclosed
+  inside the 628 L x 96 W x 106 H in shipping envelope (one piece, enclosed
   53 ft dry van, `layout.yaml` `shipping_envelope`), keep the skid as compact
   as possible, and keep fork access clear. A panel that has to be removed for
   transport is a finding; the panel top, its hood and any conduit above it

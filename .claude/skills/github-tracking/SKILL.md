@@ -1,17 +1,19 @@
 ---
 name: github-tracking
-description: The daily commit, push and one-per-day pull request for this job's repo (one repo per job, TR-09; the job's repo is named in job/JOB.md), and GitHub status, through harness/scripts/track.py, which wraps the gh CLI with Bob's rules built in. Use for any commit, push or PR work in this repo. Work tracking moved to Linear on 2026-09-28; GitHub issues and milestones are retired. Only the project-manager (scrum master) runs it.
+description: How this repo carries out Bob's global git rules - saving and backing up work as it is done (track.py save - commit, Drive push, branch push), the pull request when Bob asks for it, and GitHub status for this repo - through harness/scripts/track.py, which wraps the gh CLI. Use for any commit, push or PR work in this repo. Any session or agent saves; the PR and the post-merge sync are the project-manager's (scrum master). Work tracking is in Linear; GitHub issues and milestones are retired.
 ---
 
 # GitHub tracking (scrum master)
 
-All GitHub work in this repo goes through `harness/scripts/track.py`. Never call `gh`
-or `git push` directly, and never do issue or PR work in the browser pane
-unless Bob asks. The tool enforces Bob's rules so they cannot be skipped:
+The git rules are only those in the "Git and backup" section of Bob's global instructions
+(`%USERPROFILE%\.claude\CLAUDE.md`). This skill adds no rule; it is how this repo carries them out. `track.py` is
+this repo's save tool. Never call `gh` or `git push` directly, and never do issue or PR work in the browser pane
+unless Bob asks. What the tool does:
 
-- **One PR per day, never one per file or change** (Bob, 2026-09-24).
-- **Name before running.** Every commit, push and PR is named to Bob in chat first. It runs only with his go, passed verbatim
-  as `--bob-go "<Bob's words>"`. Never write a go Bob did not give.
+- **Saving is routine; the PR is Bob's call.** `track.py save` (commit, Drive push, branch push) runs as each piece of
+  work is done, with no question (global "Git and backup").
+  Every other write (the PR, `sync-main`, the single fallback commands) runs only with Bob's go, passed verbatim as
+  `--bob-go "<Bob's words>"`. Never write a go Bob did not give.
 - **No closing keywords by accident.** "Closes #7", "fixes #3" or "please
   close #7" are refused unless that issue is passed with `--closes`, and
   `--closes` only when the whole issue is satisfied.
@@ -53,8 +55,8 @@ Run every command from the repo root with the repo venv:
 
 ## No GitHub issues or milestones (Bob, 2026-09-28)
 
-Agent work is tracked in **Linear**, not GitHub issues (CLAUDE.md notice,
-TR-12, C-06); `track.py` has no issue or milestone commands. The daily PR
+Agent work is tracked in **Linear**, not GitHub issues (CLAUDE.md notice);
+`track.py` has no issue or milestone commands. The PR
 names Linear issue IDs (`Relates to <ID>`, `Fixes <ID>` only when the whole
 issue is done).
 
@@ -69,22 +71,42 @@ track.py init-main --bob-go "<Bob's words>"
 
 It pushes one **empty** commit (no files, documented message) as `main`, sets
 the local `main` to it, and fetches. No working-tree file changes; everything
-stays untracked until the first daily PR merges and `sync-main` runs. It
+stays untracked until the first PR merges and `sync-main` runs. It
 refuses when origin already has any branch or local `main` has a commit, so it
 can never write over work. Run `--dry-run` first. Then the day goes as below.
 
-## The daily commit and PR (end of day, on Bob's say-so)
+## Saving as you go: `track.py save` (any session or agent, no question)
 
-The commit follows close-out (skill `closeout`,
-`harness/scripts/closeout.py`): the Drive push,
-checks and portal filing are done first, and close-out writes the starting
-points for steps 1 and 2 below, `<project>/_work/daily/<date>-paths.txt` (candidate
-paths; review them, other sessions share the checkout) and
-`<project>/_work/daily/<date>-commit.md` (the commit body skeleton with the day's
-filed revisions, checks and `--tag` list). Never commit before close-out has
-pushed the day's large files.
+Global "Git and backup": save as each piece of work is done. When a piece of work is done (a revision filed, a
+script changed, a rule edited), save it:
 
-**One go for the whole end of day** (Bob, 2026-10-07, verbatim: "THIS
+```
+track.py save --paths-file <paths> --message-file <msg> [--tag <DOC-ID>-rev<X>]
+```
+
+- **Paths:** this piece of work's files only, one per line, no wildcards (other sessions share the checkout). A
+  Locked revision folder is listed whole; its large files go as pointers automatically.
+- **Message:** the documented message `track.py` requires (subject at most 72 characters; Why, Changed IDs, Sources and rules
+  cited, TR rows touched, Drawings locked (or "Drawings filed"), Checks run), written to a file outside `_work/daily`
+  skeleton names.
+- **What it does:** `drive_store.py pointers` and `push` (large files to Google Drive, verified), then the commit on
+  `daily/<today>` in a separate worktree, pushed to GitHub (the same guards as `daily-commit`). CI runs the checks on
+  that push. A Drive failure stops it before the commit.
+- **Report** what it prints, then run `git status` and show that this piece of work's files are saved and backed up
+  (global "Git and backup"). Never ask Bob before a save, and never bring it up as a pending step.
+
+## The PR (when Bob asks for it)
+
+The day's work is already saved and backed up, so the PR is the PR body, `daily-pr` on Bob's go, his merge and
+`after-merge`. Close-out (skill `closeout`) is optional, since CI ran the checks on every save.
+
+**A day not saved as it went** (fallback): `track.py daily` below gathers it, runs close-out, commits and opens the
+PR on one go. Close-out writes the starting points for steps 1 and 2 below,
+`<project>/_work/daily/<date>-paths.txt` (candidate paths; review them, other sessions share the checkout) and
+`<project>/_work/daily/<date>-commit.md` (the commit body skeleton with the day's locked revisions, checks and
+`--tag` list).
+
+**One go for the PR** (Bob, 2026-10-07, verbatim: "THIS
 SHOULD BE 1 "GO" THEN MY MERGE. THE SYNC SHOULD BE AUTOMATED." and, on the
 site publish, "IT SHOULD BE INCLUDED AS PART OF THE PROCESS FOR THE DAY'S PR,
 AND NOT REQUIRE A SECOND APPROVAL"). Before asking Bob anything, run
@@ -93,7 +115,7 @@ body, and run `publish_site.py --rev <newest portal> --dry-run`. Then name
 the whole set to Bob in **one message**: close-out; the commit (branch,
 number of paths, tags); the PR title; and what follows his merge
 (`sync-main`, and, once the job has a site, the site publish when the dry run
-shows a portal, quoting or landing revision newer than the site holds). Bob answers **once**. His
+shows a tracker, mobile or landing revision newer than the site holds). Bob answers **once**. His
 words go verbatim into `<project>/_work/daily/<date>-go.txt` and are passed as
 `--bob-go` to every command of the day: close-out, `daily-commit`,
 `daily-pr`, then after the merge `sync-main` and `publish_site.py`. No
@@ -102,9 +124,8 @@ go. Bob's only action after the go is the merge on GitHub. In the steps
 below, "with the day's go" means those words from the go file.
 
 **The site is dormant until the job has one.** The site framework (project tracker,
-quoting/estimating portal, landing page) is dormant
-until Bob defines the job's presentation site (Bob, chat, 2026-10-26: a site/portal
-is planned). While `site_repo` is `unknown` and no portal is filed, the site
+Mobile Optimized, landing page; no Customer Portal or Fabrication Estimating Portal on this job, Bob, chat,
+2026-10-30) is dormant until Bob defines the job's presentation site. While `site_repo` is `unknown` and no portal is filed, the site
 publish has nothing to do and is left out of the message to Bob until the job
 has a site. The steps below that name the site, the portals or
 `publish_site.py` apply from then.
@@ -140,13 +161,13 @@ has a site. The steps below that name the site, the portals or
 2. **Write the commit message** to a file. The subject is at most 72
    characters. The body has these sections, each required: **Why**,
    **Changed IDs**, **Sources and rules cited**, **TR rows touched**,
-   **Drawings filed**, **Checks run** (CLAUDE.md, TR-11).
+   **Drawings filed**, **Checks run** (`track.py` refuses a message without them).
 3. **Write the PR body** from `.github/pull_request_template.md`: the date,
    `Relates to <ID>` for each Linear issue advanced, every change of the
    day with its IDs, drawings filed, checks, and the **Todd's requirements**
    compliance list. The tool refuses a body without the "Todd's requirements"
    and "Drawings filed" sections.
-   **Linear issues named** (TR-12; Bob, 2026-10-07): the body names each
+   **Linear issues named** (Bob, 2026-10-07): the body names each
    Linear issue the day advanced (`Relates to CPM-nn`). The tool prints
    `Linear issues named: CPM-nn, ...` when it does; when the body names none
    it prints a `WARNING:` with the day's issue ids (from today's
@@ -175,7 +196,7 @@ has a site. The steps below that name the site, the portals or
      it. A rerun with the same go is fine; close-out does not refile what it
      filed today.
    - **Once the job has a site, name the document folders close-out files into** in the paths file
-     (`<project>/06_Issued_Revisions/Portals/project-portal`, `<project>/06_Issued_Revisions/Portals/quoting-portal`,
+     (`<project>/06_Issued_Revisions/Portals/project-portal`, `<project>/06_Issued_Revisions/Portals/mobile-portal`,
      `<project>/06_Issued_Revisions/Portals/portal-landing`), not a revision folder that does not exist
      yet. After close-out, `daily` refuses if a revision filed under
      `<project>/06_Issued_Revisions/Portals/` today is not covered, because after-merge could not
@@ -188,7 +209,7 @@ has a site. The steps below that name the site, the portals or
    - One `--tag` per drawing revision filed that day, for example
      `--tag <PID-DOC-ID>-revA` (the project's P&ID, `rp.PID_DOC_ID`, e.g.
      `0000-00-TST-001-PID-001-revA`).
-   - **The writer is `Bob-Biedrzycki`** (Bob, 2026-10-07), the one writer. Bob approves and merges the daily PR himself (Bob,
+   - **The writer is `Bob-Biedrzycki`** (Bob, 2026-10-07), the one writer. Bob approves and merges the PR himself (Bob,
      2026-09-29). No flag is needed.
    - Only one open PR per `daily/<date>` branch. The tool refuses a second
      one while the first is open (or was closed unmerged); push more commits
@@ -206,8 +227,8 @@ has a site. The steps below that name the site, the portals or
    It reads the go from `<project>/_work/daily/<date>-go.txt` (refused if missing),
    checks with gh that the day's PR merged and none is still open (refused
    if not), runs `sync-main` with that go, then (once the job has a site; the
-   site framework is dormant until Bob defines the job's presentation site) runs `publish_site.py --dry-run` with the newest filed project-portal, quoting-portal and
-   portal-landing revisions (`harness/lib/site_revs.py`, the same reader as
+   site framework is dormant until Bob defines the job's presentation site) runs `publish_site.py --dry-run` with the newest filed project-portal, mobile-portal and
+   portal-landing revisions (always `--quoting none`) (`harness/lib/site_revs.py`, the same reader as
    close-out step 9) and publishes for real, with the same go, only when the
    dry run shows anything added, changed or removed on the site. Each step
    prints one result line (`go:`, `PR: merged`, `sync-main:`, `site:`).
@@ -228,7 +249,7 @@ has a site. The steps below that name the site, the portals or
    track.py daily-commit --date <YYYY-MM-DD> --paths-file <paths> --message-file <msg> --tag <DOC-ID>-rev<X> --bob-go "<Bob's words>"
    track.py daily-pr --date <YYYY-MM-DD> --title "Daily <date>: <summary>" --body-file <body> --bob-go "<Bob's words>"
    track.py sync-main --bob-go "<Bob's words>"
-   publish_site.py --rev <X> --quoting <Y> --landing <Z> --bob-go "<Bob's words>"
+   publish_site.py --rev <X> --quoting none --landing <Z> --mobile <M> --bob-go "<Bob's words>"
    ```
    **Push refused or no network?** `daily-commit --local` puts the commit
    and tags on the local `daily/<date>` branch only, with no sign-in and no

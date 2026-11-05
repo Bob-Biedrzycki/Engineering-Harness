@@ -4,12 +4,18 @@
 and satisfied by ALL AGENTS, ALL OF THE TIME. INCLUDING HOW GIT IS
 IMPLIMENTED."
 
+**Git is no longer in this register (Bob, chat, 2026-11-04, verbatim: "I approve that you overhaul or remove each TR
+that addresses git because they will continue causing problems in the future.").** TR-09, TR-10, TR-11 and TR-12, and
+conflicts C-02, C-05, C-06 and C-08, were removed. The numbers are not reused. Git, GitHub, branches, commits, pull
+requests and repos follow only the "Git and backup" section of Bob's global instructions (`%USERPROFILE%\.claude\CLAUDE.md`).
+No row here sets or overrides how git is done.
+
 **Owner:** Bob. **Source of the asks:** Todd Harris (CPME President), by
 chat 2026-09-10..24, meeting 2026-09-18 and emails 2026-09-23 / 2026-09-24. The transcripts are held by Bob,
 outside the repo. Todd's direction for a job is recorded in that job's `job/knowledge/Todd Direction.md`, and how each row is met on
 a job, where it needs job detail, in the job's notes, `job/knowledge/Todd Requirements - job notes.md` (Bob, chat, 2026-10-27).
 
-**Terms (Bob, chat, 2026-10-26; TR-09):** a **job** is the product line and its one repo; a **project** is one order in the job, with its own folder `job/Project-<Project Number>-<Type>-<Top Level
+**Terms (Bob, chat, 2026-10-26):** a **job** is the product line and its folder; a **project** is one order in the job, with its own folder `job/Project-<Project Number>-<Type>-<Top Level
 Version>/`, written `<project>` below (the active project, `job/JOB.md`).
 
 **Scope of this register (Bob, chat, 2026-10-26):** only the asks that bear on the design of a CPME skid are kept, and the rows were
@@ -35,8 +41,8 @@ no chance for confusion."
 7. **Limits that still hold:** never invent data (`CLAUDE.md` hard rule 1),
    the engineer decides at gates (rule 7), and nothing is merged, released,
    sent externally or deleted without authorization (rule 9). Todd's asks do
-   not relax these. Rows that need GitHub admin or a person outside the repo
-   are marked **Bob action**.
+   not relax these. Rows that need a person outside the repo are marked
+   **Bob action**.
 
 ## Register
 
@@ -55,17 +61,10 @@ no chance for confusion."
 | ID | Todd's ask | Source | How every agent meets it |
 |---|---|---|---|
 | TR-06 | The P&ID master is a native DWG with functional layers. The PDF is exported from the DWG. The drawing carries the CPME title block. | chat 2026-09-14, 2026-09-15 | Every drawing is produced as a native DWG plus a PDF exported from it, with the CPME sheet format (`harness/cad-lib/cpme_titleblock.py`). |
-| TR-07 | Revise drawings to drafting practice: a revision block with notes, the revision in the file name, and clouds around new or modified items. | email 2026-09-24 | Each revision adds a row to the revision block with a note of what changed. Changed items are clouded on the sheet. Files are named per `CLAUDE.md` "Git and drawing revisions". |
-| TR-08 | Keep an artifact for every revision. It must be possible to open a PDF of any revision. The tool "shouldn't be updating the same file." | chat 2026-09-24 | Every drawing handed to Bob or anyone else is filed by `harness/cad-lib/revfile.py` as a new PDF, DWG and DXF that is never modified or deleted afterwards. No other path exists. The rules are in `CLAUDE.md` "Git and drawing revisions". **Designs too** (Bob, chat, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."): every 3D model output and takeoff handed off is filed as the next revision under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/` and never overwritten (`CLAUDE.md` "Designs"). |
+| TR-07 | Revise drawings to drafting practice: a revision block with notes, the revision in the file name, and clouds around new or modified items. | email 2026-09-24 | Each revision adds a row to the revision block with a note of what changed. Changed items are clouded on the sheet. Files are named per `CLAUDE.md` "Drawing and design revisions". |
+| TR-08 | Keep an artifact for every revision. It must be possible to open a PDF of any revision. The tool "shouldn't be updating the same file." | chat 2026-09-24 | Every drawing handed to Bob or anyone else is filed by `harness/cad-lib/revfile.py` as a new PDF, DWG and DXF that is never modified or deleted afterwards. No other path exists. The rules are in `CLAUDE.md` "Drawing and design revisions". **Designs too** (Bob, chat, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."): every 3D model output and takeoff handed off is filed as the next revision under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/` and never overwritten (`CLAUDE.md` "Designs"). |
 
-### Git and tracking
-
-| ID | Todd's ask | Source | How every agent meets it |
-|---|---|---|---|
-| TR-09 | One GitHub repo per job; each project is a folder in it. | chat 2026-09-17 ("You should have it setup a github repo for each project"); intent clarified by Bob, chat, 2026-10-26, verbatim: "the intent of his message was that there should be one repo per Job, not per project at the current time." | A job is the product line and its repo (the job's repo is named in `job/JOB.md`). Each project in the job is its own folder, `job/Project-<Project Number>-<Type>-<Top Level Version>/`, made from `harness/templates/project-folder/` by `harness/scripts/project_new.py` (Bob, chat, 2026-10-26). Another job gets its own repo. Large files stay part of the same project record through the Google Drive store (one store for the whole job, `job/drive-store.yaml`, shared by the component library and every project; Bob, chat, 2026-10-26; pointers in git). |
-| TR-10 | Use the company GitHub account, not a personal one. Yen and Lee set it up. | chat 2026-09-18 | Each job's repo is under Bob's account by Bob's direction (the repo is named in `job/JOB.md`). `harness/scripts/track.py` writes as `Bob-Biedrzycki`, the one writer (Bob, 2026-10-07; `CLAUDE.md` "GitHub sign-in"), and refuses to write as any other account. Agents never handle tokens and never push to any other account or repo. Bob merges. |
-| TR-11 | Commit work with documentation on every commit, so changes can be compared (including MD files), reverted and tagged. | meeting 2026-09-18 | Commit message format and tagging in `CLAUDE.md` "Git and drawing revisions". Commits are made only when Bob says, by explicit paths. |
-| TR-12 | Track the project with a scrum master agent working in GitHub Projects or Azure DevOps (Todd's profile, chat 2026-09-18). | meeting and chat 2026-09-18 | `project-manager` runs as the scrum master per its agent file and tracks agent work in **Linear**, which is linked to the GitHub repo (Bob, 2026-09-28; C-06): one Linear issue per agent task, named to its agent (`[<agent>]` title prefix, `role:<agent>` label), no cap, gates as project milestones per Linear's recommended structure. GitHub carries the code, CI, drawing tags and the daily PR. Pull requests are one per day, never one per file (Bob, 2026-09-24). |
+TR-09 to TR-12 (git and tracking) were removed on 2026-11-04; see the note at the top.
 
 ### Deliverables
 
@@ -81,7 +80,7 @@ no chance for confusion."
 
 | ID | Todd's ask | Source | How every agent meets it |
 |---|---|---|---|
-| TR-18 | As compact as possible. The skid ships in one piece in a semi with no site assembly. | chat 2026-09-11; trailer type Bob 2026-09-24 | Inside an **enclosed 53 ft swing-door dry van** (Bob 2026-09-24). Every layout option fits **170 in L x 60 in W x 106 in H** as shipped, is as compact as possible within that, and states its footprint, with height measured from the bottom of the base to the highest point on the skid. The limit is the rear door opening, 98 in W x 108 in H, less 2 in of loading clearance. Values and sources are in `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml` `shipping_envelope`. |
+| TR-18 | As compact as possible. The skid ships in one piece in a semi with no site assembly. | chat 2026-09-11; trailer type Bob 2026-09-24 | Inside an **enclosed 53 ft swing-door dry van** (Bob 2026-09-24). Every layout option fits **628 in L x 96 in W x 106 in H** as shipped, is as compact as possible within that, and states its footprint, with height measured from the bottom of the base to the highest point on the skid. The limit is a typical 53 ft dry van: inside length 630 in and rear door opening 98 in W x 108 in H, each less 2 in of loading clearance (Bob, chat, 2026-11-02, replacing an earlier 170 x 60 in that was not based on the van). Values and sources are in `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/layout.yaml` `shipping_envelope`. |
 | TR-19 | No lift points. Long forks go under the skid. | meeting 2026-09-18 | The frame provides clear fork access along its length, with the forks under the heaviest equipment (LAY-FORK-001). |
 | TR-20 | Err on the side of removable joints. | meeting 2026-09-18 | On hygienic lines (PIPE-SVC-001), do not reduce clamp count to save cost. On other service classes, provide flanged or union breaks so every serviceable component can be removed (the job's notes, `job/knowledge/Todd Requirements - job notes.md`). |
 | TR-21 | Instrument taps are a tee plus a welded tri-clamp ferrule. Off-the-shelf parts are preferred where they exist. No all-clamp spool piece. | meeting 2026-09-18 | On hygienic lines (PIPE-SVC-001), model and take off taps that way. On other service classes, taps follow that class's practice (threaded or socket-weld boss) per its rules (the job's notes, `job/knowledge/Todd Requirements - job notes.md`). |
@@ -96,10 +95,6 @@ no chance for confusion."
 | # | Other instruction | TR | Resolution |
 |---|---|---|---|
 | C-01 | `CLAUDE.md` naming: stable file names, revision only in the title block and register. | TR-07, TR-08 | Source files keep stable names. Every issued drawing is also saved with its revision in the file name. `CLAUDE.md` rewritten. |
-| C-02 | Drawing binaries referenced by sha256 and not committed. | TR-08, TR-11 | Issued drawing revisions are committed under `<project>/06_Issued_Revisions/Drawings/`, with a sha256 manifest (`revisions.csv`). |
 | C-03 | Proposed skid-wide thread ban SAN-THREAD-001. | TR-22 | Not entered as a blanket rule. Case by case on hygienic lines (`CLAUDE.md` "Current focus"); other service classes per PIPE-SVC-001. |
 | C-04 | Equipment concerns raised to Bob as questions, such as re-selection proposals. | TR-02, TR-05 | Concerns go to `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md`, are accepted, and work continues. |
-| C-05 | `CLAUDE.md` work cycle: one issue = one branch = one PR per change. | TR-11, TR-12 | **Resolved by Bob, 2026-09-24:** scrum-master tracking, one PR per day. Commits stay documented per TR-11; a day may hold several. |
-| C-06 | TR-12 names GitHub Projects or Azure DevOps; Bob moves agent task tracking to Linear. | TR-12 | **Resolved by Bob, chat, 2026-09-28:** Linear "lives alongside of GitHub, and Linear uses the GitHub Repo"; it is primarily "an agent management tool for agentic tasks or issues/tasks that can be completed by agents", part of "a migration to a more cloud based workflow". Issues are named to the appropriate agent, no cap, structure per Linear's guidance. The scrum master role, one-per-day PRs and TR-11 commits are unchanged. |
 | C-07 | "The engineer assigns revision letters" (`CLAUDE.md`, Bob 2026-09-23) vs one artifact per revision. | TR-07, TR-08 | **Resolved by Bob, chat, 2026-09-24, verbatim:** "Revision letters should not be assigned by me, they should simply be sequential." Every hand-off takes the next letter; no draft numbering. `CLAUDE.md` updated. |
-| C-08 | TR-09 allows one repo per job; a presentation site needs a second repo to publish to. | TR-09 | **Resolved by Bob, chat, 2026-10-02, verbatim:** "MAKE THE RECORDING, THERE IS A VALID REASON FOR HANDLING IT THIS WAY." and "THE PAGE AND REPO ARE SIMPLY AN INVESTIGATION INTO HOW IT COULD BE DONE IN THE FUTURE AND WOULD REQUIRE MORE IN DEPTH DEVELOPMENT." A site repo (`site_repo` in `project.yaml`) is a publishing target, not a second job repo: it holds only generated copies of filed portal revisions (pages, assets, the shared data store and web GLBs), never a source, record or decision. The design repo stays the job (TR-09). Each publish is a copy of a filed revision, made and pushed on Bob's go at close-out. Bob tells Todd. |

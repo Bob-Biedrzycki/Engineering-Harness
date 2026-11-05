@@ -36,8 +36,9 @@ send or describe a preview as a revision. Then file:
 everything added, changed or removed since the previous filed revision (not
 the title band), writes DXF, DWG (`dxf-to-dwg.ps1`, ~5 s) and a PDF exported
 from the DWG (`dwg-to-pdf.ps1`), checks the page count, files all three
-read-only under `<project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>.*` and appends
-`revisions.csv`.
+read-only in the revision's own folder
+`<project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>/<DOC-ID>-rev<X>.*` (one folder per rev; Bob,
+chat, 2026-10-30) and appends the document's `revisions.csv`.
 
 ## A new drawing
 
@@ -63,6 +64,6 @@ Annotated tag `<DOC-ID>-rev<X>` on the commit that files it; listed under
 
 ## Hand-off
 
-`Filed <DOC-ID> Rev <X>: <project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>.pdf` (pages,
+`Filed <DOC-ID> Rev <X>: <project>/06_Issued_Revisions/Drawings/<DOC-ID>/<DOC-ID>-rev<X>/<DOC-ID>-rev<X>.pdf` (pages,
 cloud count, note), DWG sha256, Bob edits folded in (or none), TR rows
-(TR-06, TR-07, TR-08, TR-11), CAPABILITY GAP, NEXT.
+(TR-06, TR-07, TR-08), CAPABILITY GAP, NEXT.

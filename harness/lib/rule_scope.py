@@ -75,7 +75,7 @@ def find_rule(data, rule_id: str) -> dict | None:
 
 def project_rules_dir() -> Path | None:
     """The active project's Design_Rules folder, or None while the job has no project yet."""
-    return rp.DESIGN_RULES if rp.HAS_PROJECT else None
+    return rp.DESIGN_RULES if rp.HAS_MODEL else None
 
 
 def project_rule(file_name: str, rule_id: str, rules_dir: Path | None = None) -> dict | None:
@@ -197,7 +197,7 @@ def scope_classes(rule_id: str, entry: dict | None) -> tuple[set[str] | None, st
 
 
 def line_list(path: Path | None = None) -> list[dict]:
-    if path is None and not rp.HAS_PROJECT:
+    if path is None and not rp.HAS_MODEL:
         return []
     p = path or rp.DATA / "line-list.csv"
     if not p.is_file():
@@ -244,7 +244,7 @@ def spool_line(spool_id: str, lines) -> str | None:
 
 def model_missing() -> str | None:
     """None when the project's model source (skidlib) exists; else why a model check has nothing to check."""
-    if not rp.HAS_PROJECT:
+    if not rp.HAS_MODEL:
         return "no project yet"
     src = rp.SKID_MODEL / "skidlib"
     if (src / "__init__.py").is_file() or (src / "layout.py").is_file():

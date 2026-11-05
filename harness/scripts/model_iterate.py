@@ -43,8 +43,15 @@ errors, list delta rows, components registered since the last revision but not p
 (harness/lib/accept_preflight.py; Bob, chat, 2026-10-15: acceptance "should be run progamatically and
 deterministically"). --request "<Bob's words>" --change "<what changed>" appends the build's fast-log row itself.
 
+--model-id <ID> [--config <CFG>] (or CPME_MODEL_ID / CPME_MODEL_CONFIG; Linear CPM-155) builds a job-level model
+(a folder in the job-level models folder, harness/lib/repo_paths.py) in one configuration (B, X or a switch string the
+model accepts; default B) into job/_work/typical-models/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
+choice. A job-level build also renders the review views (iso, plan, front, side PNGs from the build STEP,
+harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build skips the P&ID drawing checks
+(those are the project's drawings). Without --model-id everything is as above.
+
 Exit 0 = every step ran and every check passed; 1 = a step or check failed (see the lines and logs/);
-2 = refused (missing venv).
+2 = refused (missing venv, or a configuration the model does not accept).
 """
 from __future__ import annotations
 
@@ -59,7 +66,7 @@ from pathlib import Path
 sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
 import repo_paths as rp  # noqa: E402
 if __name__ == "__main__":
-    rp.require_project("model_iterate.py")   # no project yet: exit 2, nothing to build
+    rp.require_model("model_iterate.py")   # no project and no --model-id: exit 2, nothing to build
 import model_build as mb  # noqa: E402
 import accept_preflight as pf  # noqa: E402
 
@@ -111,6 +118,7 @@ def main() -> int:
     ap.add_argument("--request", default="",
                     help="with --fast: Bob's request (his words, trimmed); appends this build's fast-log row")
     ap.add_argument("--change", default="", help="with --fast and --request: what this build changed, for the fast log")
+    rp.add_model_args(ap)
     a = ap.parse_args()
     for exe in (PY, PY_CADGEN):
         if not exe.is_file():
@@ -122,6 +130,15 @@ def main() -> int:
         print(f"REFUSED: {missing}; nothing to build (the cad-design-engineer writes the model source first)",
               file=sys.stderr)
         return 2
+    if mb.JOB_LEVEL:
+        name, why = mb.canonical_config()
+        if name is None:
+            print(f"REFUSED: {mb.MODEL_ID} does not accept --config {rp.MODEL_CONFIG}: {why}", file=sys.stderr)
+            return 2
+        if name != rp.MODEL_CONFIG:
+            print(f"REFUSED: --config {rp.MODEL_CONFIG} is configuration {name} of {mb.MODEL_ID}; use --config {name} "
+                  "(one document per configuration)", file=sys.stderr)
+            return 2
     if a.fast:
         return fast(a)
 
@@ -131,12 +148,12 @@ def main() -> int:
     mb.BUILD.mkdir(parents=True, exist_ok=True)
     LOGS.mkdir(parents=True, exist_ok=True)
     mt, newest = mb.newest_source()
-    print(f"model_iterate: {mb.MODEL_ID} -> {rp.rel(mb.BUILD)} (newest source {rp.rel(newest)}, "
+    print(f"model_iterate: {mb.DOC_ID} -> {rp.rel(mb.BUILD)} (newest source {rp.rel(newest)}, "
           f"{dt.datetime.fromtimestamp(mt):%Y-%m-%d %H:%M:%S})", flush=True)
     results: dict[str, dict] = {}
 
-    # stale STEP / GLB never survive a rebuild: a failed export leaves no file, so model_file refuses it
-    for p in (mb.STEP, mb.GLB):
+    # stale STEP / GLB / views never survive a rebuild: a failed export leaves no file, so model_file refuses it
+    for p in [mb.STEP, mb.GLB] + mb.view_files():
         p.unlink(missing_ok=True)
 
     results["lists"] = Step("lists", [PY, src_dir / "export_lists.py"]).wait()
@@ -164,10 +181,17 @@ def main() -> int:
         after = {"envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py"])}
         if not a.no_glb:
             after["glb"] = Step("glb", [PY, src_dir / "export_glb.py"])
+        # a job-level model files its review views (Linear CPM-155): render_png.py from the build STEP
+        for view, name in mb.VIEWS if mb.JOB_LEVEL else ():
+            after[f"view_{view}"] = Step(f"view_{view}", [PY_CADGEN, rp.CAD_LIB / "render_png.py", mb.STEP,
+                                                          mb.BUILD / name, "--view", view, "--title", mb.DOC_ID])
         for k, s in after.items():
             results[k] = s.wait()
+            if k.startswith("view_") and results[k]["exit"] == 0 and not (mb.BUILD / dict(mb.VIEWS)[k[5:]]).exists():
+                results[k]["exit"] = 1
+                results[k]["summary"] += " (but no PNG was written)"
             say(k, results[k])
-        if results.get("glb", {}).get("exit") == 0 and mb.GLB.exists():
+        if not mb.JOB_LEVEL and results.get("glb", {}).get("exit") == 0 and mb.GLB.exists():
             results["looks"] = run_looks(mb.GLB)
             say("looks", results["looks"])
     else:
@@ -200,7 +224,7 @@ def run_list_delta(folder: Path, what: str) -> dict:
     try:
         import list_delta
         d = list_delta.compute(folder)
-        list_delta.write(d, folder, f"{mb.MODEL_ID} {what} {dt.datetime.now():%Y-%m-%d %H:%M}")
+        list_delta.write(d, folder, f"{mb.DOC_ID} {what} {dt.datetime.now():%Y-%m-%d %H:%M}")
         n = len(d["rows"])
         return {"exit": 0, "rows": n, "seconds": round(time.time() - td, 1),
                 "summary": f"list_delta: {n} row(s) - {d['n_list_tags']} list tags, {d['n_model_tags']} "
@@ -216,7 +240,7 @@ def fast(a) -> int:
     # "job/models/fast/revV/revV-fast-001. that way we can still track fast changes.")
     base = mb.last_revision()
     if not base:
-        print(f"REFUSED: no filed revision of {mb.MODEL_ID} to start a fast build from", file=sys.stderr)
+        print(f"REFUSED: no filed revision of {mb.DOC_ID} to start a fast build from", file=sys.stderr)
         return 2
     rev_dir = FAST / f"rev{base}"
     rev_dir.mkdir(parents=True, exist_ok=True)
@@ -231,11 +255,11 @@ def fast(a) -> int:
     t0 = time.time()
     started = dt.datetime.now().replace(microsecond=0).isoformat(sep=" ")
     mt, newest = mb.newest_source()
-    print(f"model_iterate --fast: {mb.MODEL_ID} -> {rp.rel(out)} (newest source {rp.rel(newest)}, "
+    print(f"model_iterate --fast: {mb.DOC_ID} -> {rp.rel(out)} (newest source {rp.rel(newest)}, "
           f"{dt.datetime.fromtimestamp(mt):%Y-%m-%d %H:%M:%S})", flush=True)
     results: dict[str, dict] = {}
     # the GLB to look at (about 1 min, straight from the model, no STEP) runs beside everything else
-    glb = out / f"{mb.MODEL_ID}-{out.name}.glb"
+    glb = out / f"{mb.DOC_ID}-{out.name}.glb"
     view = Step("glb", [PY_CADGEN, rp.SKID_MODEL / "export_glb_fast.py", "--out", glb], logs)
     results["lists"] = Step("lists", [PY, rp.SKID_MODEL / "export_lists.py", "--out", out], logs).wait()
     say("lists", results["lists"])
@@ -243,8 +267,9 @@ def fast(a) -> int:
     if results["lists"]["exit"] != 0 and not a.keep_going:
         print("model_iterate: STOPPED - export_lists reported model problems (fix the model, or --keep-going)")
     else:
-        # the P&ID, LSD and PFD drawn from this build in check mode, beside the GLB (writes nothing)
-        drawings = pf.start_drawing_checks(out, logs)
+        # the P&ID, LSD and PFD drawn from this build in check mode, beside the GLB (writes nothing); those are the
+        # project's drawings, so a job-level model skips them
+        drawings = pf.start_drawing_checks(out, logs) if not mb.JOB_LEVEL else None
         side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"], logs),
                 "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs)}
         # pipe supports only when Bob asks (Bob, chat, 2026-10-15: "do not check until i ask")
@@ -255,7 +280,7 @@ def fast(a) -> int:
         for k, s in side.items():
             results[k] = s.wait()
             say(k, results[k])
-        drawing_items, drawing_info = pf.finish_drawing_checks(drawings)
+        drawing_items, drawing_info = pf.finish_drawing_checks(drawings) if drawings is not None else ([], {})
         for name, d in drawing_info.items():
             print(f"[{'ok  ' if not any(i['key'].startswith(f'drawing:{name}:') for i in drawing_items) else 'FAIL'}] "
                   f"{'check ' + name:<13}        {d['summary']}", flush=True)
@@ -268,7 +293,7 @@ def fast(a) -> int:
         print(f"model_iterate --fast: view {glb}")
     # the running list of what stands between this build and the next revision (Bob, chat, 2026-10-15)
     items = pf.build_checks_from(results, a.supports) + drawing_items
-    if results["lists"]["exit"] == 0 or a.keep_going:
+    if (results["lists"]["exit"] == 0 or a.keep_going) and not mb.JOB_LEVEL:
         items += pf.collect(out, supports=a.supports, drawing_items=[], accept=False, with_build_checks=False)
     nxt = mb.next_letter(mb.last_revision())
     rc = finish(results, started, t0, mt, newest, out, open_items=items, drawings=drawing_info)
@@ -300,11 +325,14 @@ def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast
            open_items: list | None = None, drawings: dict | None = None) -> int:
     secs = time.time() - t0
     failed = [k for k, r in results.items() if r["exit"] != 0]
+    need = ["lists", "step", "interference", "envelope", "pipe_supports", "list_delta", "glb"]
+    need += [f"view_{v}" for v, _ in mb.VIEWS] if mb.JOB_LEVEL else []
     summary = {"model_id": mb.MODEL_ID, "started": started,
                "finished": dt.datetime.now().replace(microsecond=0).isoformat(sep=" "), "seconds": round(secs, 1),
                "newest_source": {"path": rp.rel(newest), "mtime": mt}, "steps": results, "failed": failed,
-               "complete": fast_dir is None and all(k in results for k in ("lists", "step", "interference", "envelope",
-                                                                           "pipe_supports", "list_delta", "glb"))}
+               "complete": fast_dir is None and all(k in results for k in need)}
+    if mb.JOB_LEVEL:
+        summary.update({"document_id": mb.DOC_ID, "config": rp.MODEL_CONFIG})
     if open_items is not None:
         summary["open_items"] = open_items
     if drawings:

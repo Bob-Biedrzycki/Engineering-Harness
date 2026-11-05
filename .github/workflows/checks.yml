@@ -1,7 +1,7 @@
 name: checks
 
 # Runs the unit tests and every script in harness/checks/ on each pull request and
-# on pushes to main, and writes one row per check to the run summary. ("CI job"
+# on pushes to main and to the day's branch, and writes one row per check to the run summary. ("CI job"
 # below is the GitHub Actions job, not a CPME job.)
 #
 # Design findings never fail the PR (Bob, chat, 2026-10-07: "The PR should not be
@@ -20,7 +20,9 @@ name: checks
 on:
   pull_request:
   push:
-    branches: [main]
+    # daily/**: the checks run on every save during the day, not stacked up for the PR (Bob, chat, 2026-11-03,
+    # global "Git and backup")
+    branches: [main, 'daily/**']
 
 jobs:
   checks:

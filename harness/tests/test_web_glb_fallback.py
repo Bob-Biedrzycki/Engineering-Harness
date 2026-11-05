@@ -45,11 +45,11 @@ class OlderLookCopy(unittest.TestCase):
         rp.WORK.mkdir(parents=True, exist_ok=True)
         self.tmp = tempfile.TemporaryDirectory(dir=rp.WORK, prefix="test-web-glb-")
         root = Path(self.tmp.name)
-        self.reviews, self.work = root / "reviews", root / "web-glb"
-        self.filed = self.reviews / BP.PORTAL_ID / "data" / "glb"
+        self.store, self.work = root / BP.PORTAL_ID, root / "web-glb"
+        self.filed = self.store / "data" / "glb"
         self.filed.mkdir(parents=True)
         self.work.mkdir()
-        self.p = [mock.patch.object(BP, "REVIEWS", self.reviews), mock.patch.object(BP.D, "WEB_GLB_DIR", self.work)]
+        self.p = [mock.patch.object(BP, "PORTAL_STORE", self.store), mock.patch.object(BP.D, "WEB_GLB_DIR", self.work)]
         for p in self.p:
             p.start()
 
@@ -66,17 +66,18 @@ class OlderLookCopy(unittest.TestCase):
 
     def test_order_and_exclusions(self):
         cur = "aaaaaaaa"
+        n = f"skid-web-{rp.SKID_MODEL_ID}-revV"                         # data.web_glb_name: the model ID in every name
         self.assertIsNone(BP.older_look_copy(Rev, cur))
-        self.put(self.filed, "skid-web-revV.glb", 1)                    # legacy, last resort
-        self.assertEqual(BP.older_look_copy(Rev, cur)[1], "skid-web-revV.glb")
-        self.put(self.work, "skid-web-revV-11111111.glb", 2)            # working copy beats legacy
-        self.assertEqual(BP.older_look_copy(Rev, cur)[1], "skid-web-revV-11111111.glb")
-        self.put(self.filed, "skid-web-revV-22222222.glb", 3)
-        self.put(self.filed, "skid-web-revV-33333333.glb", 5)           # filed beats working; newest filed first
-        self.put(self.filed, f"skid-web-revV-{cur}.glb", 9)             # the current look is never a fallback
-        self.put(self.filed, "skid-web-revVA-44444444.glb", 9)          # another revision
-        (self.filed / "skid-web-revV-55555555.glb.drive").write_text("pointer only")
-        self.assertEqual(BP.older_look_copy(Rev, cur)[1], "skid-web-revV-33333333.glb")
+        self.put(self.filed, f"{n}.glb", 1)                             # no look in the name, last resort
+        self.assertEqual(BP.older_look_copy(Rev, cur)[1], f"{n}.glb")
+        self.put(self.work, f"{n}-11111111.glb", 2)                     # working copy beats the no-look name
+        self.assertEqual(BP.older_look_copy(Rev, cur)[1], f"{n}-11111111.glb")
+        self.put(self.filed, f"{n}-22222222.glb", 3)
+        self.put(self.filed, f"{n}-33333333.glb", 5)                    # filed beats working; newest filed first
+        self.put(self.filed, f"{n}-{cur}.glb", 9)                       # the current look is never a fallback
+        self.put(self.filed, f"skid-web-{rp.SKID_MODEL_ID}-revVA-44444444.glb", 9)   # another revision
+        (self.filed / f"{n}-55555555.glb.drive").write_text("pointer only")
+        self.assertEqual(BP.older_look_copy(Rev, cur)[1], f"{n}-33333333.glb")
 
 
 class CloseoutReport(unittest.TestCase):

@@ -1,6 +1,6 @@
 ---
 name: component-add
-description: Add an instrument, valve, fitting or equipment part to the job's component library (job/components, shared by every project in the job; a project-only part goes in the project's 03_Working_Design/CAD/05_Purchased_Components) - pick it, save the maker's cut sheet, get the manufacturer STEP (or build our own), research and cite the maker's installation practice, build that practice into a revised STEP (straight run, ends for the line's service class, branch fitting, gaskets), and file it as a component revision with its component-register.csv row (details and where every piece came from) and Drive pointers. Use for any new or changed component before the modeller places it.
+description: Add an instrument, valve, fitting or equipment part to the job's component library (job/components, shared by every project in the job; a project-only part goes in the project's 03_Working_Design/CAD/05_Purchased_Components) - pick it, save the maker's cut sheet, get the manufacturer STEP (the maker's model is the default; our own drawing only after a recorded search finds none), research and cite the maker's installation practice, build that practice into a revised STEP (straight run, ends for the line's service class, branch fitting, gaskets), and file it as a component revision with its component-register.csv row (details and where every piece came from) and Drive pointers. Use for any new or changed component before the modeller places it.
 ---
 
 # Component add (Bob, 2026-10-05; job library, Bob, 2026-10-26)
@@ -42,9 +42,47 @@ component details."
      and sha256 in the row. Download methods per vendor:
      [vendor-downloads.md](vendor-downloads.md). Fetch it yourself; only a
      sign-in is Bob's. Never handle his password.
-   - No vendor model at all: build our own from the cut sheet in `src/<name>.py`
-     (build123d). Catalog dimensions plus flagged `ASSUMPTION:` lines are
-     enough; no question to a vendor for CAD (Bob, 2026-09-25).
+   - **Maker model first; our own drawing is the last resort** (Bob, chat,
+     2026-10-28: "I would really prefer to only use items that have a
+     manufacturer provided step"; "we still need the option in the case that
+     we can't find a maker step to make our own, right? But that should not
+     be a default. We should not say, oh, I didn't look hard enough to find
+     the maker step, so I'm just going to make my own."). In order:
+     1. **Search all five** places: the maker's own site, TraceParts,
+        3Dfindit (CADENAS), BIMobject and McMaster-Carr (Bob, chat,
+        2026-10-29: "you can add mcmaster carr to the list of vendors with
+        models"; a McMaster model of a distributor part counts as the
+        model, the McMaster number is the part number). Record the search in
+        `vendor_step_source`: `Search record <date>:` each place, what was
+        searched for and what it gave (none, mesh only, Revit only). A place
+        not reached is written "not checked", and the search is not done.
+        A download that needs Bob (a sign-in, a browser permission) is
+        written "download pending" and goes to Bob as one line in the same
+        turn.
+     2. **Look for an equal part** that has a maker model: another size or
+        model of the same maker, or another maker, when it fits the duty
+        just as well. Take it, and tell Bob which and why. A part the
+        customer specified or that sizing picked (TR-02, DEC-0001) stays.
+     3. **Only then draw our own**, from the maker's dimensioned drawing
+        with its page cited, and say so in `notes` ("our own drawing, no
+        maker model"). Any maker mesh or Revit model found is kept in
+        `02_STEP_Vendor/` and used to check our drawing's overall size.
+     4. **Delete our drawing** (file and its `src/` script) the day the
+        maker's model is obtained, not kept as a superseded revision; its
+        register row then names the rebuild on the maker's model.
+     No question to a vendor for CAD (Bob, 2026-09-25); Bob never emails
+     vendors.
+   - **Nothing is parked** (Bob, chat, 2026-10-29: "get to the bottom of why
+     there still seems to be loose ends and fix them"; "We will not be
+     contacting Spirex, you need to use your own judgement or move on and
+     select another part"). A part never waits on a vendor ("ask the rep",
+     "confirm with Spirax"), on a later decision, or on a note to Bob. Decide
+     it with a recorded reason, take an equal part, or ask Bob once, now. A
+     maker model that fails a validity check after re-export is an accepted
+     finding when its volume reads back unchanged and booleans work: file it
+     with the finding named. `harness/checks/component_register.py` reports
+     every current row that is not finished (no cut sheet, no CPME STEP, an
+     incomplete search, or parked text).
 3. **Research the installation practice** from the maker's manual, with page
    citations: straight run up and down, orientation, branch or tee type, leak
    port, torque; on hygienic lines dead leg; on other service classes the
@@ -84,7 +122,10 @@ component details."
    .\harness\tools\venv\Scripts\python.exe harness\checks\component_register.py
    ```
 
-   Push is at close-out, not now. Materials for the site go in
+   Then put the part's facts and PDFs in PartsLib (skill `partslib-load`, a user skill in every folder: mapping row, upload, cited claims,
+   chart readings; Bob, chat, 2026-10-28: "Facts + cut sheets" go to PartsLib, the CAD stays here).
+
+   Then save it (`track.py save`, skill `github-tracking`): Drive push, commit, branch push. Materials for the site go in
    `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/materials.yaml`
    (`rp.SKID_MODEL_ID`, named in `job/JOB.md`; once the model source
    exists) only if Bob asks for a look.
@@ -115,6 +156,6 @@ component details."
 
 `Filed COMP-nnnn <TAG> Rev <X>: job/components/COMP-nnnn_<Maker>_<Model>/03_STEP_CPME/<file>` (face to face,
 envelope, cut sheet and STEP sources), practices section cited, assumptions with their record,
-"pointer written, push at close-out", TR rows (TR-02, TR-08, TR-15, TR-21,
+the `git status` check (global "Git and backup"), TR rows (TR-02, TR-08, TR-15, TR-21,
 TR-22), CAPABILITY GAP, NEXT (usually `cad-design-engineer` place it, or
 `NEXT: none`).

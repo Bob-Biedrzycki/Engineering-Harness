@@ -6,9 +6,10 @@
 # it belongs at (harness, job or project; harness/design-rules/README.md).
 meta:
   owner: "mechanical-piping-engineer"
-  revision: 2
+  revision: 3
   status: >-
-    Rev 2, 2026-10-27: product rules moved to the job level; the harness keeps the class framework and the
+    Rev 3, 2026-10-30: PIPE-SVC-001 steam and condensate classes name their pipe, fitting and flange standards
+    (field `standards`; designation: harness, Bob, chat, 2026-10-30: "Company-wide"). Rev 2, 2026-10-27: product rules moved to the job level; the harness keeps the class framework and the
     company-wide rules only (Bob, chat, 2026-10-27). Rev 1, 2026-10-26: PIPE-SVC-001 created (Bob, chat,
     2026-10-26: "The rules need to be specific to the function. you are smart enough to identify and develop the
     correct way to handle this."; designation: harness).
@@ -40,10 +41,15 @@ service_classes:
       material_and_joints: >-
         carbon steel pipe, ASTM A106 Gr B or A53 Gr B, Sch 40 (Sch 80 for threaded and small bore);
         flanged or butt welded; threaded only at 2 in and below
+      standards: >-
+        pipe ASTM A106 Gr B or A53 Gr B, dimensions ASME B36.10M; butt weld fittings ASME B16.9 in ASTM A234 WPB;
+        flanges ASME B16.5 in ASTM A105; forged socket weld and threaded fittings (2 in and below) ASME B16.11 in
+        ASTM A105. The governing piping code stays a project value (SAN-PIPE-001)
       rules: [SAN-PIPE-001]
     condensate:
       meaning: condensate from equipment and drip legs to the return
       material_and_joints: as steam (Sch 80 is common for condensate because of wall loss)
+      standards: as steam
       rules: [SAN-PIPE-001]
     relief-vent:
       meaning: safety valve, thermal relief and vent discharge lines
@@ -63,7 +69,9 @@ service_classes:
     Bob, chat, 2026-10-26 (rules specific to the function of each line). Sanitary rules apply where a line touches
     product; steam and condensate are never sanitary and are carbon steel, flanged or welded, threaded only at
     2 in and below (CPME practice; Spirax Sarco and ASME B31.1 / B31.9 practice). Designation: harness, because the
-    split by function applies to any CPME skid.
+    split by function applies to any CPME skid. Steam and condensate `standards` (2026-10-30): the carbon steel
+    pipe, fitting and flange standards in harness/knowledge/Design Standards.md §2 (ASME B36.10M, B16.5, B16.9,
+    B16.11; ASTM A106 / A53, A234 WPB, A105); designation: harness, Bob, chat, 2026-10-30: "Company-wide".
   project_values: >-
     per project: <project>/03_Working_Design/PID/02_Tag_Lists/line-list.csv service_class (one per line), and
     the project's Design_Rules files for each class's scope and values

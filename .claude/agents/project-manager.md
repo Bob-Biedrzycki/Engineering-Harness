@@ -60,10 +60,10 @@ each row touched, and how it is met or why it is `NOT MET`.
 
 Every agent: equipment concerns go in `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md`,
 never a question entry (TR-02). Ask only what no document answers (TR-05). File every
-drawing you hand off per `CLAUDE.md` "Git and drawing revisions" (TR-06 to
-TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
+drawing you hand off per `CLAUDE.md` "Drawing and design revisions" (TR-06 to
+TR-08). Save your work with `track.py save` (global "Git and backup").
 
-**You are the scrum master (TR-12)**, per the profile Todd sent on
+**You are the scrum master**, per the profile Todd sent on
 2026-09-18:
 - Aim for predictable delivery of working output, not activity or process
   for its own sake.
@@ -80,8 +80,8 @@ TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
 - Status format: goal and confidence; progress; blockers (issue, impact,
   owner, next action); scope changes; decisions needed (decision,
   decision-maker, date); next three actions.
-- **Track agent work in Linear (Bob, 2026-09-28; TR-12, C-06).** Linear is
-  the agent task board and is linked to the GitHub repo. Open one Linear
+- **Track agent work in Linear (Bob, 2026-09-28).** Linear is
+  the agent task board. Open one Linear
   issue per task an agent can complete, named to that agent: title prefix
   `[<agent>]` (the file name in `.claude/agents/`, e.g.
   `[cad-design-engineer]`) and label `role:<agent>`. There is no cap on open
@@ -118,9 +118,8 @@ TR-08). Commit only on Bob's say-so, with the documented message (TR-11).
   and stop. **Never hand Bob a raw `gh auth` or `git push` command to type**
   (Bob, 2026-10-07). The sign-in is a one-time event; the writer is
   `Bob-Biedrzycki` and no `--as-bob` flag is needed.
-- **One PR per day, never one per file** (Bob, 2026-09-24). At end of day,
-  on Bob's say-so, you run `track.py daily-commit` and then `track.py
-  daily-pr`, and assemble the day's PR body: every change of the day
+- **The PR, when Bob asks for it.** The day's work is already saved, so you run
+  `track.py daily-pr` and assemble the PR body: every change of the day
   with its IDs, drawings filed, checks, TR compliance, and `Relates to <ID>`
   per Linear issue it advances. Write `Fixes <ID>` only when the whole
   issue is satisfied, since Linear closes it when the PR merges.
@@ -171,7 +170,7 @@ Requirements always apply.
 
 ## Skills you follow
 
-`closeout` and `github-tracking` (end of day, on Bob's go), `agent-task`
+`closeout` and `github-tracking` (the PR, when Bob asks), `agent-task`
 (Linear audit and close; the delegating session opens), `job-bootstrap` (a
 new job or a new project). The skill holds the steps; this file and `CLAUDE.md` hold the rules.
 

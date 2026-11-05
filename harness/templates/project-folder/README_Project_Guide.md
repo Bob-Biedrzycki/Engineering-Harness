@@ -64,8 +64,8 @@ hygienic lines, the job's product rules (`job/design-rules/`) on the classes the
 | **04_Vendor_Data** | Supplier documents and manufacturer CAD, unchanged. One folder per tag, for example `02_Pumps/P-101_Maker_Model/` holding `01_Datasheets/ 02_CAD_Originals/ 03_Drawings_Submittals/ 04_Manuals/ 05_Certificates/ 06_Technical_Correspondence/` |
 | **05_Reviews_Changes** | Internal, customer and vendor reviews, change requests, approved changes, approvals, closed records. One folder per review (`REVW-001_…`) or change (`CR-001_…`) holding `Request/ Markups/ Responses/ Closure/` |
 | **06_Issued_Revisions** | Everything handed off, read-only (TR-08) |
-| Drawings/`<DOC-ID>`/ | Each filed drawing revision, `<DOC-ID>-rev<X>.dwg/.pdf/.dxf`, with `revisions.csv` |
-| Models/`<MODEL-ID>`/ | Each filed model revision and its takeoffs, with `revisions.csv` |
+| Drawings/`<DOC-ID>`/ | `revisions.csv` and one folder per filed revision, `<DOC-ID>-rev<X>/`, holding `<DOC-ID>-rev<X>.dwg/.pdf/.dxf` |
+| Models/`<MODEL-ID>`/ | `revisions.csv` and one folder per filed revision, `<MODEL-ID>-rev<X>/`, holding the model and its takeoffs |
 | Portals/ | Filed portal revisions |
 | 00_Issue_Index | `Issue_Register.csv`: every issue, its files, and the original each copy came from |
 | `ISS-###_<YYYY-MM-DD>_<Purpose>/` | One per transmittal, made only when something is sent out. It holds read-only copies named for the issue (`ISS-001_<DOC-ID>-rev<X>.pdf`), the transmittal, and the package README |

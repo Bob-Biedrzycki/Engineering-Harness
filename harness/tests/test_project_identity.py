@@ -1,4 +1,4 @@
-"""Project identity comes from <project>/project.yaml, never from harness literals (TR-09).
+"""Project identity comes from <project>/project.yaml, never from harness literals.
 
 - repo_paths._read_project_config: flat `key: value` lines with `#` comments, every key required, blank values allowed.
 - No string literal in harness code (scripts, checks, lib, cad-lib; docstrings and comments excepted) holds one of

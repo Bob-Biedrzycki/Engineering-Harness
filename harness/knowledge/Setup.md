@@ -53,7 +53,7 @@ The central task is turning the customer intake and the P&ID into a 3D skid that
 ### Phase 0 – Environment Setup (before project start)
 
 1. Settle data-retention terms (enterprise or zero-retention plans) before any customer specs or drawings enter Claude Code.
-2. One GitHub repo per job (TR-09) with `harness/` (company-wide) and `job/` (this job, one folder per project); the map is in `CLAUDE.md` "Repository map". A new project folder is made by `harness/scripts/project_new.py` (skill `job-bootstrap`).
+2. One GitHub repo per job folder (global "Git and backup") with `harness/` (company-wide) and `job/` (this job, one folder per project); the map is in `CLAUDE.md` "Repository map". A new project folder is made by `harness/scripts/project_new.py` (skill `job-bootstrap`).
 3. `CLAUDE.md` carries scope, units and naming, and the hard rules: never invent part numbers or dimensions; always cite the design rule behind a decision; flag every assumption; trace every component to a P&ID tag.
 4. Install text-to-cad at a pinned version.
 
