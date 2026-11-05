@@ -102,6 +102,7 @@ class Reader(Scratch):
         self.assertEqual(C.find_step("TD2947.STP", self.libs), vend)               # job library first
         self.assertIsNone(C.find_step("nope.step", self.libs))
 
+    @unittest.skipUnless(rp.JOB_COMPONENT_REGISTER.is_file(), "no job library (harness master)")
     def test_real_libraries_named_by_repo_paths(self):
         self.assertEqual([lib.level for lib in C.libraries()], ["job", "project"] if rp.HAS_PROJECT else ["job"])
         self.assertEqual(C.libraries()[0].register, rp.JOB_COMPONENT_REGISTER)

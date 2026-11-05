@@ -22,7 +22,7 @@ class TagLink(unittest.TestCase):
                                           encoding="utf-8")
         lib = d / "lib"
         lib.mkdir()
-        hdr = (REPO / "job" / "components" / "component-register.csv").read_text(encoding="utf-8").splitlines()[0]
+        hdr = ",".join(components.COLUMNS)   # the register spec, so the test needs no job library (harness master)
         cols = hdr.split(",")
         row = dict.fromkeys(cols, "")
         row.update(component_id="COMP-0007", revision="A", status="current", weight_lb="9.5")

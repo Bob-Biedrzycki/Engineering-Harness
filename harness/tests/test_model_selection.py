@@ -134,6 +134,7 @@ class EnvelopeRules(unittest.TestCase):
             with self.assertRaises(ValueError):
                 envelope.rule_limits(Path(d))
 
+    @unittest.skipUnless((rp.JOB_DESIGN_RULES / "layout.yaml").is_file(), "no job design rules (harness master)")
     def test_job_rules_carry_the_envelope(self):
         import envelope
         lim = envelope.rule_limits(rp.JOB_DESIGN_RULES)
