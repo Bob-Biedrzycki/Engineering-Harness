@@ -1,0 +1,7 @@
+# drip pan floor 24 x 18 x 0.0625 with 6 in of water (0.217 psi), edges simply supported
+a: 24
+b: 18
+t: 0.0625
+q: 0.217
+material: A240-304
+edges: simple

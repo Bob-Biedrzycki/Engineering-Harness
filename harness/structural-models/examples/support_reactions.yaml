@@ -1,0 +1,20 @@
+# 12 feet, rigid base, two tanks full and a pump off centre (illustrative)
+supports:
+  - {id: FT-01, x: 0, y: 0}
+  - {id: FT-02, x: 0, y: 21}
+  - {id: FT-03, x: 0, y: 42}
+  - {id: FT-04, x: 48, y: 0}
+  - {id: FT-05, x: 48, y: 21}
+  - {id: FT-06, x: 48, y: 42}
+  - {id: FT-07, x: 96, y: 0}
+  - {id: FT-08, x: 96, y: 21}
+  - {id: FT-09, x: 96, y: 42}
+  - {id: FT-10, x: 144, y: 0}
+  - {id: FT-11, x: 144, y: 21}
+  - {id: FT-12, x: 144, y: 42}
+loads:
+  - {name: TK-A full, W: 6000, x: 24, y: 28}
+  - {name: TK-B full, W: 6000, x: 72, y: 28}
+  - {name: pump, W: 600, x: 120, y: 10}
+  - {name: frame, W: 700, x: 72, y: 21}
+rated_load: 3000

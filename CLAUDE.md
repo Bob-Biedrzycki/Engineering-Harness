@@ -196,6 +196,8 @@ harness/
   scripts/               model_iterate.py / model_accept.py (+ model_file.py) / closeout.py (the model tiers),
                          track.py (GitHub tracking), drive_store.py (Google Drive store),
                          label sync, lists workbook
+  structural-models/     skidframe: skid frame load-bearing models (AISC 370/360, ASCE 7) for the Gate 3 check;
+                         `run` saves each result in <project>/02_Engineering/06_Mechanical_Structural/Frame_Calcs/
   templates/             Review checklist, project-folder/ (the project tree)
   design-rules/          Company-wide design rules (YAML), engineer-owned; README.md
                          gives the three levels (harness, job, project) and that Bob is asked first
@@ -506,7 +508,7 @@ in the foreground when it must use the browser.
 |---|---|---|
 | 1 | Digitized P&ID data matches the drawing | process-engineer |
 | 2 | Equipment layout | cad-design-engineer + mechanical-piping-engineer |
-| 3 | Frame structural check and fork-lift case (TR-19, LAY-FORK-001) | cad-design-engineer (engineer performs the check) |
+| 3 | Frame structural check and fork-lift case (TR-19, LAY-FORK-001) | cad-design-engineer, with saved `skidframe` runs (`harness/structural-models/`) as working aids (engineer performs the check) |
 | 4 | Final model and drawing sign-off | engineering-manager |
 
 ## Where things are tracked

@@ -1,0 +1,8 @@
+# 2 x 2 x 0.120 post landing on a 3 x 3 x 0.120 rail face (rectangular chord, by AISC 360 analogy)
+type: rect_branch
+material: A554-304
+chord: {B: 3.0, H: 3.0, t: 0.120}
+branch: {B: 2.0, H: 2.0, t: 0.120}
+Pr: 1500
+Mr_ip: 2000
+chord_U: 0.4

@@ -1,0 +1,7 @@
+# pump on a 3 in round rail span: rail simple span 48 in carrying 500 lb at mid-span
+case: ss_mass
+E: 28000000
+I: 1.078
+L: 48
+W: 500
+w: 0.31

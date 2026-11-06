@@ -1,4 +1,5 @@
-# Structural rules, company-wide (harness): pipe supports for stainless sanitary tube on any CPME skid.
+# Structural rules, company-wide (harness): pipe supports for stainless sanitary tube on any CPME skid, and the
+# reference list of frame materials (STR-FRAME-001, frame-materials.csv beside this file).
 # Engineer-owned; Bob approves. These are first-pass design checks, not a certification (Gate 3).
 # Where a rule applies on a project and any project-only value go in that project's
 # <project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/structural.yaml, under the same rule id
@@ -11,8 +12,11 @@
 # recorded as an ASSUMPTION until Bob designates a rule.
 meta:
   owner: "<project engineer>"
-  revision: 7
+  revision: 8
   status: >-
+    Rev 8, 2026-11-06: new rule STR-FRAME-001, the reference list of frame materials (frame-materials.csv), from the
+    AISC Shapes Database v16.0 until CPME has established suppliers (Bob, chat, 2026-11-06; designation harness).
+    STR-PS-001 and STR-PS-002 unchanged.
     Rev 7, 2026-10-26: STR-SHEET-001/002 removed and the superseded STR-PS-001 hardware records dropped; scope
     stated as sanitary tube (Bob, chat, 2026-10-26). Values and keys of STR-PS-001 and STR-PS-002 are
     unchanged; their basis is CPME practice.
@@ -185,3 +189,72 @@ pipe_supports:
       2.0 in joint clearance is provisional until a 3 in hanger is selected.
       First pass, not a certification (Gate 3). Designation: harness (CPME
       practice).
+
+frame_materials:
+  - id: STR-FRAME-001
+    rule: >-
+      Frame members (FM-nnn) are chosen from the reference list of common
+      structural shapes in frame-materials.csv (beside this file), and their weight and section properties are
+      taken from that list, not typed into a model. A shape not on the list is not used until it is added here
+      with its source. The list is a reference of common materials, as an engineering student is given, until
+      CPME has established suppliers; it says nothing about what a supplier stocks, its lengths or its lead time.
+      When suppliers are established, their stock is recorded against this list and this rule is revised.
+    table: frame-materials.csv
+    columns:
+      shape: HSS square, HSS rectangular, channel, angle or wide flange
+      aisc_label: the designation exactly as in the AISC Manual (e.g. HSS6X3X1/4, C6X8.2, L3X3X1/4, W8X31)
+      astm_grade: the AISC preferred material for that shape (grades below)
+      W_lb_ft: nominal weight, lb/ft
+      A_in2: cross-sectional area, in2
+      depth_in: HSS Ht (longer wall); channel and W d; angle longer leg
+      width_in: HSS B (shorter wall); channel and W bf; angle shorter leg
+      t_nom_in: HSS nominal wall; channel and W web tw; angle leg t
+      t_des_in: HSS design wall (0.93 x nominal for ERW HSS, as AISC tabulates); blank for other shapes
+      Ix_in4 Sx_in3 Zx_in3 rx_in Iy_in4 Sy_in3 Zy_in3 ry_in: about the AISC x and y axes, in4, in3, in
+      rz_in: angles only, least radius of gyration, in
+      J_in4: torsional constant, in4
+    selection: >-
+      From the AISC database, shapes a skid frame commonly uses: square and rectangular HSS with the longer wall
+      8 in or less, the shorter wall 1-1/2 in or more and a nominal wall 1/8 to 1/2 in (133 rectangular, 64
+      square); C channels 3 to 10 in deep (26); single angles with both legs 2 to 4 in (61); W shapes 4 to 8 in
+      nominal depth (23). 307 shapes. Values are copied exactly as the database gives them (US customary).
+    grades:
+      ASTM A500 Gr C:
+        shapes: HSS square and rectangular
+        Fy_ksi: 50
+        Fu_ksi: 62
+      ASTM A36:
+        shapes: channels and angles
+        Fy_ksi: 36
+        Fu_ksi: 58
+      ASTM A992:
+        shapes: W shapes
+        Fy_ksi: 50
+        Fu_ksi: 65
+    grades_basis: >-
+      The grade per shape is the AISC Manual's preferred material for that shape; Fy and Fu are the minimums of
+      each ASTM specification (A500 Gr C rectangular HSS, A36, A992). Neither the Manual table nor the ASTM
+      specifications were re-read in this change: ASSUMPTION, confirm against them before a Gate 3 frame check.
+    not_on_the_list: >-
+      Stainless frame tube (ASTM A554, used for STR-PS-001 supports) and plate and flat bar (A36, A240) are not in
+      the AISC database; each is added here with its own source when a frame needs it. Round HSS and pipe are
+      left out of the frame list.
+    source:
+      title: AISC Shapes Database v16.0 (SHAPE160.xlsx), consistent with the AISC Steel Construction Manual,
+        16th Edition, 1st Printing; Readme dated August 2023
+      publisher: American Institute of Steel Construction
+      url: https://www.aisc.org/aisc/publications/steel-construction-manual/shapes-database-v160/
+      obtained: 2026-11-06, free download by Bob
+      sha256: E08BEA15BBE475E78251292E5F543FF5A11D16B59C9D6AF47AEC700F8F57F050
+      bytes: 2028383
+      in_repo: no (AISC's file; the extracted list is frame-materials.csv)
+    note: >-
+      Since 2026-11-06 (Bob, chat: "Yes, wire them in") the typical models take every frame section, its grade and
+      weight from this list through job/typical-models/_lib/structure.py shape(); their sizes (HSS6X3X1/4,
+      HSS4X4X1/4, HSS3X3X1/4, HSS2X2X3/16, HSS1-1/2X1-1/2X3/16) stay ASSUMPTION Q-0005. Before that they typed
+      ASTM A500 Gr B; the list's grade for HSS is A500 Gr C, as the AISC 16th Edition tabulates.
+    basis: >-
+      AISC Shapes Database v16.0, source above. Designation: harness (Bob, chat, 2026-11-06: "Company-wide").
+      Reference instead of stock: Bob, chat, 2026-11-06, verbatim: "We don't have established stock, or an
+      established supplier. Until we obtain established suppliers we need to work from a reference of common
+      materials much like a student would be supplied in an engineering program."

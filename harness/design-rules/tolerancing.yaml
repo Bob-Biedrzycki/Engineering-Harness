@@ -1,0 +1,132 @@
+# Tolerancing rules, company-wide (harness): how CPME fabrication drawings are dimensioned and
+# toleranced (GD&T). Engineer-owned (the project engineer; Bob approves).
+# Designation: harness for the rules; the values that depend on the product line at job level
+# (job/design-rules/tolerancing.yaml) and the customer's values at project level
+# (Bob, chat, 2026-11-06: "Harness, job values"; hard rule 11).
+# Read by harness/checks/gdt.py (reports, never blocks) and by harness/cad-lib/cpme_titleblock.py
+# (the "unless otherwise specified" tolerance block).
+# Values: inches.
+meta:
+  owner: "<project engineer>"
+  revision: 1
+  status: >-
+    Rev 1, 2026-11-06: first issue. Applies to fabrication drawings only (frame, plates, supports,
+    weldments, machined parts, spool drawings). P&IDs, line segment diagrams, process flow diagrams
+    and general arrangement drawings carry no tolerance block; dimensions on a general arrangement
+    drawing are reference dimensions.
+  applies_to: [fabrication]       # drawing kinds that carry the tolerance block (GDT-STD-001)
+  not_applies_to: [pid, lsd, pfd, ga]
+
+# ---------------------------------------------------------------------------------------------
+# The standard and the note on every fabrication drawing
+# ---------------------------------------------------------------------------------------------
+GDT-STD-001:
+  rule: >-
+    Every fabrication drawing is dimensioned and toleranced to ASME Y14.5 and carries, beside the
+    CPME title block, an "unless otherwise specified" block: units inches, the Y14.5 interpretation
+    note, third-angle projection (ASME Y14.3) with its symbol, the general tolerances for linear
+    dimensions by number of decimal places, angles, and the default for weldments. The general
+    tolerance values are the job's (GDT-CAP-001); a value not yet set prints as "TBD" and the GD&T
+    check reports it. A dimension with no tolerance of its own takes the general tolerance; basic
+    dimensions are boxed; reference dimensions are in parentheses.
+  standard: "ASME Y14.5"
+  edition: "2018"
+  projection: "third angle"
+  units: "in"
+  interpretation_note: "INTERPRET DIMENSIONS AND TOLERANCES PER ASME Y14.5-2018"
+  basis: >-
+    ASME Y14.5 (dimensioning and tolerancing), ASME Y14.3 (projection), listed in
+    harness/knowledge/Design Standards.md. Edition 2018: "CPME works to the 2018 edition of
+    Y14.5" (Bob, chat, 2026-11-06, Q-0046).
+    Designation: harness, Bob, chat, 2026-11-06.
+
+# ---------------------------------------------------------------------------------------------
+# Datums
+# ---------------------------------------------------------------------------------------------
+GDT-DAT-001:
+  rule: >-
+    The skid frame has one datum reference frame, used by every drawing of the skid and every part
+    located on it. Datum A is the plane of the bottoms of the base rails (the skid stands on it and
+    the forks lift it, LAY-FORK-001). Datum B is the outside face of one long base rail, datum C the
+    outside face of one end rail, both perpendicular to A; the drawing names the member tags (FM-nnn)
+    that carry B and C. The model names the same three as DATUM_A, DATUM_B and DATUM_C on the frame,
+    so the drawing and the model share them.
+  model_names: {A: DATUM_A, B: DATUM_B, C: DATUM_C}
+  basis: >-
+    ASME Y14.5 datum selection: datums are the functional surfaces that locate the part in its
+    assembly; the base plane is what the skid stands and ships on. Designation: harness, Bob, chat,
+    2026-11-06.
+
+GDT-DAT-002:
+  rule: >-
+    A part drawing takes its datums from how the part is mounted: primary datum the mounting face,
+    secondary and tertiary the locating holes or edges that fix it. Each datum feature is a real,
+    accessible surface or hole the shop can hold and inspect. No datum on a centre line, a weld or a
+    cut edge that is removed later.
+  basis: "ASME Y14.5 datum feature selection. Designation: harness, Bob, chat, 2026-11-06."
+
+# ---------------------------------------------------------------------------------------------
+# Which controls, and only where needed
+# ---------------------------------------------------------------------------------------------
+GDT-FCF-001:
+  rule: >-
+    Tolerance only what the function needs; everything else takes the general tolerance. Every
+    feature control frame on a CPME drawing is one of the controls below, refers only to datums
+    defined on that drawing, and is recorded with its reason (fit, alignment, interface, seal) in
+    the part's tolerance record (GDT-REC-001).
+  controls:
+    mounting_pad: "flatness on the pad; parallelism to datum A where equipment is shimmed level"
+    bolt_holes: "position at MMC to the part's datums, value from GDT-FAST-001"
+    laser_cut_outline: "profile of a surface to the part's datums, no tighter than the cutter (GDT-CAP-001)"
+    vertical_post_or_bracket: "perpendicularity to datum A where it carries equipment"
+    connection_at_skid_edge: "position to A|B|C of the skid, value per project (customer tie-in)"
+  not_used:
+    concentricity_and_symmetry: "removed from ASME Y14.5-2018; use position or profile"
+    runout_on_weldments: "only on a machined feature, never on an as-welded part"
+  basis: "ASME Y14.5-2018 control selection. Designation: harness, Bob, chat, 2026-11-06."
+
+GDT-FAST-001:
+  rule: >-
+    Bolted joints: the position tolerance of the hole patterns comes from the fastener formulas,
+    not from habit. Floating fastener (clearance holes in both parts, nut and bolt): T = H - F for
+    each part. Fixed fastener (one part tapped or with studs): T1 + T2 = H - F, split between the
+    parts, with projected tolerance zone on the threaded part. H is the hole MMC (smallest) size, F
+    the fastener MMC (largest) size.
+  basis: "ASME Y14.5 fastener formulas (floating and fixed fastener). Designation: harness, Bob, chat, 2026-11-06."
+
+GDT-PIPE-001:
+  rule: >-
+    Piping, tube and structural steel are not toleranced with feature control frames. Spool
+    fabrication tolerances follow the line's piping code and PFI ES-3; hygienic tube, fittings and
+    ferrules follow ASME BPE Part DT; welded steel follows AWS D1.1 (carbon) or AWS D1.6 (stainless);
+    structural fabrication and erection follow AISC 303. The drawing cites the document in its notes;
+    a value is taken from the document itself when a copy is on hand and is `unknown` until then.
+  basis: >-
+    The cited standards (Design Standards.md). Designation: harness, Bob, chat, 2026-11-06.
+
+# ---------------------------------------------------------------------------------------------
+# Shop capability, stack-ups and records
+# ---------------------------------------------------------------------------------------------
+GDT-CAP-001:
+  rule: >-
+    No tolerance on a drawing is tighter than the shop can hold for that process. The general
+    tolerances and the capability of each process are the job's values
+    (job/design-rules/tolerancing.yaml); a tighter tolerance is either justified in the part's
+    tolerance record (machined after welding, a bought part) or loosened.
+  basis: "CPME practice. Designation: harness rule, job values, Bob, chat, 2026-11-06."
+
+GDT-STK-001:
+  rule: >-
+    Each critical chain of the skid is checked by a tolerance stack-up before its drawings are
+    handed off: worst case always; root-sum-square only beside it, with four or more contributors,
+    and named as such. The job names its critical chains (job/design-rules/tolerancing.yaml). The
+    result is saved in the project with the drawing revisions it covers.
+  basis: "ASME Y14.5 practice for stack analysis; CPME practice. Designation: harness, Bob, chat, 2026-11-06."
+
+GDT-REC-001:
+  rule: >-
+    Each fabrication drawing has a tolerance record beside its generator, <DOC-ID>.tol.yaml: the
+    drawing kind, its datums, each feature control frame (feature, control, value, modifier, datums,
+    reason) and the general tolerances used. The drawing generator draws from it and the GD&T check
+    reads it. Values are never typed on the drawing by hand.
+  basis: "CPME practice (one authoritative location per fact, hard rule 8). Designation: harness, Bob, chat, 2026-11-06."

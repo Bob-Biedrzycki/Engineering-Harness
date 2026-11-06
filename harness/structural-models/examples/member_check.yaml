@@ -1,0 +1,11 @@
+# Post carrying a tank leg: 2 x 2 x 0.120 A554-304, 30 in tall, fixed at the base, free at the top (K = 2.1),
+# 2,000 lb axial plus a 100 lb side load at the top (illustrative)
+section: {shape: square, b: 2.0, t: 0.120}
+material: A554-304
+method: ASD
+L: 30
+K_z: 2.1
+K_y: 2.1
+P: -2000
+Mz: 3000
+Vy: 100

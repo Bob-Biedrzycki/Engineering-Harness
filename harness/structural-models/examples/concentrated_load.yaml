@@ -1,0 +1,6 @@
+# tank leg pad 3 in long bearing on a 3 x 2 x 0.120 rail (rail 3 deep, 2 wide), interior
+tube: {shape: rect, B: 2.0, H: 3.0, t: 0.120}
+material: A554-304
+R: 2500
+lb: 3.0
+case: IOF

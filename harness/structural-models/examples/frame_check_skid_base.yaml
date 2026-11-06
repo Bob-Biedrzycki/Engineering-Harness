@@ -1,0 +1,78 @@
+# ILLUSTRATIVE skid base (not any job's data): 144 x 42 in grillage, three round-tube rails, four
+# square-tube cross members, 12 leveling feet as compression-only contacts, equipment weights as masses,
+# tank liquid as nodal loads. Copy this file to start a real frame; replace every value from the model's
+# filed takeoffs (cut list, manifest, piping mass) and record where each came from.
+title: "Example skid base, tanks full, on 12 feet"
+method: ASD
+options: {divisions: 8, shear_deformation: true}
+sections:
+  RAIL: {shape: round, D: 3.0, t: 0.120}
+  CROSS: {shape: square, b: 2.0, t: 0.120}
+nodes:
+  N00: [0, 0, 0]
+  N01: [0, 21, 0]
+  N02: [0, 42, 0]
+  N10: [48, 0, 0]
+  N11: [48, 21, 0]
+  N12: [48, 42, 0]
+  N20: [96, 0, 0]
+  N21: [96, 21, 0]
+  N22: [96, 42, 0]
+  N30: [144, 0, 0]
+  N31: [144, 21, 0]
+  N32: [144, 42, 0]
+members:
+  - {id: R0-1, i: N00, j: N10, section: RAIL, material: A554-304}
+  - {id: R0-2, i: N10, j: N20, section: RAIL, material: A554-304}
+  - {id: R0-3, i: N20, j: N30, section: RAIL, material: A554-304}
+  - {id: R1-1, i: N01, j: N11, section: RAIL, material: A554-304}
+  - {id: R1-2, i: N11, j: N21, section: RAIL, material: A554-304}
+  - {id: R1-3, i: N21, j: N31, section: RAIL, material: A554-304}
+  - {id: R2-1, i: N02, j: N12, section: RAIL, material: A554-304}
+  - {id: R2-2, i: N12, j: N22, section: RAIL, material: A554-304}
+  - {id: R2-3, i: N22, j: N32, section: RAIL, material: A554-304}
+  - {id: X0-1, i: N00, j: N01, section: CROSS, material: A554-304}
+  - {id: X0-2, i: N01, j: N02, section: CROSS, material: A554-304}
+  - {id: X1-1, i: N10, j: N11, section: CROSS, material: A554-304}
+  - {id: X1-2, i: N11, j: N12, section: CROSS, material: A554-304}
+  - {id: X2-1, i: N20, j: N21, section: CROSS, material: A554-304}
+  - {id: X2-2, i: N21, j: N22, section: CROSS, material: A554-304}
+  - {id: X3-1, i: N30, j: N31, section: CROSS, material: A554-304}
+  - {id: X3-2, i: N31, j: N32, section: CROSS, material: A554-304}
+supports:
+  N00: {ux: fixed, uy: fixed, uz: contact}
+  N01: {uz: contact}
+  N02: {uz: contact}
+  N10: {uz: contact}
+  N11: {uz: contact}
+  N12: {uz: contact}
+  N20: {uz: contact}
+  N21: {uz: contact}
+  N22: {uz: contact}
+  N30: {uy: fixed, uz: contact}
+  N31: {uz: contact}
+  N32: {uz: contact}
+masses:            # equipment and piping dry weight, lb, at the frame nodes it bears on (case D carries them)
+  N01: 150
+  N11: 300
+  N21: 300
+  N31: 150
+  N10: 120
+  N20: 120
+cases:
+  D: {body: [0, 0, -1]}          # frame steel + masses, gravity
+  F:                             # liquid in the tanks: each tank leg lands mid-bay on a rail (lb per leg)
+    member_point:
+      - {member: R1-1, at: 0.5, P: [0, 0, -1500]}
+      - {member: R2-1, at: 0.5, P: [0, 0, -1500]}
+      - {member: R1-2, at: 0.5, P: [0, 0, -1800]}
+      - {member: R2-2, at: 0.5, P: [0, 0, -1800]}
+      - {member: R1-3, at: 0.5, P: [0, 0, -1500]}
+      - {member: R2-3, at: 0.5, P: [0, 0, -1500]}
+combinations:
+  "D+F (tanks full)": {D: 1.0, F: 1.0}
+  "D (empty)": {D: 1.0}
+design:
+  "*": {K_z: 1.0, K_y: 1.0, kind: beam_equipment}
+buckling: true
+modal: 3

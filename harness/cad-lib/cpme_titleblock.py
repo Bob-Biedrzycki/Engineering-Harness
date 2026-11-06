@@ -65,13 +65,72 @@ DEFAULT_FIELDS = {
     "appr": "",
     "revision_sub": "",  # small red line under the revision letter, e.g. "FAST-004" on a P&ID fast edit (Bob, 2026-10-11)
     "stamp": ("DRAFT - FOR ENGINEERING REVIEW", "NOT FOR CONSTRUCTION OR OPERATION"),
+    # GDT-STD-001 (harness/design-rules/tolerancing.yaml; Bob, chat, 2026-11-06): True on fabrication drawings
+    # only. Draws the "unless otherwise specified" block above the left title-block cells. P&IDs, LSDs, PFDs
+    # and GA drawings leave it False.
+    "tolerance_block": False,
 }
 
+TOL_BLOCK_H = 0.95   # in, height of the tolerance block above the title block (17 in sheet)
 
-def reserved_bands(W: float) -> tuple[float, float]:
-    """(top, bottom) heights in drawing units that the sheet format occupies."""
+
+def reserved_bands(W: float, tolerance_block: bool = False) -> tuple[float, float]:
+    """(top, bottom) heights in drawing units that the sheet format occupies.
+    A fabrication sheet (tolerance_block=True) reserves the tolerance block too."""
     s = W / SHEET_W_IN
-    return 1.50 * s, 1.50 * s
+    return 1.50 * s, (1.50 + (TOL_BLOCK_H if tolerance_block else 0.0)) * s
+
+
+def tolerance_values() -> dict:
+    """GDT-STD-001 from the harness rule and the job's values (job/design-rules/tolerancing.yaml).
+    Returns {'note', 'projection', 'units', 'general': {key: value or None}}; a missing or `unknown`
+    value is None and prints as TBD (hard rule 1: never invented)."""
+    import yaml  # local: only fabrication sheets need it
+
+    def _load(p):
+        try:
+            return yaml.safe_load(p.read_text(encoding="utf-8")) or {}
+        except FileNotFoundError:
+            return {}
+    h = _load(rp.HARNESS_DESIGN_RULES / "tolerancing.yaml").get("GDT-STD-001", {})
+    j = _load(rp.JOB_DESIGN_RULES / "tolerancing.yaml").get("GDT-STD-001", {})
+    gen = {k: (None if v in (None, "unknown", "") else v) for k, v in (j.get("general_tolerances") or {}).items()}
+    for k in ("x_x_in", "x_xx_in", "x_xxx_in", "angle_deg", "fractional_in"):
+        gen.setdefault(k, None)
+    return {"note": h.get("interpretation_note", "INTERPRET DIMENSIONS AND TOLERANCES PER ASME Y14.5"),
+            "projection": str(h.get("projection", "third angle")).upper(),
+            "units": str(h.get("units", "in")), "general": gen}
+
+
+def _draw_tolerance_block(T, L, X, Y, s) -> list[str]:
+    """The GDT-STD-001 block, x 0.375..7.222 in, y 1.417..1.417+TOL_BLOCK_H in (17 in sheet)."""
+    tv = tolerance_values()
+    g = tv["general"]
+    y0, y1 = 1.417, 1.417 + TOL_BLOCK_H
+    L((X(0.375), Y(y1)), (X(7.222), Y(y1)))
+    L((X(0.375), Y(y0)), (X(0.375), Y(y1)))
+    L((X(7.222), Y(y0)), (X(7.222), Y(y1)))
+    red = (200, 0, 0)
+
+    def val(v, unit=""):
+        return ("TBD", red) if v is None else (f"±{v}{unit}", None)
+    T("UNLESS OTHERWISE SPECIFIED:", X(0.48), Y(y1 - 0.15), 0.064, bold=True)
+    T("DIMENSIONS ARE IN INCHES" if tv["units"] == "in" else f"DIMENSIONS ARE IN {tv['units'].upper()}",
+      X(0.48), Y(y1 - 0.30), 0.057)
+    T(tv["note"], X(0.48), Y(y1 - 0.44), 0.057)
+    T(f"{tv['projection']} PROJECTION", X(0.48), Y(y1 - 0.58), 0.057)
+    cols = (("X.X", g["x_x_in"], ""), ("X.XX", g["x_xx_in"], ""), ("X.XXX", g["x_xxx_in"], ""),
+            ("ANGLES", g["angle_deg"], "°"), ("FRACTIONS", g["fractional_in"], ""))
+    warnings: list[str] = []
+    for i, (lab, v, unit) in enumerate(cols):
+        x = 0.48 + i * 1.33
+        txt, rgb = val(v, unit)
+        T(lab, X(x), Y(y0 + 0.20), 0.057, bold=True)
+        T(txt, X(x + 0.62), Y(y0 + 0.20), 0.057, rgb=rgb)
+        if v is None:
+            warnings.append(f"tolerance block: {lab} general tolerance unknown, printed TBD (GDT-CAP-001, "
+                            "job/design-rules/tolerancing.yaml)")
+    return warnings
 
 
 LOGO_DXF = rp.CAD_LIB / "cpme-logo.dxf"   # harness asset; provenance in cpme-logo.md (CPME practice)
@@ -220,4 +279,6 @@ def draw_cpme_sheet(sh, doc, W: float, H: float, fields: dict) -> list[str]:
         T(date, X(16.4), Y(0.9), 0.053, "C")
     T("APPR.", X(14.46), Y(0.6), 0.057, bold=True)
     T(f["appr"], X(15.0), Y(0.6), 0.057)
+    if f["tolerance_block"]:
+        warnings += _draw_tolerance_block(T, L, X, Y, s)
     return warnings

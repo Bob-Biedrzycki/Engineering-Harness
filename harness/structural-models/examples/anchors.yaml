@@ -1,0 +1,14 @@
+# four 1/2 in stainless post-installed anchors, factored loads (illustrative)
+Nua: 3000
+Vua: 1500
+n_x: 2
+n_y: 2
+s_x: 4
+s_y: 4
+da: 0.5
+hef: 3.25
+fc: 3000
+anchor_type: post-installed
+cracked: true
+edges: {cx_plus: 12}
+seismic: true

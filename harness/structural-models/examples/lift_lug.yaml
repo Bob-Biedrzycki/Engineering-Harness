@@ -1,0 +1,12 @@
+P: 3000
+t: 0.5
+Dh: 0.875
+Dp: 0.75
+R: 1.5
+be: 1.06
+a: 1.06
+material: A240-304
+Nd: 3.0
+out_of_plane_deg: 10
+weld: {leg: 0.25, length: 4.0, two_sided: true, filler: E308L}
+hole_height_above_base: 3.0
