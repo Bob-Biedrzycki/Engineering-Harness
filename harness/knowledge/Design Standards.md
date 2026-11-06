@@ -164,8 +164,37 @@ The skid has no lift points; it is handled by forks under the heaviest equipment
 
 | Standard | Covers |
 |---|---|
-| **ASME Y14.5** | Dimensioning and tolerancing (GD&T) |
+| **ASME Y14.5** | Dimensioning and tolerancing (GD&T); rules GDT-* in `harness/design-rules/tolerancing.yaml` |
+| **ASME Y14.3** | Orthographic views; third-angle projection on CPME drawings (GDT-STD-001) |
 | **ASME Y14.100** | Engineering drawing practices |
+| **AISC 303** | Code of Standard Practice for steel: fabrication and erection tolerances of the frame (GDT-PIPE-001) |
+| **PFI ES-3** | Fabrication tolerances of pipe spools (GDT-PIPE-001) |
+| **ISO 2768-1** | General tolerances; class m is the basis of the job's X.XX and angle values (GDT-STD-001) |
+| **API 686** | Machinery installation; pump mounting-surface flatness, the basis of machined pad flatness (GDT-CAP-001) |
+
+### GD&T on CPME drawings (GDT-*; Bob, chat, 2026-11-06: rules harness, values job)
+
+Only **fabrication drawings** (frame, plates, supports, weldments, machined parts, spools) carry tolerances.
+P&IDs, line segment and process flow diagrams carry none, and dimensions on a general arrangement drawing are
+reference dimensions. On a fabrication drawing:
+
+- **Title block.** `draw_cpme_sheet(..., {"tolerance_block": True})` adds the "unless otherwise specified" block
+  (inches, ASME Y14.5-2018 note, third-angle projection, general tolerances from
+  `job/design-rules/tolerancing.yaml`); `reserved_bands(W, tolerance_block=True)` keeps drawing content clear of
+  it. An unknown value prints TBD and is returned as a warning.
+- **Datums follow function.** The skid's datums are A = base-rail bottoms (what it stands and ships on), B = a
+  long base rail's outside face, C = an end rail's outside face, named `DATUM_A/B/C` in the model (GDT-DAT-001).
+  A part's datums are its mounting face, then the holes or edges that locate it (GDT-DAT-002).
+- **Tolerance only what the function needs** (GDT-FCF-001): flatness on mounting pads, position at MMC on bolt
+  holes (value from the fastener formula, GDT-FAST-001), profile on laser-cut outlines, perpendicularity on posts
+  that carry equipment, position from A|B|C on connections at the skid edge. Concentricity and symmetry are not
+  used (removed in Y14.5-2018); runout only on machined features.
+- **Pipe, tube and steel** take their own codes' fabrication tolerances, not feature control frames (GDT-PIPE-001).
+- **Never tighter than the shop** (GDT-CAP-001): the job's `process_capability` values.
+- **Critical chains get a stack-up** before hand-off, worst case first (GDT-STK-001): for a hot water set, the
+  tie-in positions, the pump base, exchanger feet to nozzles and hygienic clamp gaps.
+- **One record per drawing**, `<DOC-ID>.tol.yaml` beside its generator (GDT-REC-001); the generator draws from it
+  and `harness/checks/gdt.py` checks it (reports, never blocks).
 | **ISO 9001** | Quality management system |
 | **FSSC 22000, Additional Requirement 2.5.15** | Equipment management — obliges the customer to issue a purchase specification and obliges the supplier to provide evidence of hygienic design compliance before installation (hygienic scope only) |
 | **ISPE Baseline Guide 5** | Commissioning and qualification — only where a pharmaceutical client is involved |
