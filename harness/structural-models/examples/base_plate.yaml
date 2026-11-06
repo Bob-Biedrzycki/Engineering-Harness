@@ -1,0 +1,8 @@
+P: 4000
+M: 2000
+N: 6
+B: 6
+tp: 0.375
+plate_material: A240-304
+column: {shape: rect, B: 2, H: 2, t: 0.120}
+fc: 3000

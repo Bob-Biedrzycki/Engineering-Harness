@@ -1,0 +1,8 @@
+R: 2200
+H: 300
+rated_load: 4500
+stud_d: 0.75
+exposed: 2.5
+stud_material: A276-304
+pad_d: 3.5
+mu: 0.3

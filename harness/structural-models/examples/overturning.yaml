@@ -1,0 +1,12 @@
+# Tall narrow skid on 4 feet with ASD seismic 0.7 x 0.6 g and the 0.6D combination (illustrative)
+footprint: [[0, 0], [144, 0], [144, 42], [0, 42]]
+items:
+  - {name: tanks full, W: 12000, x: 72, y: 28, z: 45}
+  - {name: frame and piping, W: 1500, x: 72, y: 21, z: 20}
+  - {name: panel, W: 400, x: -6, y: 21, z: 60}
+cases:
+  - {name: "0.6D + 0.7Eh (+y)", ay: 0.42, gravity: 0.6}
+  - {name: "0.6D + 0.7Eh (-y)", ay: -0.42, gravity: 0.6}
+  - {name: "transport lateral 0.5 g", ay: 0.5, gravity: 1.0}
+mu: 0.3
+SF_required: 1.0

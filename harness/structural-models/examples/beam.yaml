@@ -1,0 +1,8 @@
+# Cross member 2 x 2 x 0.120, 42 in simple span, 1,200 lb at mid-span (illustrative)
+case: ss_point
+section: {shape: square, b: 2.0, t: 0.120}
+material: A554-304
+method: ASD
+L: 42
+P: 1200
+a: 21

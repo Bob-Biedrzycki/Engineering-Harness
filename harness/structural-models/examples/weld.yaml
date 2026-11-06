@@ -1,0 +1,11 @@
+# 2 x 2 tube post welded all round to a base plate: 1/8 in fillet, axial 2,000 lb, moment 3,000 lb-in, shear 100 lb
+group: box
+b: 2.0
+h: 2.0
+leg: 0.125
+filler: E308L
+Fz: 2000
+Mx: 3000
+Fy: 100
+base_t: 0.114
+base_material: A554-304

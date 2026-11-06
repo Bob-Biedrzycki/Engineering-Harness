@@ -1,0 +1,62 @@
+# ILLUSTRATIVE forklift lift of the example base (not any job's data): tines run along x under the cross
+# members at y = 10.5 and y = 31.5; each cross member is split at the tine lines so a node sits on each tine.
+# The tines are compression-only contacts at those nodes. The skid is EMPTY and loaded x2 (impact).
+# Members whose underside is higher than the bearing members never touch: leave them off the contact list
+# (frame_check cannot see heights: you decide which members bear, from the model's underside elevations).
+title: "Example skid base, forklift lift, empty x2"
+method: ASD
+options: {divisions: 8}
+sections:
+  RAIL: {shape: round, D: 3.0, t: 0.120}
+  CROSS: {shape: square, b: 2.0, t: 0.120}
+nodes:
+  N00: [0, 0, 0]
+  N02: [0, 42, 0]
+  N10: [48, 0, 0]
+  N12: [48, 42, 0]
+  N20: [96, 0, 0]
+  N22: [96, 42, 0]
+  N30: [144, 0, 0]
+  N32: [144, 42, 0]
+  T0a: [0, 10.5, 0]
+  T0b: [0, 31.5, 0]
+  T1a: [48, 10.5, 0]
+  T1b: [48, 31.5, 0]
+  T2a: [96, 10.5, 0]
+  T2b: [96, 31.5, 0]
+  T3a: [144, 10.5, 0]
+  T3b: [144, 31.5, 0]
+members:
+  - {id: R0-1, i: N00, j: N10, section: RAIL, material: A554-304}
+  - {id: R0-2, i: N10, j: N20, section: RAIL, material: A554-304}
+  - {id: R0-3, i: N20, j: N30, section: RAIL, material: A554-304}
+  - {id: R2-1, i: N02, j: N12, section: RAIL, material: A554-304}
+  - {id: R2-2, i: N12, j: N22, section: RAIL, material: A554-304}
+  - {id: R2-3, i: N22, j: N32, section: RAIL, material: A554-304}
+  - {id: X0-a, i: N00, j: T0a, section: CROSS, material: A554-304}
+  - {id: X0-m, i: T0a, j: T0b, section: CROSS, material: A554-304}
+  - {id: X0-b, i: T0b, j: N02, section: CROSS, material: A554-304}
+  - {id: X1-a, i: N10, j: T1a, section: CROSS, material: A554-304}
+  - {id: X1-m, i: T1a, j: T1b, section: CROSS, material: A554-304}
+  - {id: X1-b, i: T1b, j: N12, section: CROSS, material: A554-304}
+  - {id: X2-a, i: N20, j: T2a, section: CROSS, material: A554-304}
+  - {id: X2-m, i: T2a, j: T2b, section: CROSS, material: A554-304}
+  - {id: X2-b, i: T2b, j: N22, section: CROSS, material: A554-304}
+  - {id: X3-a, i: N30, j: T3a, section: CROSS, material: A554-304}
+  - {id: X3-m, i: T3a, j: T3b, section: CROSS, material: A554-304}
+  - {id: X3-b, i: T3b, j: N32, section: CROSS, material: A554-304}
+supports:              # forks enter at x = 0 and reach past x = 96 (120 in forks): tines bear at x 0, 48, 96
+  T0a: {ux: fixed, uy: fixed, uz: contact}
+  T0b: {uz: contact}
+  T1a: {uz: contact}
+  T1b: {uz: contact}
+  T2a: {uy: fixed, uz: contact}
+  T2b: {uz: contact}
+masses: {N00: 75, N02: 75, N10: 150, N12: 150, N20: 150, N22: 150, N30: 75, N32: 75}
+cases:
+  LIFT: {body: [0, 0, -2.0]}     # empty skid x 2.0 impact (forklift model gives the factor)
+combinations:
+  "LIFT empty x2": {LIFT: 1.0}
+service_combinations: []         # strength case: no deflection limit applied here
+design:
+  "*": {K_z: 1.0, K_y: 1.0}

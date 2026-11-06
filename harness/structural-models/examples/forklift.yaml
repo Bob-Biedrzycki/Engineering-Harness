@@ -1,0 +1,10 @@
+W: 3800
+cg: [73, 26.5, 32]
+carriage_stop: -3.7
+lift_axis: x
+tines: [9.5, 32.75]
+tine_width: 6
+fork_length: 120
+truck_capacity: 15500
+rated_load_centre: 24
+impact: 2.0

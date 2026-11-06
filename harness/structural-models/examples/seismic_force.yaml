@@ -1,0 +1,8 @@
+# SDS is a site fact (customer / geotechnical report): this value is illustrative only
+edition: "7-16"
+SDS: 0.5
+Wp: 14000
+Ip: 1.0
+ap: 1.0
+Rp: 2.5
+z: 0
