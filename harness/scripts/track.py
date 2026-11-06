@@ -788,16 +788,23 @@ def cmd_daily_pr(a) -> str:
                 f"commits to it instead")
     if existing:
         print(f"{branch}: earlier PR(s) merged ({', '.join(p['url'] for p in existing)}); opening the next one")
-    tmp = rp.TRACKING / f"pr-{date}.md"
-    tmp.parent.mkdir(parents=True, exist_ok=True)
-    tmp.write_text(body.rstrip() + f"\n\n---\nOpened by the scrum master on Bob's go ({dt.date.today()}): \"{go}\"\n",
-                   encoding="utf-8")
     extra = [x for r in a.reviewer for x in ("--reviewer", r)]
     base = a.base or BASE
     if base != BASE and not re.fullmatch(r"daily/\d{4}-\d{2}-\d{2}", base):
         die(f"--base must be {BASE} or an earlier daily/<date> branch (stacked PR), not {base!r}")
-    url = gh("pr", "create", "--repo", slug, "--base", base, "--head", branch, "--title", a.title,
-             "--body-file", str(tmp), *extra, write=True).strip()
+    # The body is kept in the project's tracking folder. The harness master and a new job have no project folder
+    # (no rp.TRACKING), so there the body goes through a temp file, as init-main does with its message.
+    try:
+        tracking = rp.TRACKING
+    except rp.NoProjectError:
+        tracking = None
+    with tempfile.TemporaryDirectory() as td:
+        tmp = (tracking or Path(td)) / f"pr-{date}.md"
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(body.rstrip() + f"\n\n---\nOpened by the scrum master on Bob's go ({dt.date.today()}): \"{go}\"\n",
+                       encoding="utf-8")
+        url = gh("pr", "create", "--repo", slug, "--base", base, "--head", branch, "--title", a.title,
+                 "--body-file", str(tmp), *extra, write=True).strip()
     print(f"PR {url or '(dry run)'} - the engineer reviews and merges on GitHub. Never merge from here.")
     if base != BASE:
         print(f"Stacked on {base}. When that PR merges (merge commit, not squash), run pr-retarget --date {date}")
