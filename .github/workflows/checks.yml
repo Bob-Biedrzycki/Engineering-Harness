@@ -41,6 +41,25 @@ jobs:
       - name: Unit tests of the checks (harness/tests)
         run: python -m unittest discover -s harness/tests -v
 
+      # Every job-owned tool that carries a tests/ folder (for example job/knowledge/thermal-models/tests) runs its
+      # tests here, from the tool's own folder, and fails the CI job like the harness tests (Bob, chat,
+      # 2026-11-06: "Add To CI"). Generic: a job with no such folder runs nothing.
+      - name: Unit tests of job tools (every tests/ folder under job/)
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          set -e
+          # the Engineering Harness master holds no job/ folder: nothing to run there
+          [ -d job ] || { echo "no job/ folder: no job tool tests"; exit 0; }
+          found=0
+          while IFS= read -r d; do
+            found=1
+            echo "::group::$d"
+            (cd "$(dirname "$d")" && python -m unittest discover -s tests -v)
+            echo "::endgroup::"
+          done < <(find job -type d -name tests -not -path '*/_work/*' -not -path '*/__pycache__/*' | sort)
+          [ "$found" = 1 ] || echo "no job tool tests"
+
       - name: Run checks
         if: ${{ !cancelled() }}
         shell: bash
