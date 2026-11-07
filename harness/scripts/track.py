@@ -1007,10 +1007,15 @@ def save_go(date: str, go: str) -> Path:
 
 
 def read_go(date: str) -> str:
-    p = go_file(date)
+    """The day's go saved by `track.py daily`; after-merge uses it only when Bob's words are not given with --bob-go
+    (Bob, chat, 2026-11-06: "fix the in file requirement. I will tell you to merge through the chat")."""
+    try:
+        p = go_file(date)
+    except getattr(rp, "NoProjectError", ()):
+        die("no project folder, so no go file: pass Bob's words from chat with --bob-go \"...\"")
     if not p.is_file():
-        die(f"no go file {show(p)}: the day's go is saved by `track.py daily` (or write Bob's words there "
-            f"verbatim). after-merge never runs without it")
+        die(f"no go file {show(p)}: pass Bob's words from chat with --bob-go \"...\" (`track.py daily` also "
+            f"saves them there). after-merge never runs without Bob's go")
     go = p.read_text(encoding="utf-8-sig").strip()
     if not go:
         die(f"{show(p)} is empty")
@@ -1177,8 +1182,13 @@ def cmd_after_merge(a) -> None:
     """After Bob merges the day's PR: sync the shared checkout's main, then publish the site, on the day's go."""
     date = check_date(a.date)
     branch = f"daily/{date}"
-    go = read_go(date)
-    print(f"go: \"{go}\" (from {show(go_file(date))})", flush=True)
+    chat_go = getattr(a, "bob_go", None)
+    if chat_go and chat_go.strip():
+        go = require_go(chat_go, "after-merge")
+        print(f"go: \"{go}\" (from chat, --bob-go)", flush=True)
+    else:
+        go = read_go(date)
+        print(f"go: \"{go}\" (from {show(go_file(date))})", flush=True)
     require_auth()
     slug = repo_slug()
     prs = json.loads(gh("pr", "list", "--repo", slug, "--head", branch, "--state", "all",
@@ -1254,8 +1264,9 @@ def main() -> None:
     p.add_argument("--bob-go")
     # what daily-commit / daily-pr take and daily does not offer: their single-command defaults
     p.set_defaults(local=False, start=None, moves_file=None, removes_file=None, closes=[], reviewer=[], base=None)
-    p = sub.add_parser("after-merge", help="after Bob merges: sync-main, then publish the site, with the day's saved go")
+    p = sub.add_parser("after-merge", help="after Bob merges: sync-main, then publish the site, on Bob's go from chat")
     p.add_argument("--date", required=True)
+    p.add_argument("--bob-go", help="Bob's words from chat, verbatim; without it the day's saved go file is used")
     add_global_flags_to_subcommands(sub)
     a = ap.parse_args()
     DRY = a.dry_run
