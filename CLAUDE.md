@@ -13,7 +13,7 @@ How this repo saves (the save tool the global rules name):
 - **Save:** `harness/scripts/track.py save --paths-file P --message-file M` (skill `github-tracking`). One command
   pushes the listed large files to Google Drive, commits the listed paths on `daily/<date>` in a separate worktree,
   and pushes the branch to GitHub; CI runs the checks on that push. A drawing revision is tagged with `--tag`.
-- **Pull request, when Bob asks for it:** `track.py daily-pr`. **After Bob merges:** `track.py after-merge`.
+- **Pull request, when Bob asks for it:** `track.py daily-pr`. **After Bob merges:** `track.py after-merge --date <date> --bob-go "<Bob's words>"`; Bob gives that go in chat (Bob, 2026-11-06: "I will tell you to merge through the chat"), so no go file is needed.
 - If `track.py` will not run, or reports the GitHub or Drive sign-in missing, stop and tell Bob (global failsafes).
 
 > **TODD'S REQUIREMENTS GOVERN (Bob, 2026-09-24), EXCEPT GIT (Bob, 2026-11-04).** "All of Todd's asks must be
