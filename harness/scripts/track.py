@@ -663,7 +663,8 @@ def cmd_save(a) -> None:
             die(f"drive_store.py {' '.join(step)} failed; nothing committed. Stage: Locked only (not Saved, not "
                 f"Backed up).\n  " + "\n  ".join(out[-15:]))
     a.bob_go = STANDING_SAVE
-    a.local, a.start, a.removes_file = False, None, None
+    a.local, a.start = False, None
+    a.removes_file = getattr(a, "removes_file", None)   # a save may end a path's tracking (a file that moved)
     cmd_daily_commit(a)
     if not DRY:
         sha = git("rev-parse", "--short", f"daily/{a.date}").strip()
@@ -1238,6 +1239,8 @@ def main() -> None:
     p.add_argument("--message-file", required=True)
     p.add_argument("--tag", action="append", default=[])
     p.add_argument("--moves-file", help="CSV with old_path,new_path; tracked old paths are git mv'd (renames)")
+    p.add_argument("--removes-file", help="one tracked path per line; each is removed from the index (git rm --cached): "
+                                          "a file that moved and whose new path is already saved")
     p = sub.add_parser("daily-push")
     p.add_argument("--date", required=True)
     p.add_argument("--bob-go")

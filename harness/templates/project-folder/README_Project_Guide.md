@@ -12,7 +12,7 @@ Each new project is copied from `harness/templates/project-folder/` by `harness/
 every folder exists from day one. An empty folder means "nothing of this kind yet", not "this doesn't apply".
 `harness/checks/project_layout.py` reports any folder that has gone missing.
 
-Knowledge that covers the whole job (all projects in the job) lives in `job/knowledge/`, not in a project. Reusable components live in the job library `job/components/` (cut sheet, STEP, install practice and `component-register.csv`).
+Knowledge that covers the whole job (all projects in the job) lives in `job/knowledge/`, not in a project. Reusable components live in the job library `job/components/` (cut sheet, STEP, install practice and `component-register.csv`). A job's typicals (typical P&IDs and typical models that every project starts from), when it has them, live in `job/Typical-<ID prefix>/`, laid out like this folder with only the folders they use, so a typical is developed the way a project is and shows a project how its folders are filled (Bob, chat, 2026-11-09).
 
 The project names itself in `project.yaml` in its folder (project ID, project number, project code, model and P&ID
 IDs, customer, repo); harness code reads every ID from there (`harness/lib/repo_paths.py`, `rp.PROJECT_INFO`).

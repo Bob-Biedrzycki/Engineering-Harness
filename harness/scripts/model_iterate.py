@@ -45,7 +45,7 @@ deterministically"). --request "<Bob's words>" --change "<what changed>" appends
 
 --model-id <ID> [--config <CFG>] (or CPME_MODEL_ID / CPME_MODEL_CONFIG; Linear CPM-155) builds a job-level model
 (a folder in the job-level models folder, harness/lib/repo_paths.py) in one configuration (B, X or a switch string the
-model accepts; default B) into job/_work/typical-models/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
+model accepts; default B) into job/Typical-HWS-TYP/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
 choice. A job-level build also renders the review views (iso, plan, front, side PNGs from the build STEP,
 harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build skips the P&ID drawing checks
 (those are the project's drawings). Without --model-id everything is as above.
