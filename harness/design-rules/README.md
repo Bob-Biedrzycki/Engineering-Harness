@@ -36,7 +36,7 @@ like to be asked which designation it belongs in."
 - Rule owners: mechanical-piping-engineer (`piping.yaml`, `sanitary.yaml`, and the
   job's piping and product rules), electrical-engineer (`electrical-interface.yaml`),
   controls-engineer (`instrument-mounting.yaml`), the project engineer
-  (`layout.yaml`, `structural.yaml`, `drafting.yaml`, `tagging.yaml`, `tolerancing.yaml`). Bob approves.
+  (`layout.yaml`, `structural.yaml`, `drafting.yaml`, `tagging.yaml`, `tolerancing.yaml`, `materials.yaml`). Bob approves.
 
 ## Designations of the rules in this repo
 
@@ -53,6 +53,7 @@ like to be asked which designation it belongs in."
 | INST-POS-001, INST-LEAK-001 (hygienic clamp-mounted instruments) | harness | CPME practice |
 | STR-PS-001 tube clamp hanger, STR-PS-002 support spacing incl. 3.0 in (`structural.yaml`) | harness; lines in scope per project | CPME practice |
 | STR-FRAME-001 frame materials reference list (`structural.yaml`, `frame-materials.csv`) | harness | AISC Shapes Database v16.0; Bob, chat, 2026-11-06: "Company-wide" |
+| MAT-LIB-001 construction materials list, MAT-FORM-001 how each material is worked (pipe and tube are never bent), MAT-LOOK-001 its surface in a picture (`materials.yaml`, read by `harness/lib/materials.py`) | harness; frame paint colour and product-contact grade per job or project | Bob, chat, 2026-11-09: "This could also live on the company level if you think that is the most appropriate place." |
 | DRF-LBL-*, DRF-ARR-*, DRF-PLC-* P&ID drafting (`drafting.yaml`) | harness; a brand new P&ID only | CPME practice |
 | GDT-STD-001, GDT-DAT-001, GDT-DAT-002, GDT-FCF-001, GDT-FAST-001, GDT-PIPE-001, GDT-CAP-001, GDT-STK-001, GDT-REC-001 GD&T (`tolerancing.yaml`) | rules harness; general tolerances, shop capability and critical chains job (`job/design-rules/tolerancing.yaml`) | ASME Y14.5-2018; Bob, chat, 2026-11-06: "Harness, job values" |
 | TAG-LOOP-001, TAG-ISA-001, TAG-EQ-001, TAG-ITEM-001, LINE-NUM-001 tag and line numbering (`tagging.yaml`) | harness; every project and every new P&ID from 2026-10-30, the typicals at their next revision | ISA-5.1; Bob, chat, 2026-10-30: "for the whole company and every project moving forward including this one" |

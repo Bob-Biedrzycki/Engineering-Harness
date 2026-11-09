@@ -1,0 +1,345 @@
+# Construction materials, company-wide (harness): the common materials a CPME skid is built from, how each one is
+# made into a part (cut, joined, turned through a corner) and how it looks in a picture.
+# Engineer-owned; Bob approves. Read through harness/lib/materials.py, never parsed by hand.
+# A job or project adds only its own values under the same ids (frame paint colour, product-contact grade); a new
+# rule or material is added only after Bob says which level it belongs at (harness/design-rules/README.md).
+#
+# One place per fact (hard rule 8): strength and stiffness stay in harness/structural-models/skidframe/materials.py
+# (`structural_key` below points at it); frame section properties stay in frame-materials.csv (STR-FRAME-001); which
+# material a line takes stays with its service class (PIPE-SVC-001) and SAN-MAT-001. This file adds what none of
+# those hold: how the material is worked, and its surface.
+meta:
+  owner: "<project engineer>"
+  revision: 1
+  status: >-
+    Rev 1, 2026-11-09: created (Bob, chat, 2026-11-09). MAT-LIB-001, MAT-FORM-001, MAT-LOOK-001. Not yet read by
+    any model: the typical models are wired to it once their folder move is complete.
+
+rules:
+  - id: MAT-LIB-001
+    rule: >-
+      Every modelled body that is fabricated (pipe piece, fitting, frame member, plate, support) names a material
+      from the list below, by its specification and grade as the lists and takeoffs already write it (for example
+      "ASTM A106 Gr B", "ASTM A500 Gr C"). A material not on the list is not used until it is added here with its
+      source. A purchased part (valve, pump, instrument) takes its materials from its maker's cut sheet; the cast,
+      elastomer and jacket entries below exist so those parts can be shown, not to specify them.
+    basis: >-
+      Bob, chat, 2026-11-09, verbatim: "I think we need to detail common construction materials so they render
+      appropriately, and we get the foundation model correct." Designation: harness (Bob, same message: "This
+      could also live on the company level if you think that is the most appropriate place."; recommended harness
+      because the materials and their standards are the same on any CPME skid).
+  - id: MAT-FORM-001
+    rule: >-
+      A part is modelled the way its material is worked (field `make`). Pipe and tube are never bent: every change
+      of direction is a fitting of the material's fitting standard (`make.turn: fitting`), welded or joined as the
+      line's service class says, so each corner is its own body with its own welds (TR-24). Structural tube and
+      shapes are cut and welded, never bent. Only an entry with `make.bend: allowed` may be modelled with a bend,
+      and then only within the limits that entry gives; where the limit is `unknown` the bend is reported as an
+      open item, never drawn to a guessed radius.
+    basis: >-
+      Bob, chat, 2026-11-09, verbatim: "We don't want to be attempting to bend stainless steel pipe". Fitting
+      standards per PIPE-SVC-001 `standards` and harness/knowledge/Design Standards.md section 2. ASSUMPTION:
+      Bob named stainless pipe; the same is applied to carbon steel pipe, sanitary tube and structural members,
+      because PIPE-SVC-001 already builds those lines from fittings and the frame cut lists are straight cuts
+      (TR-14). Designation: harness, as MAT-LIB-001.
+  - id: MAT-LOOK-001
+    rule: >-
+      A picture or presentation model shows each body with the surface of its material and finish (`look`, or
+      `finishes.<finish>` when the body names a finish), taken from this file, not from a colour table kept in a
+      render script. A body whose material is not known is shown in the `unknown` look, so a missing material is
+      visible rather than dressed up.
+    basis: >-
+      Bob, chat, 2026-11-09, verbatim: "when we render the materials should be displayed appropriately".
+      ASSUMPTION: the surface values under `looks` are appearance choices for a picture, not a finish
+      specification; the values already used by the typical models' lifelike renders are carried over unchanged
+      where one existed. Designation: harness, as MAT-LIB-001.
+
+# Surfaces, as a glTF / Blender principled material: base_color is linear RGB 0..1, metallic and roughness 0..1.
+# ASSUMPTION (MAT-LOOK-001): appearance only.
+looks:
+  stainless_polished: {base_color: [0.76, 0.76, 0.78], metallic: 1.0, roughness: 0.18}
+  stainless_brushed: {base_color: [0.72, 0.72, 0.74], metallic: 1.0, roughness: 0.30, brushed: true}
+  stainless_mill: {base_color: [0.70, 0.70, 0.72], metallic: 1.0, roughness: 0.40}
+  stainless_cast: {base_color: [0.62, 0.62, 0.63], metallic: 1.0, roughness: 0.30}
+  carbon_steel_mill: {base_color: [0.13, 0.13, 0.135], metallic: 0.9, roughness: 0.50}
+  carbon_steel_forged: {base_color: [0.10, 0.10, 0.105], metallic: 0.9, roughness: 0.60}
+  galvanized: {base_color: [0.55, 0.56, 0.57], metallic: 1.0, roughness: 0.42}
+  paint_frame: {base_color: [0.035, 0.075, 0.22], metallic: 0.0, roughness: 0.38}
+  paint_grey: {base_color: [0.16, 0.17, 0.18], metallic: 0.0, roughness: 0.35}
+  bronze: {base_color: [0.71, 0.47, 0.26], metallic: 1.0, roughness: 0.40}
+  elastomer_black: {base_color: [0.02, 0.02, 0.02], metallic: 0.0, roughness: 0.80}
+  ptfe_white: {base_color: [0.90, 0.90, 0.88], metallic: 0.0, roughness: 0.50}
+  jacket_aluminium: {base_color: [0.80, 0.81, 0.82], metallic: 1.0, roughness: 0.35}
+  unknown: {base_color: [0.85, 0.10, 0.55], metallic: 0.0, roughness: 0.60}
+looks_source: >-
+  stainless_brushed, stainless_cast, carbon_steel_mill, galvanized, paint_frame and paint_grey are the values of
+  the typical models' lifelike_looks.py (ss, cast, pipe, galv, frame, paint_grey) as locked in their presentations.
+  The others are new appearance choices of 2026-11-09. paint_frame is the picture default; a job or project sets
+  its own frame paint colour when the customer gives one (HOLD until then).
+
+# make.cut / make.join are how the shop works the material; make.turn is how a run changes direction
+# (fitting | none | bend); make.bend is `no` or `allowed` (with make.bend_limits). `match` are the patterns that
+# recognise the material as lists, takeoffs and models write it; the first entry whose pattern matches wins, and an
+# entry of the asked-for `form` wins over the others.
+materials:
+  # ---- process tube and pipe -------------------------------------------------------------------------------------
+  - key: ss-sanitary-tube
+    name: Stainless sanitary tube
+    spec: ASTM A270 S2 (316L or 304L; the product-contact grade is a project value, SAN-MAT-001)
+    family: austenitic stainless
+    form: tube
+    used_for: hygienic lines (PIPE-SVC-001 hygienic), and utility-water lines built in tube
+    match: ['\bA270\b']
+    structural_key: A270-316L
+    make:
+      cut: square cut, faced for orbital welding
+      join: orbital butt weld; tri-clamp ferrule at every breakable joint
+      turn: fitting
+      fittings: sanitary weld elbows and tees to ASME BPE Part DT (3-A where the customer calls for it)
+      bend: 'no'
+      basis: MAT-FORM-001; PIPE-SVC-001 hygienic; SAN-MAT-001; SAN-WELD-001
+    look: stainless_polished
+  - key: ss-pipe
+    name: Stainless steel pipe
+    spec: ASTM A312 TP304L or TP316L, dimensions ASME B36.19M
+    family: austenitic stainless
+    form: pipe
+    used_for: non-hygienic lines the customer specifies in stainless pipe
+    match: ['\bA312\b']
+    make:
+      cut: square cut, bevelled for butt welding
+      join: butt weld; flanged at breakable joints; threaded or socket weld only at 2 in and below
+      turn: fitting
+      fittings: butt weld fittings ASME B16.9 in ASTM A403 WP304L / WP316L; flanges ASME B16.5 in ASTM A182 F304L / F316L
+      bend: 'no'
+      basis: MAT-FORM-001 (Bob's own example); Design Standards section 2 (A312 / A403)
+    look: stainless_mill
+  - key: cs-pipe
+    name: Carbon steel pipe
+    spec: ASTM A106 Gr B or A53 Gr B, dimensions ASME B36.10M
+    family: carbon steel
+    form: pipe
+    used_for: steam, condensate and non-hygienic utility lines (PIPE-SVC-001)
+    match: ['\bA106\b', '\bA53\b']
+    make:
+      cut: square cut, bevelled for butt welding; threaded ends at 2 in and below
+      join: butt weld; flanged at breakable joints; threaded or socket weld only at 2 in and below
+      turn: fitting
+      fittings: butt weld fittings ASME B16.9 in ASTM A234 WPB; forged threaded and socket weld fittings ASME B16.11 in ASTM A105
+      bend: 'no'
+      basis: MAT-FORM-001; PIPE-SVC-001 steam `standards`
+    look: carbon_steel_mill
+    finishes: {painted: paint_grey}
+  # ---- fittings and flanges ----------------------------------------------------------------------------------------
+  - key: ss-bw-fitting
+    name: Stainless butt weld fitting
+    spec: ASTM A403 WP304L or WP316L, dimensions ASME B16.9
+    family: austenitic stainless
+    form: fitting
+    used_for: elbows, tees, reducers and caps on stainless pipe
+    match: ['\bA403\b']
+    make: {cut: bought to size; an elbow may be cut to a smaller angle, join: butt weld, turn: none, bend: 'no',
+           basis: ASME B16.9}
+    look: stainless_mill
+  - key: ss-forged
+    name: Stainless forging
+    spec: ASTM A182 F304L or F316L
+    family: austenitic stainless
+    form: forging
+    used_for: flanges (ASME B16.5) and forged fittings (ASME B16.11) on stainless pipe
+    match: ['\bA182\b']
+    make: {cut: bought to size, join: butt weld; socket weld; threaded; bolted, turn: none, bend: 'no',
+           basis: ASME B16.5; ASME B16.11}
+    look: stainless_mill
+  - key: cs-bw-fitting
+    name: Carbon steel butt weld fitting
+    spec: ASTM A234 WPB, dimensions ASME B16.9
+    family: carbon steel
+    form: fitting
+    used_for: elbows, tees, reducers and caps on carbon steel pipe
+    match: ['\bA234\b']
+    make: {cut: bought to size; an elbow may be cut to a smaller angle, join: butt weld, turn: none, bend: 'no',
+           basis: ASME B16.9; PIPE-SVC-001 steam `standards`}
+    look: carbon_steel_mill
+    finishes: {painted: paint_grey}
+  - key: cs-forged
+    name: Carbon steel forging
+    spec: ASTM A105
+    family: carbon steel
+    form: forging
+    used_for: flanges (ASME B16.5) and forged threaded and socket weld fittings (ASME B16.11) on carbon steel pipe
+    match: ['\bA105\b']
+    make: {cut: bought to size, join: butt weld; socket weld; threaded; bolted, turn: none, bend: 'no',
+           basis: ASME B16.5; ASME B16.11; PIPE-SVC-001 steam `standards`}
+    look: carbon_steel_forged
+    finishes: {painted: paint_grey}
+  # ---- frame and supports ------------------------------------------------------------------------------------------
+  - key: cs-hss
+    name: Carbon steel structural tube (HSS)
+    spec: ASTM A500 Gr C
+    family: carbon steel
+    form: structural tube
+    used_for: frame members (FM-nnn), STR-FRAME-001
+    match: ['\bA500\b']
+    structural_key: A500C-rect
+    make:
+      cut: straight or mitre cut to the frame cut list (TR-14)
+      join: welded
+      turn: none
+      bend: 'no'
+      basis: MAT-FORM-001; STR-FRAME-001; TR-14
+    look: paint_frame
+    finishes: {painted: paint_frame, galvanized: galvanized, mill: carbon_steel_mill}
+  - key: cs-shape
+    name: Carbon steel channel, angle, plate and bar
+    spec: ASTM A36
+    family: carbon steel
+    form: shape or plate
+    used_for: channels, angles, base plates, gussets and lugs
+    match: ['\bA36\b']
+    structural_key: A36
+    make:
+      cut: shapes cut to length; plate laser cut (TR-14)
+      join: welded; bolted
+      turn: none
+      bend: allowed
+      bend_limits: >-
+        plate only, press-brake formed; minimum inside radius by thickness is `unknown` until a fabricator gives
+        its tooling. Channels and angles are not bent.
+      basis: "MAT-FORM-001; STR-FRAME-001; TR-14. ASSUMPTION: brake forming of plate is ordinary shop practice."
+    look: paint_frame
+    finishes: {painted: paint_frame, galvanized: galvanized, mill: carbon_steel_mill}
+  - key: cs-wide-flange
+    name: Carbon steel wide flange
+    spec: ASTM A992
+    family: carbon steel
+    form: shape
+    used_for: W-shape frame members, STR-FRAME-001
+    match: ['\bA992\b']
+    structural_key: A992
+    make: {cut: cut to length (TR-14), join: welded; bolted, turn: none, bend: 'no',
+           basis: MAT-FORM-001; STR-FRAME-001}
+    look: paint_frame
+    finishes: {painted: paint_frame, galvanized: galvanized, mill: carbon_steel_mill}
+  - key: ss-structural-tube
+    name: Stainless structural tube
+    spec: ASTM A554 (304 or 316L)
+    family: austenitic stainless
+    form: structural tube
+    used_for: stainless frames and pipe supports (STR-PS-001; SAN-FRAME-001)
+    match: ['\bA554\b']
+    structural_key: A554-304
+    make:
+      cut: straight or mitre cut to the cut list (TR-14)
+      join: seal welded all round (SAN-FRAME-001)
+      turn: none
+      bend: 'no'
+      basis: MAT-FORM-001; STR-PS-001; SAN-FRAME-001
+    look: stainless_brushed
+  - key: ss-plate
+    name: Stainless plate and sheet
+    spec: ASTM A240 (304, 304L, 316 or 316L)
+    family: austenitic stainless
+    form: plate
+    used_for: weld bases, gussets, drip pans, guards and brackets
+    match: ['\bA240\b']
+    structural_key: A240-304
+    make:
+      cut: laser cut (TR-14)
+      join: welded; bolted
+      turn: none
+      bend: allowed
+      bend_limits: >-
+        press-brake formed; minimum inside radius by thickness is `unknown` until a fabricator gives its tooling.
+      basis: "MAT-FORM-001; TR-14. ASSUMPTION: brake forming of sheet and plate is ordinary shop practice."
+    look: stainless_mill
+    finishes: {brushed: stainless_brushed}
+  - key: ss-bar
+    name: Stainless bar
+    spec: ASTM A276 (304 or 316)
+    family: austenitic stainless
+    form: bar
+    used_for: studs, pins and machined bosses
+    match: ['\bA276\b']
+    structural_key: A276-304
+    make: {cut: sawn; machined, join: welded; threaded, turn: none, bend: 'no', basis: MAT-FORM-001}
+    look: stainless_brushed
+  # ---- shown only: materials of purchased parts (the maker's cut sheet governs; MAT-LIB-001) ------------------------
+  - key: cast-iron
+    name: Cast or ductile iron (purchased parts)
+    spec: per the part's cut sheet (commonly ASTM A126 or A536)
+    family: cast iron
+    form: casting
+    used_for: valve, strainer, trap and pump bodies as bought
+    match: ['\bA126\b', '\bA536\b', '(?i)\b(cast|ductile) iron\b']
+    make: {cut: none, join: flanged; threaded, turn: none, bend: 'no', basis: purchased part}
+    look: paint_grey
+  - key: cast-steel
+    name: Cast carbon steel (purchased parts)
+    spec: per the part's cut sheet (commonly ASTM A216 WCB)
+    family: carbon steel
+    form: casting
+    used_for: valve and strainer bodies as bought
+    match: ['\bA216\b', '(?i)\bWCB\b']
+    make: {cut: none, join: flanged; butt weld; threaded, turn: none, bend: 'no', basis: purchased part}
+    look: paint_grey
+  - key: cast-stainless
+    name: Cast stainless steel (purchased parts)
+    spec: per the part's cut sheet (commonly ASTM A351 CF8M or CF8)
+    family: austenitic stainless
+    form: casting
+    used_for: valve, pump and instrument bodies as bought
+    match: ['\bA351\b', '(?i)\bCF8M?\b']
+    make: {cut: none, join: flanged; clamp; threaded, turn: none, bend: 'no', basis: purchased part}
+    look: stainless_cast
+  - key: bronze
+    name: Bronze or brass (purchased parts)
+    spec: per the part's cut sheet
+    family: copper alloy
+    form: casting
+    used_for: small valve, trap and gauge bodies as bought
+    match: ['(?i)\b(bronze|brass)\b']
+    make: {cut: none, join: threaded, turn: none, bend: 'no', basis: purchased part}
+    look: bronze
+  - key: elastomer
+    name: Elastomer seal (EPDM, FKM)
+    spec: per the part's cut sheet; product-contact compliance per SAN-MAT-001
+    family: elastomer
+    form: seal
+    used_for: gaskets, seats and O-rings
+    match: ['(?i)\b(EPDM|FKM|Viton|Buna|NBR)\b']
+    make: {cut: none, join: compressed in its joint, turn: none, bend: 'no', basis: purchased part}
+    look: elastomer_black
+  - key: ptfe
+    name: PTFE seal
+    spec: per the part's cut sheet; product-contact compliance per SAN-MAT-001
+    family: plastic
+    form: seal
+    used_for: gaskets, seats and envelope gaskets
+    match: ['(?i)\b(PTFE|Teflon)\b']
+    make: {cut: none, join: compressed in its joint, turn: none, bend: 'no', basis: purchased part}
+    look: ptfe_white
+  - key: insulation-jacket-ss
+    name: Stainless insulation jacket
+    spec: unknown
+    family: austenitic stainless
+    form: jacket
+    used_for: sealed jacket over insulation on hygienic lines (SAN-PP-001)
+    match: ['(?i)stainless (insulation )?jacket']
+    make: {cut: fitted on site or in the shop, join: sealed seams, turn: none, bend: 'no', basis: SAN-PP-001}
+    look: stainless_mill
+  - key: insulation-jacket-al
+    name: Aluminium insulation jacket
+    spec: unknown
+    family: aluminium
+    form: jacket
+    used_for: jacket over insulation on steam, condensate and utility lines where a job sets it (insulation_method)
+    match: ['(?i)alumin(i)?um (insulation )?jacket']
+    make: {cut: fitted on site or in the shop, join: banded or screwed seams, turn: none, bend: 'no',
+           basis: the job's insulation_method (job/design-rules/piping.yaml)}
+    look: jacket_aluminium
+
+not_on_the_list: >-
+  Copper and instrument tubing (which is bent with a tube bender), plastics pipe, galvanized strut and fasteners are
+  not listed: each is added with its source when a model first uses it. Elbow, tee and flange dimensions are not
+  here either; they stay in the fitting tables the models read, cited to ASME B16.9, B16.5 and B16.11.
