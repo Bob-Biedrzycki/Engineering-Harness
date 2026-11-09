@@ -563,7 +563,7 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 
 | Tier | When | Script | Skill |
 |---|---|---|---|
-| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
+| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, materials, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
 | 2. Accept | Bob says he accepts, or would like to file, the fast edit as Rev <X> | `harness/scripts/model_accept.py`: preflight (lists written from the model, open items recorded as notes), full build, `model_file.py`, then the P&ID, LSD and PFD filed when changed, PRRs, pointers; no push | `model-accept` |
 | 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
 | 3. Close-out (optional) | only when Bob asks for a full check run: CI already runs the checks on every save | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |

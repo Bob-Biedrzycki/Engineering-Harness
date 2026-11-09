@@ -1,6 +1,6 @@
 ---
 name: model-iterate
-description: Tier 1 of the skid-model pipeline for the project. One full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - takeoffs, STEP, interference, envelope, pipe supports, GLB and the list delta - into the working copy <project>/03_Working_Design/Exports/build/. Use after any edit to the model source, the <project>/03_Working_Design/PID/02_Tag_Lists lists, component models or design rules, before showing anything to Bob. Never files, never pushes.
+description: Tier 1 of the skid-model pipeline for the project. One full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - takeoffs, STEP, interference, envelope, materials, pipe supports, GLB and the list delta - into the working copy <project>/03_Working_Design/Exports/build/. Use after any edit to the model source, the <project>/03_Working_Design/PID/02_Tag_Lists lists, component models or design rules, before showing anything to Bob. Never files, never pushes.
 ---
 
 # Model iterate (tier 1, every build)

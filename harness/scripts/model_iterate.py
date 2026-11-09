@@ -12,6 +12,7 @@ Runs, in this order (independent steps in parallel):
          list_delta     harness/lib/list_delta.py    list-delta.csv / .md: the model vs <project>/03_Working_Design/PID/02_Tag_Lists lists
     3. after step, in parallel:
          envelope       harness/checks/envelope.py   (measures the new STEP too)
+         materials      harness/checks/materials.py  (every fabricated body against the materials list)
          glb            <project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/export_glb.py
     4. looks        <project>/03_Working_Design/CAD/09_Presentation/presentation_materials.py --glb <build GLB> --looks-only: one line,
                     "looks: n of m required instruments realistic; missing: ...", materials.yaml required_looks.
@@ -164,7 +165,8 @@ def main() -> int:
 
     step = Step("step", [PY_CADGEN, src_dir / "export_step_direct.py"])
     side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"]),
-            "pipe_supports": Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", mb.BUILD])}
+            "pipe_supports": Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", mb.BUILD]),
+            "materials": Step("materials", [PY, rp.CHECKS / "materials.py"])}
     # list delta in this process while the subprocesses run
     results["list_delta"] = run_list_delta(mb.BUILD, "work build")
     say("list_delta", results["list_delta"])
@@ -271,7 +273,8 @@ def fast(a) -> int:
         # project's drawings, so a job-level model skips them
         drawings = pf.start_drawing_checks(out, logs) if not mb.JOB_LEVEL else None
         side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"], logs),
-                "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs)}
+                "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs),
+                "materials": Step("materials", [PY, rp.CHECKS / "materials.py"], logs)}
         # pipe supports only when Bob asks (Bob, chat, 2026-10-15: "do not check until i ask")
         if a.supports:
             side["pipe_supports"] = Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", out], logs)

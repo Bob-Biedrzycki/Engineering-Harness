@@ -6,6 +6,7 @@ MAT-FORM-001, MAT-LOOK-001), read in one place for the models, the checks and th
     get(key)                   the entry by its key ("cs-pipe")
     may_bend(material)         True only when the entry says make.bend: allowed (MAT-FORM-001)
     turn(material)             how a run of it changes direction: "fitting", "none" or "bend"
+    fitting_material(pipe, how)  the material of a fitting on that pipe ("butt_weld", "forged", "flange", "ferrule")
     look(material, finish="")  its surface {base_color, metallic, roughness, ...}; the `unknown` look when the
                                material is not on the list (MAT-LOOK-001)
     audit(records)             findings for bodies given as {"id", "kind", "material"}: a material not on the list,
@@ -72,6 +73,14 @@ def turn(material) -> str | None:
     return (e.get("make") or {}).get("turn") if e else None
 
 
+def fitting_material(pipe_material, how: str) -> str:
+    """The material of a fitting on a run of pipe_material, by how the fitting is made: "butt_weld" (elbow, tee,
+    reducer, cap), "forged" (olet, threaded or socket weld fitting), "flange", "ferrule". "" when the list gives none
+    (the pipe is not on the list, or it takes no fitting of that kind)."""
+    e = resolve(pipe_material, form="pipe") or resolve(pipe_material)
+    return str(((e or {}).get("make") or {}).get("fitting_materials", {}).get(how, ""))
+
+
 def look_name(material, finish: str = "") -> str:
     e = resolve(material)
     if e is None:
@@ -110,13 +119,16 @@ def audit(records) -> list[dict]:
 
 def model_records(m) -> list[dict]:
     """The fabricated bodies of a routed model (skidlib Model) as audit() records: every pipe piece, and every
-    frame member, plate and support. Purchased parts are left out (MAT-LIB-001)."""
+    frame member, plate and support, and every loose pipe fitting that is not a library part. Purchased parts
+    are left out (MAT-LIB-001)."""
     spools = {sp.sid: sp for sp in m.spools}
     out = [{"id": pc.pid, "kind": pc.kind, "material": pc.material or getattr(spools.get(pc.sid), "material", "")}
            for pc in m.pieces()]
     for it in m.items.values():
         if it.kind in ("frame", "plate", "support") and (it.prims or it.member):
             out.append({"id": it.key, "kind": it.kind, "material": (it.member or {}).get("material", "")})
+        elif it.kind == "fitting" and not getattr(it, "comp_id", ""):      # a loose pipe fitting (reducer, cap, olet)
+            out.append({"id": it.key, "kind": it.kind, "material": (getattr(it, "bom", None) or {}).get("material", "")})
     return out
 
 
