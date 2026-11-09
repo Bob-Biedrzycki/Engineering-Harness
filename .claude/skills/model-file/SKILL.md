@@ -41,8 +41,8 @@ flags:
 
 Each configuration is its own document, `<MODEL-ID>-<CFG>`, with its own letters from Rev A (B and X are filed
 separately). Files are named `<MODEL-ID>-<CFG>-rev<X>...`, the STEP zipped, with the four review views, into
-`job/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/`, whose parent's one `revisions.csv` holds the rows of every configuration of
-that model. A switch string equal to B or X is refused with the right name. Commands: `job/typical-models/README.md`.
+`job/Typical-HWS-TYP/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/`, whose parent's one `revisions.csv` holds the rows of every configuration of
+that model. A switch string equal to B or X is refused with the right name. Commands: `job/Typical-HWS-TYP/03_Working_Design/CAD/01_Master_Assembly/README.md`.
 
 **What it does.** Next letter after the last `revisions.csv` row (nobody
 assigns it); refuses if the revision's folder exists; copies the build into that revision's own folder
