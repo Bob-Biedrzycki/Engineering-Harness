@@ -10,8 +10,11 @@
 # those hold: how the material is worked, and its surface.
 meta:
   owner: "<project engineer>"
-  revision: 2
+  revision: 3
   status: >-
+    Rev 3, 2026-11-10: MAT-DIM-001, the pipe and fitting dimension tables, moved here from a job's typical-models
+    folder (Bob, chat, 2026-11-10: "yes company level."). MAT-FORM-001 as written is confirmed by Bob (chat,
+    2026-11-10: "thank you that sounds good"), so its scope is no longer an assumption.
     Rev 2, 2026-11-09: field `make.fitting_materials` on pipe and tube (the material of the fittings a run of it
     takes, by how the fitting is made: butt_weld, forged, flange, ferrule), so an elbow, tee, reducer, cap, olet or
     flange is listed in its own specification and not the pipe's (Bob, chat, 2026-11-09: "yes fix the fittings";
@@ -42,10 +45,25 @@ rules:
       open item, never drawn to a guessed radius.
     basis: >-
       Bob, chat, 2026-11-09, verbatim: "We don't want to be attempting to bend stainless steel pipe". Fitting
-      standards per PIPE-SVC-001 `standards` and harness/knowledge/Design Standards.md section 2. ASSUMPTION:
-      Bob named stainless pipe; the same is applied to carbon steel pipe, sanitary tube and structural members,
-      because PIPE-SVC-001 already builds those lines from fittings and the frame cut lists are straight cuts
-      (TR-14). Designation: harness, as MAT-LIB-001.
+      standards per PIPE-SVC-001 `standards` and harness/knowledge/Design Standards.md section 2. Bob named
+      stainless pipe; the same applies to carbon steel pipe, sanitary tube and structural members, and only plate
+      and sheet may be bent, on a press brake (confirmed by Bob, chat, 2026-11-10: "thank you that sounds good").
+      PIPE-SVC-001 already builds those lines from fittings and the frame cut lists are straight cuts (TR-14).
+      Designation: harness, as MAT-LIB-001.
+  - id: MAT-DIM-001
+    rule: >-
+      Pipe, butt weld fitting, weld-neck flange and olet dimensions are taken from the tables in fitting-dims/
+      (beside this file), not typed into a model: fitting-dims.csv (steel pipe NPS 1 to 8 in: OD and Sch 40 / 80
+      wall, long-radius 90 and 45 degree elbows, straight tee, concentric reducer, cap, Class 150 and 300 weld-neck
+      flange) and olet-dims.csv (weldolet and thredolet heights, 1/2 to 1 in outlets). Every value is as printed
+      by the source named in its row; a value no source gives is `unknown`. A size or fitting not in the tables is
+      added there with its source before a model uses it.
+    tables: fitting-dims/ (fitting-dims.csv, olet-dims.csv, README.md with the sources)
+    basis: >-
+      ASME B36.10M, B16.9, B16.5 and MSS SP-97, read from the secondary sources named in fitting-dims/README.md
+      (2026-10-30). Designation: harness (Bob, chat, 2026-11-10: "yes company level."; the dimensions are set by
+      national standards and are the same on any skid). Moved from the Hot Water Sets typicals folder, values
+      unchanged.
   - id: MAT-LOOK-001
     rule: >-
       A picture or presentation model shows each body with the surface of its material and finish (`look`, or
@@ -213,7 +231,7 @@ materials:
       bend_limits: >-
         plate only, press-brake formed; minimum inside radius by thickness is `unknown` until a fabricator gives
         its tooling. Channels and angles are not bent.
-      basis: "MAT-FORM-001; STR-FRAME-001; TR-14. ASSUMPTION: brake forming of plate is ordinary shop practice."
+      basis: "MAT-FORM-001; STR-FRAME-001; TR-14. Brake forming of plate: Bob, chat, 2026-11-10."
     look: paint_frame
     finishes: {painted: paint_frame, galvanized: galvanized, mill: carbon_steel_mill}
   - key: cs-wide-flange
@@ -258,7 +276,7 @@ materials:
       bend: allowed
       bend_limits: >-
         press-brake formed; minimum inside radius by thickness is `unknown` until a fabricator gives its tooling.
-      basis: "MAT-FORM-001; TR-14. ASSUMPTION: brake forming of sheet and plate is ordinary shop practice."
+      basis: "MAT-FORM-001; TR-14. Brake forming of sheet and plate: Bob, chat, 2026-11-10."
     look: stainless_mill
     finishes: {brushed: stainless_brushed}
   - key: ss-bar
@@ -348,5 +366,6 @@ materials:
 
 not_on_the_list: >-
   Copper and instrument tubing (which is bent with a tube bender), plastics pipe, galvanized strut and fasteners are
-  not listed: each is added with its source when a model first uses it. Elbow, tee and flange dimensions are not
-  here either; they stay in the fitting tables the models read, cited to ASME B16.9, B16.5 and B16.11.
+  not listed: each is added with its source when a model first uses it. Elbow, tee, reducer, cap, flange
+  and olet dimensions are in fitting-dims/ (MAT-DIM-001); threaded fitting dimensions (ASME B16.11) are not yet
+  in a table.

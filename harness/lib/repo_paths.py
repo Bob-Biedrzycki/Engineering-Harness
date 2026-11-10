@@ -34,6 +34,7 @@ CHECKS = HARNESS / "checks"
 SCRIPTS = HARNESS / "scripts"
 LIB = HARNESS / "lib"
 HARNESS_DESIGN_RULES = HARNESS / "design-rules"   # level 1: company-wide rules (every CPME job)
+FITTING_DIMS = HARNESS_DESIGN_RULES / "fitting-dims"   # pipe, fitting, flange and olet dimensions (MAT-DIM-001)
 TOOLS = HARNESS / "tools"
 # Questions between agents, and the copy addressed to Bob (Bob, chat, 2026-10-26).
 AGENT_QUESTIONS = REPO / "Agent-to-Agent Questions.md"
