@@ -17,19 +17,19 @@ STEP itself):
 .\harness\tools\venv\Scripts\python.exe harness\scripts\model_iterate.py
 ```
 
-**Job-level typical models** (`HWS-TYP-<CL|DS>-R<n>-MODEL`; Bob, chat, 2026-10-29; Linear CPM-155). Add
+**Job-level typical models** (the models in the job's typicals folder, `job/Typical-<ID prefix>/`; Bob, chat, 2026-10-29; Linear CPM-155). Add
 `--model-id <ID> --config <CFG>` (or set `CPME_MODEL_ID` / `CPME_MODEL_CONFIG`; the checks it starts inherit
 them). `<CFG>` is `B`, `X` or a switch string such as `E-OPT1-OPT3` (default `B`); a string equal to B or X is
 refused with the right name, and one that is not a row of `job/knowledge/size-range/config-matrix.csv` is refused
-with the reason. Source is `job/Typical-HWS-TYP/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`, the build goes to
-`job/Typical-HWS-TYP/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/` (with the iso, plan, front and side review PNGs), and the rules
+with the reason. Source is `job/Typical-<ID prefix>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`, the build goes to
+`job/Typical-<ID prefix>/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/` (with the iso, plan, front and side review PNGs), and the rules
 are the harness and job levels only: `envelope.py` reads `job/design-rules/layout.yaml` `shipping_envelope`. The
-list delta compares against the configuration's rows of `job/Typical-HWS-TYP/03_Working_Design/PID/02_Tag_Lists/<CL|DS>/`. `--fast` needs a filed
+list delta compares against the configuration's rows of `job/Typical-<ID prefix>/03_Working_Design/PID/02_Tag_Lists/<CL|DS>/`. `--fast` needs a filed
 revision of that configuration and skips the P&ID drawing checks. Commands and the model-writing rules:
-`job/Typical-HWS-TYP/03_Working_Design/CAD/01_Master_Assembly/README.md`. Without `--model-id` everything below is the project's model, as before.
+`job/Typical-<ID prefix>/03_Working_Design/CAD/01_Master_Assembly/README.md`. Without `--model-id` everything below is the project's model, as before.
 
 ```
-.\harness\tools\venv\Scripts\python.exe harness\scripts\model_iterate.py --model-id HWS-TYP-CL-R4-MODEL --config X
+.\harness\tools\venv\Scripts\python.exe harness\scripts\model_iterate.py --model-id <MODEL-ID> --config X
 ```
 
 `--keep-going` continues past model problems reported by `export_lists.py`

@@ -395,7 +395,7 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   `<MODEL-ID>-rev<X>-P<nn>.glb`, `<MODEL-ID>-rev<X>-P<nn>.blend` and
   `<MODEL-ID>-rev<X>-P<nn>-<view>.png`, with rows in that model's
   `revisions.csv` (notes start `P<nn>`). P numbers count within one revision;
-  a locked P folder never changes. Tool: `job/Typical-HWS-TYP/03_Working_Design/CAD/09_Presentation/`
+  a locked P folder never changes. Tool: `job/Typical-<ID prefix>/03_Working_Design/CAD/09_Presentation/`
   (README.md). The **web GLB** (decimated for the browser) is a portal asset,
   not a locked file.
 - **3D print files** (Bob, 2026-10-01: "make sure all future 3D Print files

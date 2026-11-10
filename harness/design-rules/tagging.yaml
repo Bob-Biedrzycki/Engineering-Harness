@@ -1,7 +1,7 @@
 # Tag and line numbering rules, company-wide (harness). Engineer-owned (project engineer). Bob approves.
 # Designation: harness, Bob, chat, 2026-10-30: "ISA-5.1 style with loop numbers, like PI-101 and TCV-201 for the
 # whole company and every project moving forward including this one. naming the lines is also important."
-# Applies to every P&ID, list and model from 2026-10-30: every new P&ID, every project P&ID (9876-01-HWS-001
+# Applies to every P&ID, list and model from 2026-10-30: every new P&ID, every project P&ID (the project open that day
 # included), and the job typical P&IDs and models at their next revision. Revisions filed before 2026-10-30 keep
 # the tags they were filed with (TR-08).
 # Hard rule 1 still governs: a tag is assigned by these rules on the P&ID that carries it, never made up in a list

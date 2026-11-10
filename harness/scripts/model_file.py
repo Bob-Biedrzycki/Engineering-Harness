@@ -29,7 +29,7 @@ folder (a scratch copy, for testing this script; pointers are skipped there).
 --model-id <ID> --config <CFG> (Linear CPM-155; harness/lib/repo_paths.py) files a job-level model's configuration
 from its work build: document <MODEL-ID>-<CFG> (B and X each with their own letters from Rev A), every file named
 <MODEL-ID>-<CFG>-rev<X>..., the STEP zipped, plus the four review views, into
-job/Typical-HWS-TYP/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/, whose parent's revisions.csv holds the rows of
+job/Typical-<ID prefix>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/, whose parent's revisions.csv holds the rows of
 every configuration of that model.
 Exit 0 = filed (or dry run shown); 1 = filed but drive_store pointers reported a problem; 2 = refused.
 """
