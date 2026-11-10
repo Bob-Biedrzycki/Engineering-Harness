@@ -26,6 +26,8 @@ Run from the repo root with the repo venv:
   ... push [--root PATH] [--dry-run]     copy selected files into Drive (rclone) or a folder; --dry-run lists them
   ... pull [--root PATH]                 copy files missing from the working tree out of Drive
   ... verify [--root PATH] [--local-only]  check working tree (sha256) and Drive (size, md5) against the pointers
+  ... move OLD NEW [--root PATH] [--dry-run]  a folder-layout change: move a folder in the working tree and in Drive,
+                                         and give its pointers their new path (no file changes, nothing uploaded)
 Exit codes: 0 ok, 1 a check found a problem, 2 refused (bad input, no transport).
 """
 from __future__ import annotations
@@ -232,6 +234,17 @@ class FolderStore:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(self.root / rel, dst)
 
+    def move_dir(self, old: str, new: str) -> None:
+        src, dst = self.root / old, self.root / new
+        if not src.is_dir():
+            print(f"store: {old} is not in {self.describe()} (already moved, or never pushed)")
+            return
+        if dst.exists():
+            die(f"store: both {old} and {new} exist in {self.describe()}; nothing moved there")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(src, dst)
+        print(f"store: moved {old} -> {new} in {self.describe()}")
+
 
 class RcloneStore:
     """The Drive folder itself, through the rclone remote named in the YAML."""
@@ -282,6 +295,19 @@ class RcloneStore:
         lst = self._files_from(rels, "pull-list.txt")
         self._run(["copy", f"{self.remote}:", str(REPO), "--files-from", str(lst), "--checksum",
                    "--transfers", "4", "--checkers", "8", "-q"])
+
+    def move_dir(self, old: str, new: str) -> None:
+        """Move a folder inside the Drive folder (server side: nothing is downloaded or uploaded)."""
+        has_old = any(p.startswith(old + "/") for p in self.listing())
+        has_new = any(p.startswith(new + "/") for p in self.listing())
+        if not has_old:
+            print(f"store: {old} is not in {self.describe()} (already moved, or never pushed)")
+            return
+        if has_new:
+            die(f"store: both {old} and {new} hold files in {self.describe()}; nothing moved there")
+        self._run(["moveto", f"{self.remote}:{old}", f"{self.remote}:{new}", "-q"])
+        self.listing(refresh=True)
+        print(f"store: moved {old} -> {new} in {self.describe()}")
 
 
 def matches(d: dict, st: dict | None) -> str:
@@ -492,6 +518,66 @@ def cmd_verify(a) -> None:
     sys.exit(1 if problems else 0)
 
 
+def cmd_move(a) -> None:
+    """Move a folder that holds Drive-store files to a new repo path, on both sides, without changing any file:
+    the working-tree folder is renamed, every pointer under it takes its new `path`, and the Drive folder is moved
+    inside the store (rclone moveto: a server-side move, nothing is uploaded again). Hashes, sizes and names stay
+    as they are (TR-08: a filed file's content never changes). For a folder-layout change only. Safe to run again
+    after a stop: each side is moved only if it still sits at the old path."""
+    cfg = load_config()
+    old, new = drive_rules_norm(a.old), drive_rules_norm(a.new)
+    if not old or not new or old == new or new.startswith(old + "/") or old.startswith(new + "/"):
+        die(f"move needs two different repo-relative folders, neither inside the other: {a.old!r} -> {a.new!r}")
+    src, dst = REPO / old, REPO / new
+    store = open_store(cfg, a.root)
+    # 1. working tree
+    if src.is_dir() and dst.exists():
+        die(f"both {old} and {new} exist in the working tree; nothing moved")
+    if not src.is_dir() and not dst.is_dir():
+        die(f"neither {old} nor {new} is a folder in the working tree")
+    if a.dry_run:
+        n = sum(1 for p in (src if src.is_dir() else dst).rglob(f"*{POINTER_SUFFIX}"))
+        print(f"move {old} -> {new} (DRY RUN, nothing moved): {n} pointer(s); store {store.describe()}")
+        return
+    if src.is_dir():
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        os.rename(src, dst)
+        print(f"working tree: moved {old} -> {new}")
+    else:
+        print(f"working tree: {new} already in place")
+    # 2. pointers: the path field follows the file
+    rewritten = 0
+    for ptr in sorted(dst.rglob(f"*{POINTER_SUFFIX}")):
+        d = json.loads(ptr.read_text(encoding="utf-8-sig"))
+        want = ptr.relative_to(REPO).as_posix()[:-len(POINTER_SUFFIX)]
+        if d.get("path") == want:
+            continue
+        if d.get("path") != old + want[len(new):]:
+            die(f"pointer {rp.rel(ptr)} names {d.get('path')!r}, neither its old nor its new path; stopped")
+        d["path"] = want
+        ptr.write_text(json.dumps(d, indent=2) + "\n", encoding="utf-8", newline="\n")
+        rewritten += 1
+    print(f"pointers: {rewritten} given their new path")
+    # 3. the store
+    store.move_dir(old, new)
+    # 4. every pointer under the new folder must now match the store
+    bad = []
+    pointers = [read_pointer(p) for p in sorted(dst.rglob(f"*{POINTER_SUFFIX}"))]
+    for d in pointers:
+        state = matches(d, store.stat(d["path"]))
+        if state != "ok":
+            bad.append(f"{d['path']}: store copy reads {state}")
+    print(f"move {old} -> {new}: {len(pointers)} pointer(s), {len(pointers) - len(bad)} match {store.describe()}, "
+          f"{len(bad)} problem(s)")
+    for b in bad[:40]:
+        print(f"  {b}")
+    sys.exit(1 if bad else 0)
+
+
+def drive_rules_norm(p: str) -> str:
+    return p.strip().replace("\\", "/").strip("/")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -508,8 +594,15 @@ def main() -> None:
             p.add_argument("--local-only", action="store_true", help="check the working tree only")
         if name == "push":
             p.add_argument("--dry-run", action="store_true", help="list the files push would copy; copy nothing")
+    p = sub.add_parser("move", help="move a folder of Drive-store files to a new repo path: working tree, pointers "
+                                    "and the Drive folder (a folder-layout change; no file changes)")
+    p.add_argument("old", help="repo-relative folder as it is now")
+    p.add_argument("new", help="repo-relative folder it becomes")
+    p.add_argument("--root", help="use this local folder instead of rclone (else CPME_DRIVE_ROOT or job/_work/drive-root.txt)")
+    p.add_argument("--dry-run", action="store_true", help="say what would move; move nothing")
     a = ap.parse_args()
-    {"scan": cmd_scan, "pointers": cmd_pointers, "push": cmd_push, "pull": cmd_pull, "verify": cmd_verify}[a.cmd](a)
+    {"scan": cmd_scan, "pointers": cmd_pointers, "push": cmd_push, "pull": cmd_pull, "verify": cmd_verify,
+     "move": cmd_move}[a.cmd](a)
 
 
 if __name__ == "__main__":

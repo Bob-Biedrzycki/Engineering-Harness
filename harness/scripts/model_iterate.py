@@ -12,6 +12,7 @@ Runs, in this order (independent steps in parallel):
          list_delta     harness/lib/list_delta.py    list-delta.csv / .md: the model vs <project>/03_Working_Design/PID/02_Tag_Lists lists
     3. after step, in parallel:
          envelope       harness/checks/envelope.py   (measures the new STEP too)
+         materials      harness/checks/materials.py  (every fabricated body against the materials list)
          glb            <project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/export_glb.py
     4. looks        <project>/03_Working_Design/CAD/09_Presentation/presentation_materials.py --glb <build GLB> --looks-only: one line,
                     "looks: n of m required instruments realistic; missing: ...", materials.yaml required_looks.
@@ -45,7 +46,7 @@ deterministically"). --request "<Bob's words>" --change "<what changed>" appends
 
 --model-id <ID> [--config <CFG>] (or CPME_MODEL_ID / CPME_MODEL_CONFIG; Linear CPM-155) builds a job-level model
 (a folder in the job-level models folder, harness/lib/repo_paths.py) in one configuration (B, X or a switch string the
-model accepts; default B) into job/_work/typical-models/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
+model accepts; default B) into job/Typical-HWS-TYP/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
 choice. A job-level build also renders the review views (iso, plan, front, side PNGs from the build STEP,
 harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build skips the P&ID drawing checks
 (those are the project's drawings). Without --model-id everything is as above.
@@ -164,7 +165,8 @@ def main() -> int:
 
     step = Step("step", [PY_CADGEN, src_dir / "export_step_direct.py"])
     side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"]),
-            "pipe_supports": Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", mb.BUILD])}
+            "pipe_supports": Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", mb.BUILD]),
+            "materials": Step("materials", [PY, rp.CHECKS / "materials.py"])}
     # list delta in this process while the subprocesses run
     results["list_delta"] = run_list_delta(mb.BUILD, "work build")
     say("list_delta", results["list_delta"])
@@ -271,7 +273,8 @@ def fast(a) -> int:
         # project's drawings, so a job-level model skips them
         drawings = pf.start_drawing_checks(out, logs) if not mb.JOB_LEVEL else None
         side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"], logs),
-                "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs)}
+                "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs),
+                "materials": Step("materials", [PY, rp.CHECKS / "materials.py"], logs)}
         # pipe supports only when Bob asks (Bob, chat, 2026-10-15: "do not check until i ask")
         if a.supports:
             side["pipe_supports"] = Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", out], logs)

@@ -51,11 +51,37 @@ JOB_DESIGN_RULES = JOBS / "design-rules"  # level 2: job-wide rules (every proje
 # harness/lib/components.py.
 JOB_COMPONENTS = JOBS / "components"
 JOB_COMPONENT_REGISTER = JOB_COMPONENTS / "component-register.csv"
-# Drawings that serve every project in the job (typical P&IDs, standard details) are filed at job level (Bob, chat,
-# 2026-10-27: "Job level, unless directed otherwise"), laid out like a project's 06_Issued_Revisions/Drawings/.
-JOB_ISSUED = JOBS / "06_Issued_Revisions"
+# The typicals: the drawings and models that serve every project in the job (typical P&IDs, typical models, their GA
+# drawings) stay at job level (Bob, chat, 2026-10-27: "Job level, unless directed otherwise") in ONE folder laid out
+# like a project, job/Typical-<ID prefix>/ (Bob, chat, 2026-11-09: "use the file structure of project 9876 sans the
+# irelevant folders ... develop the typical models as we would an actual project"). Only the folders the typicals
+# use exist; each has the name and the place it has in a project (README_Project_Guide.md in the folder):
+#     03_Working_Design/CAD/01_Master_Assembly/    the typical models' source and their shared library (JOB_MODELS)
+#     03_Working_Design/CAD/06_Drawings/Generators/ the typical drawing generators (JOB_DRAWING_SOURCES)
+#     03_Working_Design/CAD/09_Presentation/       lifelike render tools (JOB_PRESENTATIONS)
+#     03_Working_Design/PID/02_Tag_Lists/          the typical P&ID lists and each range model's lists (JOB_LISTS)
+#     03_Working_Design/Exports/build/, CAD/Fast_Builds/   work builds (gitignored)
+#     06_Issued_Revisions/Drawings/, Models/       locked revisions (JOB_DRAWINGS, JOB_MODELS_FILED; TR-08)
+#     _work/                                       gitignored working copies (JOB_WORK)
+# The JOB_* names are kept from when these sat loose in job/ (before 2026-11-09), so their users did not change.
+def _typical() -> Path:
+    """The job's typicals folder: the only job/Typical-* folder. A job with none gets a name that does not exist."""
+    found = sorted(p for p in JOBS.glob("Typical-*") if p.is_dir())
+    if len(found) > 1:
+        raise RuntimeError(f"{JOBS} holds {len(found)} Typical-* folders; a job has one typicals folder")
+    return found[0] if found else JOBS / "Typical-NONE"
+
+
+TYPICAL = _typical()
+TYPICAL_WORKING = TYPICAL / "03_Working_Design"
+JOB_ISSUED = TYPICAL / "06_Issued_Revisions"
 JOB_DRAWINGS = JOB_ISSUED / "Drawings"
-JOB_FILING = JOBS / "_work" / "filing"   # gitignored staging for job-level filing
+JOB_WORK = TYPICAL / "_work"             # gitignored working copies of the typicals (job/*/_work/)
+JOB_FILING = JOB_WORK / "filing"         # gitignored staging for filing a typical drawing
+JOB_LISTS = TYPICAL_WORKING / "PID" / "02_Tag_Lists"
+JOB_DRAWING_SOURCES = TYPICAL_WORKING / "CAD" / "06_Drawings" / "Generators"
+JOB_PRESENTATIONS = TYPICAL_WORKING / "CAD" / "09_Presentation"
+JOB_REGISTERS = TYPICAL / "00_Project_Admin" / "07_Project_Controls" / "Registers"   # path-crosswalk.csv
 
 
 def rev_folder(doc_id: str, rev: str) -> str:
@@ -271,19 +297,22 @@ if not HAS_PROJECT:
 # model_file.py and the model checks take --model-id <ID> and --config <CFG>, or the environment variables
 # CPME_MODEL_ID / CPME_MODEL_CONFIG. This module takes both flags out of sys.argv when it is imported and puts them in
 # the environment, so every script accepts them and every check a script starts inherits them. An ID with a folder
-# in the job-level models folder (JOB_MODELS, job/typical-models/: models that serve every project in the job) is a
+# in the job-level models folder (JOB_MODELS, the typicals folder's 03_Working_Design/CAD/01_Master_Assembly/: models
+# that serve every project in the job) is a
 # job-level model; its configuration CFG (default B) is a document of its own, <MODEL-ID>-<CFG>, with its own
-# letters. For a job-level model the names below are redirected:
+# letters. For a job-level model the names below are redirected (<typical> = TYPICAL, the job/Typical-* folder):
 #     SKID_MODEL   JOB_MODELS/<MODEL-ID>/                         source (model.yaml, model.py, skidlib shim, exports)
-#     SKID_BUILD   job/_work/typical-models/build/<MODEL-ID>/<CFG>/   work build (gitignored)
-#     FAST_BUILDS  job/_work/typical-models/fast/<MODEL-ID>/<CFG>/    fast builds (gitignored)
-#     MODELS       job/06_Issued_Revisions/Models/                 filed; SKID_FILED = MODELS/<MODEL-ID>/, document
+#     SKID_BUILD   <typical>/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/      work build (gitignored)
+#     FAST_BUILDS  <typical>/03_Working_Design/CAD/Fast_Builds/<MODEL-ID>/<CFG>/    fast builds (gitignored)
+#     MODELS       <typical>/06_Issued_Revisions/Models/           filed; SKID_FILED = MODELS/<MODEL-ID>/, document
 #                                                                  id MODEL_DOC_ID = <MODEL-ID>-<CFG>
 #     DESIGN_RULES job/design-rules/   (a job-level model has no project level: its rules are the harness's and job's)
 #     DATA         the list set named by `lists:` in the model's model.yaml (relative to the model folder)
 JOB_MODELS = Path(os.environ["CPME_JOB_MODELS_ROOT"]) if os.environ.get("CPME_JOB_MODELS_ROOT") \
-    else JOBS / "typical-models"         # CPME_JOB_MODELS_ROOT points a test run at a scratch folder
-JOB_MODELS_WORK = JOBS / "_work" / "typical-models"   # gitignored (job/_work/)
+    else TYPICAL_WORKING / "CAD" / "01_Master_Assembly"   # CPME_JOB_MODELS_ROOT points a test run at a scratch folder
+JOB_MODELS_WORK = JOB_WORK / "typical-models"   # gitignored caches of the typical-model library (step sizes, tag dumps)
+JOB_MODELS_BUILD = TYPICAL_WORKING / "Exports" / "build"      # work builds, as a project's BUILD (gitignored)
+JOB_MODELS_FAST = TYPICAL_WORKING / "CAD" / "Fast_Builds"     # fast builds, as a project's FAST_BUILDS (gitignored)
 JOB_MODELS_FILED = JOB_ISSUED / "Models"
 
 
@@ -315,7 +344,7 @@ MODEL_CONFIG = ""                        # the configuration of a job-level mode
 if MODEL_ID_ARG and not (HAS_PROJECT and MODEL_ID_ARG == PROJECT_INFO.get("model_id")):
     if not (JOB_MODELS / MODEL_ID_ARG / "model.yaml").is_file():
         raise RuntimeError(f"model {MODEL_ID_ARG!r} is not the project's model_id and has no "
-                           f"{JOB_MODELS.name}/{MODEL_ID_ARG}/model.yaml")
+                           f"{JOB_MODELS}/{MODEL_ID_ARG}/model.yaml")
     JOB_MODEL = JOB_MODELS / MODEL_ID_ARG
     MODEL_LEVEL = "job"
     MODEL_INFO = _read_flat(JOB_MODEL / "model.yaml")
@@ -323,8 +352,8 @@ if MODEL_ID_ARG and not (HAS_PROJECT and MODEL_ID_ARG == PROJECT_INFO.get("model
     SKID_MODEL_ID = MODEL_ID_ARG
     SKID_MODEL = JOB_MODEL
     MODEL_DOC_ID = f"{SKID_MODEL_ID}-{MODEL_CONFIG}"
-    SKID_BUILD = JOB_MODELS_WORK / "build" / SKID_MODEL_ID / MODEL_CONFIG
-    FAST_BUILDS = JOB_MODELS_WORK / "fast" / SKID_MODEL_ID / MODEL_CONFIG
+    SKID_BUILD = JOB_MODELS_BUILD / SKID_MODEL_ID / MODEL_CONFIG
+    FAST_BUILDS = JOB_MODELS_FAST / SKID_MODEL_ID / MODEL_CONFIG
     MODELS = JOB_MODELS_FILED
     SKID_FILED = MODELS / SKID_MODEL_ID
     DESIGN_RULES = JOB_DESIGN_RULES
@@ -373,7 +402,7 @@ def require_model(script: str) -> None:
         require_project(script)
         if MODEL_CONFIG_ARG:
             print(f"{script}: REFUSED - --config {MODEL_CONFIG_ARG} needs a job-level model (--model-id <ID> with a "
-                  f"folder in {JOB_MODELS.name}/); the project's model has no configurations", file=sys.stderr)
+                  f"folder in {JOB_MODELS}); the project's model has no configurations", file=sys.stderr)
             raise SystemExit(2)
 
 

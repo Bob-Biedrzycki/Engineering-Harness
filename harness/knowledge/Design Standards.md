@@ -79,6 +79,7 @@ This is **CPME internal practice** (precedence 4 above), not a code or standard 
 |---|---|
 | **ASTM A270 Grade S2** | Sanitary stainless tubing — the product-contact specification (hygienic lines) |
 | **ASTM A312 / A403** | Stainless pipe and wrought fittings |
+| **ASTM A182** | Forged stainless flanges and forged fittings (F304L / F316L) |
 | **ASTM A106 Gr B / A53 Gr B** | Carbon steel pipe (non-hygienic service classes, per PIPE-SVC-001) |
 | **ASTM A234 WPB / A105** | Carbon steel buttweld fittings / forged fittings and flanges |
 | **ASTM A240** | Stainless plate and sheet |

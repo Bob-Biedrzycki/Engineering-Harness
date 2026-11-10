@@ -13,7 +13,11 @@ How this repo saves (the save tool the global rules name):
 - **Save:** `harness/scripts/track.py save --paths-file P --message-file M` (skill `github-tracking`). One command
   pushes the listed large files to Google Drive, commits the listed paths on `daily/<date>` in a separate worktree,
   and pushes the branch to GitHub; CI runs the checks on that push. A drawing revision is tagged with `--tag`.
-- **Pull request, when Bob asks for it:** `track.py daily-pr`. **After Bob merges:** `track.py after-merge --date <date> --bob-go "<Bob's words>"`; Bob gives that go in chat (Bob, 2026-11-06: "I will tell you to merge through the chat"), so no go file is needed.
+- **End of day (pull request, merge, bringing this checkout up to date):** nothing to do here. When Bob says his
+  day is over, the global `end-of-day` skill does it for every repo (`Claude-Git-Tools\day.py end-day`; global
+  rules, Bob, 2026-11-09). `track.py daily-pr` and `track.py after-merge` are no longer part of the day. The site
+  publish that `after-merge` used to run is not part of end of day; run `publish_site.py` on its own when a
+  project has a site to publish.
 - If `track.py` will not run, or reports the GitHub or Drive sign-in missing, stop and tell Bob (global failsafes).
 
 > **TODD'S REQUIREMENTS GOVERN (Bob, 2026-09-24), EXCEPT GIT (Bob, 2026-11-04).** "All of Todd's asks must be
@@ -174,7 +178,8 @@ certification, and anything that requires a professional engineer's seal.
 ## Repository map
 
 Two halves (CPME practice): `harness/` is what every CPME job reuses;
-`job/` is this job (`job/JOB.md`): job-wide knowledge, design rules and components plus one numbered folder per
+`job/` is this job (`job/JOB.md`): job-wide knowledge, design rules and components, the job's typicals folder
+(`job/Typical-*/`, laid out like a project; Bob, chat, 2026-11-09) plus one numbered folder per
 project (Bob, chat, 2026-10-26). Code names locations through `harness/lib/repo_paths.py`, never by counting
 parent folders. `rp.PROJECT` is the active project folder: the only `job/Project-*` folder, or the one named in
 `CPME_PROJECT` or `job/active-project.txt`. A new project is made only by `harness/scripts/project_new.py`,
@@ -215,6 +220,11 @@ job/
   components/            Job component library: component-register.csv (details and sources) and one
                          COMP-nnnn_<Maker>_<Model>/ folder per part (cut sheet, vendor STEP, CPME STEP,
                          install practice, src); large files in the Drive store
+  Typical-<ID prefix>/   The job's typicals (typical P&IDs, typical models, their GA drawings), laid out like a
+                         project with only the folders they use (Bob, chat, 2026-11-09): 03_Working_Design/
+                         (CAD/01_Master_Assembly model source and shared library, CAD/06_Drawings/Generators,
+                         CAD/09_Presentation, PID/02_Tag_Lists), 06_Issued_Revisions/ (Drawings/, Models/),
+                         _work/; README_Project_Guide.md there; rp.TYPICAL and the rp.JOB_* names
   Project-<code>-<TYPE>-<nnn>/   One folder per project, from harness/templates/project-folder/
     project.yaml         Project identity (project_id, project_number, project_code, model_id,
                          pid_doc_id, repo, Linear)
@@ -315,8 +325,8 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   check only. A preview is never shown, sent or described as a revision.
 - **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for
   them should be in a folder for each rev."). A document folder under
-  `06_Issued_Revisions/Drawings/` or `06_Issued_Revisions/Models/` (job level
-  and every project) holds only its `revisions.csv` and one folder per
+  `06_Issued_Revisions/Drawings/` or `06_Issued_Revisions/Models/` (the job's
+  typicals folder and every project) holds only its `revisions.csv` and one folder per
   revision, `<DOC-ID>-rev<X>/`, with every file of that revision inside it.
   `revisions.csv` `file` is `<DOC-ID>-rev<X>/<name>`. `revfile.py` and
   `model_file.py` file this way (`rp.rev_folder`); nothing is filed by hand.
@@ -385,7 +395,7 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   `<MODEL-ID>-rev<X>-P<nn>.glb`, `<MODEL-ID>-rev<X>-P<nn>.blend` and
   `<MODEL-ID>-rev<X>-P<nn>-<view>.png`, with rows in that model's
   `revisions.csv` (notes start `P<nn>`). P numbers count within one revision;
-  a locked P folder never changes. Tool: `job/typical-models/_renders/`
+  a locked P folder never changes. Tool: `job/Typical-HWS-TYP/03_Working_Design/CAD/09_Presentation/`
   (README.md). The **web GLB** (decimated for the browser) is a portal asset,
   not a locked file.
 - **3D print files** (Bob, 2026-10-01: "make sure all future 3D Print files
@@ -553,7 +563,7 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 
 | Tier | When | Script | Skill |
 |---|---|---|---|
-| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
+| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, materials, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
 | 2. Accept | Bob says he accepts, or would like to file, the fast edit as Rev <X> | `harness/scripts/model_accept.py`: preflight (lists written from the model, open items recorded as notes), full build, `model_file.py`, then the P&ID, LSD and PFD filed when changed, PRRs, pointers; no push | `model-accept` |
 | 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
 | 3. Close-out (optional) | only when Bob asks for a full check run: CI already runs the checks on every save | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |
