@@ -133,14 +133,13 @@ class ClearanceAccept(unittest.TestCase):
 
 
 class AcceptLists(unittest.TestCase):
-    def test_nothing_carried_over_and_every_entry_cites_bob(self):
+    def test_every_entry_cites_bob_and_none_is_keyed_by_ps_number(self):
+        """The project's records (accepted-findings.yaml, harness/tests/test_accepted_findings.py); none in a job
+        whose project has accepted nothing."""
         for d in (PS.ACCEPT_NAMED, PS.ACCEPT_ELBOW, PS.ACCEPT_PUMP, PS.ACCEPT_CLEARANCE):
             for k, why in d.items():
                 self.assertFalse(k.startswith("PS-"), k)
                 self.assertIn("Bob, chat", why)
-        self.assertEqual(PS.ACCEPT_ZONE["comps"], set())
-        self.assertIsNone(PS.ACCEPT_ON_NOZZLE)
-        self.assertIsNone(PS.ACCEPT_TIE_IN)
 
 
 HARNESS_STR = """pipe_supports:

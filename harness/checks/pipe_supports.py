@@ -58,6 +58,7 @@ sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / 
 import repo_paths as rp  # noqa: E402
 import rule_scope  # noqa: E402
 import components  # noqa: E402
+import accepted_findings  # noqa: E402
 
 if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
@@ -66,16 +67,19 @@ WATER = 0.036127            # lb/in^3, SG 1.0 (physics, not a rule value)
 BASIS_LB = 50.0             # STR-PS-001 sizing load per support (harness structural.yaml STR-PS-001 sizing_basis)
 
 # Findings accepted by decision on this project, with the record (as interference.py ACCEPTED). Printed, not failed.
-# Every entry quotes Bob and names this project's record. All empty: nothing is accepted on this project yet.
-ACCEPT_ZONE: dict = {"comps": set(), "why": ""}   # in-line components carried through other supports
-ACCEPT_ON_NOZZLE: str | None = None    # a valve clamped straight on an equipment nozzle (tank, exchanger), carried by it
-ACCEPT_TIE_IN: str | None = None       # a face that looks onto a tie-in (the plant pipe carries that side)
-ACCEPT_NAMED: dict[str, str] = {}      # component tag -> record
-ACCEPT_ELBOW: dict[str, str] = {}      # elbow piece id -> record
-ACCEPT_PUMP: dict[str, str] = {}       # pump connection label ("P-nnn discharge") -> record
+# Every entry quotes Bob and names this project's record. They are the project's records, read from its
+# accepted-findings.yaml (harness/lib/accepted_findings.py; Bob, chat, 2026-11-10); all empty when the project has
+# accepted nothing.
+_ACCEPT = accepted_findings.pipe_supports()
+ACCEPT_ZONE: dict = _ACCEPT["zone"]                    # in-line components carried through other supports
+ACCEPT_ON_NOZZLE: str | None = _ACCEPT["on_nozzle"]    # a valve clamped straight on an equipment nozzle (tank, exchanger), carried by it
+ACCEPT_TIE_IN: str | None = _ACCEPT["tie_in"]          # a face that looks onto a tie-in (the plant pipe carries that side)
+ACCEPT_NAMED: dict[str, str] = _ACCEPT["named"]        # component tag -> record
+ACCEPT_ELBOW: dict[str, str] = _ACCEPT["elbow"]        # elbow piece id -> record
+ACCEPT_PUMP: dict[str, str] = _ACCEPT["pump"]          # pump connection label ("P-nnn discharge") -> record
 # Keyed by the support's role (the start of its PS-nnn member role, set by skidlib layout.rod_support), not its PS
 # number: PS numbers follow the build order and shift when a support is added; the role does not.
-ACCEPT_CLEARANCE: dict[str, str] = {}
+ACCEPT_CLEARANCE: dict[str, str] = _ACCEPT["clearance"]
 
 
 def clearance_accept(m, hk):
@@ -547,6 +551,9 @@ def main() -> int:
     a = ap.parse_args()
     if rp.skip_no_model("pipe_supports"):
         return 0
+    if accepted_findings.FAULT:
+        print(f"pipe_supports: ERROR - {accepted_findings.FAULT}")
+        return 3
     try:
         r, lines, notes, sizing = rules()
     except Exception as e:  # noqa: BLE001

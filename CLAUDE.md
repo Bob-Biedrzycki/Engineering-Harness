@@ -272,8 +272,11 @@ and practice came from (Bob, chat, 2026-10-26). A part for one project only goes
 `.claude/skills/component-add`.
 
 Do not answer a best practice with a new routing check, gate or blocking rule when a better part solves it.
-Checks report; they do not block design progress. Known findings are accepted with their record (for example,
-the `sanitary.py` ACCEPT list).
+Checks report; they do not block design progress. Known findings are accepted with their record: a clash or a pipe
+support finding Bob has accepted is written, with his words, in the project's
+`<project>/01_Design_Basis/06_Assumptions_Open_Items/accepted-findings.yaml`, which `interference.py` and
+`pipe_supports.py` read (`harness/lib/accepted_findings.py`; Bob, chat, 2026-11-10), so no check file holds a
+project's records; the `sanitary.py` ACCEPT list is still in the check.
 
 ## Workflow steps and hand-off (TR-01, TR-03)
 
