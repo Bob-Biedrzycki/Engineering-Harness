@@ -260,11 +260,18 @@ SITE_WORK = WORK / "site"
 PORTAL_WORK = SITE_WORK / "tracker"      # build_portal.py working copy (the project tracker)
 MOBILE_WORK = SITE_WORK / "mobile"       # build_portal.py --audience mobile working copy (Mobile Optimized)
 LANDING_WORK = SITE_WORK                 # build_landing.py working copy (index.html at the site root)
+# a project whose builders also make these two (harness/lib/site_revs.py portals(); most projects have neither):
+QUOTING_WORK = SITE_WORK / "estimating"  # build_portal.py --audience fabricator working copy (Fabrication Estimating Portal)
+CUSTOMER_WORK = SITE_WORK / "customer"   # build_portal.py --audience customer working copy (the customer site)
+SITE_CHECK = WORK / "site-check"         # publish_site.py scratch: the staged site tree and the site repo's packager output
 # the work builds' shared assets/ is the parent of each --out (WORK / "assets" for the three above)
 PORTALS = ISSUED / "Portals"             # filed portal revisions (was job/reviews/)
 PORTAL_FILED = PORTALS / "project-portal"  # filed portal revisions and the shared data store
 LANDING_FILED = PORTALS / "portal-landing"   # presentation site landing page revisions
 MOBILE_FILED = PORTALS / "mobile-portal"     # Mobile Optimized: the tracker for phones (Bob, 2026-10-17)
+# Filed only on a project that has these portals (site_revs.portals()); the folders do not exist on one that has not
+QUOTING_FILED = PORTALS / "quoting-portal"   # Fabrication Estimating Portal revisions (record ID quoting-portal)
+CUSTOMER_FILED = PORTALS / "customer-portal" # the customer site, customer/ on the site; filed on Bob's word only
 INTERNAL_REVIEWS = REVIEWS / "01_Internal_Reviews"   # gate packages, review renders, frame-calc reports
 PRESENTATIONS = CAD / "09_Presentation"  # presentation builders and portal assets (was job/cad/Presentations/)
 SITE_CONFIG = PRESENTATIONS / "site.yaml"    # site settings: hidden_models (model IDs kept off the site), hidden_pages

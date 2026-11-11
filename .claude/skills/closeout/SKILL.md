@@ -35,10 +35,13 @@ Run `--dry-run` first: it lists every step and the pointers push would copy,
 and changes nothing. `--frame-calc` also reruns the frame calc (about 20 min;
 its input revision is named in `frame_calc.py`). The portal flags below
 belong to the site framework (project tracker, Mobile Optimized, landing
-page; no Customer Portal or Fabrication Estimating Portal on this job, Bob,
-chat, 2026-10-30), dormant until Bob defines the job's presentation site.
+page; plus the Fabrication Estimating Portal on a project whose builders make
+it, `site_revs.portals()`), dormant until Bob defines the job's presentation site.
 `--refile-portal` files the project tracker (project-portal) again when it was
-already filed today for the same model revision. Mobile Optimized is filed
+already filed today for the same model revision. The Fabrication Estimating
+Portal (quoting-portal) is filed once per model revision; `--refile-quoting`
+files it again. The customer site is never filed by close-out: Bob files it
+on his word (2026-10-21). Mobile Optimized is filed
 once per model revision; the landing page is filed only when it changed
 (`build_landing.py`).
 
@@ -60,6 +63,8 @@ in Checks run, never a failure), then portal media (Blender) if missing; (5)
 revision only (Bob, 2026-10-12: older revisions are not rebuilt for a look
 change; a current revision with no current-look GLB is a `WARNING web GLB`
 row, reported, not a stop), then `build_portal.py --file` (the tracker),
+on a project that has it the Fabrication Estimating Portal (`web_glbs.py --phone`,
+`build_portal.py --audience fabricator --file`) once per model revision,
 Mobile Optimized (`web_glbs.py --phone`, `build_portal.py --audience mobile
 --file`) once per model revision, and the landing page if it changed;
 each portal files its content-hashed shared assets, listed in the revision's
@@ -77,11 +82,13 @@ only**: never a failure, never a change to the exit code; (8)
 `<project>/_work/daily/<date>-commit.md` (Why, Changed IDs, Sources and rules cited,
 TR rows touched, Drawings filed, Checks run, Linear loops, `--tag` list) and
 `<project>/_work/daily/<date>-paths.txt` (candidate paths); (9)
-`harness/scripts/publish_site.py --rev <P> --quoting none --landing <L> --mobile <M> --dry-run`,
+`harness/scripts/publish_site.py --rev <P> --quoting <Q or none> --landing <L> --mobile <M> [--customer <C>] --dry-run`,
 each the newest filed revision (`harness/lib/site_revs.py`): the
 presentation site publish plan, dormant as above; it publishes the listed
 shared assets as the site's `assets/` and only the data-store files the
-published pages reach (the dry run names how much is left off). Publishing runs after
+published pages reach (the dry run names how much is left off). Its
+`upstream:`, `site packaging:` and `packaging note:` lines go into the step
+result (skill `site-publish`). Publishing runs after
 the PR merges, on the day's go, with no new ask (Bob, 2026-10-07):
 `track.py after-merge`.
 

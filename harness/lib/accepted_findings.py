@@ -12,7 +12,7 @@ Every record quotes Bob (or names the DEC / Q) and says what was accepted. A mis
 
     interference:                 # harness/checks/interference.py
       - between: [TK-101, TK-102]            # the two owners whose bodies touch
-        record: "tanks butt; corner lugs trimmed to fit (DEC-0012)"
+        record: "tanks butt; corner lugs trimmed to fit (DEC-nnnn)"
     pipe_supports:                # harness/checks/pipe_supports.py (STR-PS-002)
       zone:                                   # in-line components carried through other supports
         components: [FT-101, CV-103]
