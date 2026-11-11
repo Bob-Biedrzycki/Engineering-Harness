@@ -63,8 +63,9 @@ www.linkedin.com/company/cpme-usa
 - `sales@` is for quotes and new work, `support@` for existing systems. A person's own address
   (`first.last@cpme-usa.com`) goes in their signature and on documents they prepare.
 - Social: LinkedIn `linkedin.com/company/cpme-usa`, Facebook `facebook.com/CPMEUSA`, X `@cpme_usa`.
-- **Open item:** the drawing title block (`cpme_titleblock.py`, from the older `Title Block.pdf`) still prints
-  `441 MILWAUKEE AVE STE 6, BURLINGTON WI 53105`. It changes to the address above only when Bob says so.
+- Drawing title blocks print it in capitals without punctuation: `600 FAUST RD UNIT 38` / `BURLINGTON WI 53105`
+  (`cpme_titleblock.py`). The older `Title Block.pdf` address, 441 Milwaukee Ave Ste 6, is retired (Bob, chat,
+  2026-11-10). Drawings already filed keep the old address (TR-08); new revisions print the new one.
 
 ## 3. Logo
 
@@ -253,10 +254,8 @@ CPME USA
 
 ## Open items for Bob
 
-1. Drawing title block address: change `cpme_titleblock.py` from 441 Milwaukee Ave Ste 6 to 600 Faust Rd.,
-   Unit 38?
-2. The original vector logo file, from whoever made it.
-3. Proposal page size: keep US Legal, or US Letter like everything else?
+1. The original vector logo file, from whoever made it.
+2. Proposal page size: keep US Legal, or US Letter like everything else?
 
 ## Changes to this guide
 
@@ -265,3 +264,4 @@ A change to this guide is asked of Bob first, like a harness design rule, and ci
 | Date | Change | Basis |
 |---|---|---|
 | 2026-11-10 | First issue, from the sources listed above | Bob, chat, 2026-11-10 |
+| 2026-11-10 | Drawing title block moves to 600 Faust Rd., Unit 38 | Bob, chat, 2026-11-10: "Yes, update it" |

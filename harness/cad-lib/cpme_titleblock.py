@@ -47,7 +47,9 @@ LAYERS = {  # name: (rgb, aci)
 }
 DEFAULT_FIELDS = {
     "company": "CPME USA",
-    "address": ("441 MILWAUKEE AVE STE 6", "BURLINGTON WI 53105"),
+    # Current address per harness/style-guide (website and 2025 proposal); was 441 MILWAUKEE AVE STE 6 from the
+    # older Title Block.pdf (Bob, chat, 2026-11-10: "Yes, update it").
+    "address": ("600 FAUST RD UNIT 38", "BURLINGTON WI 53105"),
     # project identity from <project>/project.yaml (<project> = rp.PROJECT).
     # The keys name the sheet's cells as drawn on the standard sheet format ("job_title", "project"), not our terms
     "header": f"CPME USA  /  {rp.CUSTOMER.upper()}",

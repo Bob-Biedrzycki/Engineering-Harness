@@ -18,7 +18,7 @@ contact:
   facebook: "www.facebook.com/CPMEUSA"
   x: "@cpme_usa"
   one_line: "CPME USA LLC · 600 Faust Rd., Unit 38, Burlington, WI 53105 · www.cpme-usa.com"
-  # Open item: harness/cad-lib/cpme_titleblock.py still prints 441 MILWAUKEE AVE STE 6 until Bob says to change it.
+  title_block: ["600 FAUST RD UNIT 38", "BURLINGTON WI 53105"]   # as printed by harness/cad-lib/cpme_titleblock.py
 
 products:
   - {name: "ClearTrend", web: "www.cleartrend.io"}
