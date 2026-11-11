@@ -24,8 +24,8 @@ disagree, the guide says which one wins and why.
 | Source | What it gave |
 |---|---|
 | www.cpme-usa.com | Company name, services, products, address, phone, email, social links, the logo on a white tile |
-| `Documents\CPME Reference Material\1072-01 Coca Cola Atlantic Bottling Co. Proposal.pdf` (May 6, 2025) | Letterhead, footer band, section bars, quote layout, Arial, Document Blue `#0B5394`, voice of a proposal |
-| `Documents\CPME Reference Material\Abarta Coca-Cola CIP Double Skid - rev00.pdf` and `Title Block.pdf` | Drawing sheet format and title block (now in `harness/cad-lib/cpme_titleblock.py`) |
+| The customer proposal of May 6, 2025 in `Documents\CPME Reference Material\` (a `<Project No> <Customer> Proposal.pdf`) | Letterhead, footer band, section bars, quote layout, Arial, Document Blue `#0B5394`, voice of a proposal |
+| The double skid drawing (rev00) and `Title Block.pdf` in `Documents\CPME Reference Material\` | Drawing sheet format and title block (now in `harness/cad-lib/cpme_titleblock.py`) |
 | CPME logo bitmap (from the Abarta set) | Logo colours, measured: navy `#0D1554`, steel grey `#7E849E` |
 | Project portals (`portal.css`, in the two skid jobs that have them) | Web fonts, web colour tokens, light and dark themes, the white logo tile, the site footer |
 | `CIP-Product-Data-Sheet.html` (a job's typicals) | One-page data sheet layout, "no makers, tags or job numbers" rule for sales literature |
@@ -151,7 +151,7 @@ do and what the customer gets.
 - Every value has its unit (`110 in x 50 in`, `1,115,000 Btu/h`, `14-16 weeks`). US customary units first.
 - Quantities in commercial text as word and digit: `Two (2) chemical pumps` (as in the proposal).
 - Customer and site names exactly as the customer writes them. Check spelling on every cover and header (the
-  2025 proposal has "Atlantic Cola Cola Bottling Co" in one place).
+  2025 proposal misspells the customer's name in one place).
 - Tags, line numbers and part numbers exactly as on the P&ID or the maker's sheet (CLAUDE.md "Units and naming").
 - Dates: `May 6, 2025` in customer letters and quotes; `2025-05-06` (ISO) in drawings, registers and file names.
 - No hype ("world-class", "cutting-edge", "best-in-class"). Name the capability instead.
@@ -190,7 +190,7 @@ From the 2025 proposal:
 - **Sign-off:** "Best Regards," then the signer's name (bold), signature, title (bold) and *CPME USA*.
 - **Page size:** US Letter for new documents. **Open item:** the 2025 proposal PDF is US Legal (8.5 x 14 in);
   confirm with Bob whether proposals stay Legal.
-- File name: `<Project No> <Customer> Proposal.pdf` (as `1072-01 Coca Cola Atlantic Bottling Co. Proposal.pdf`).
+- File name: `<Project No> <Customer> Proposal.pdf`.
 
 ### 7.2 Data sheets and product literature (HTML printed to PDF)
 
