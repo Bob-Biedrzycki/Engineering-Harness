@@ -9,3 +9,6 @@ logo artwork. `cpme_titleblock.py` inserts it in the title block of every drawin
 - **Decision:** Bob, chat, 2026-10-26: the logo is copied once, read only, into a harness asset (CPME practice)
 
 The file is a fixed asset, not generated output: it is not rebuilt, and a new logo is a new file with its own note.
+
+How the logo may be used (size, clear space, backgrounds), and its PNG and SVG files for documents and web pages,
+are in the company style guide, `harness/style-guide/README.md`.

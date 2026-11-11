@@ -1,0 +1,4 @@
+outlet_nps_in,outlet_nps_label,weldolet_std_height_A_in,thredolet_3000_height_A_in,base_od_in,source_weldolet,source_thredolet,source_base_od
+0.5,1/2,0.75,1.00,unknown,S-WOL-STD,S-TOL-3000,none
+0.75,3/4,0.88,1.06,unknown,S-WOL-STD,S-TOL-3000,none
+1,1,1.06,1.31,unknown,S-WOL-STD,S-TOL-3000,none

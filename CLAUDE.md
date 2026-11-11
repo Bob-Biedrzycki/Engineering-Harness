@@ -168,6 +168,9 @@ certification, and anything that requires a professional engineer's seal.
   and design revisions" below (TR-07, TR-08; conflict C-01).
 - Dates ISO 8601. Materials by ASTM grade (`A270 S2 316L`, `A554 304`,
   `A106 Gr B`, `A53 Gr B`).
+- **Everything CPME sends out follows `harness/style-guide/README.md`** (Bob, chat, 2026-11-10): proposals,
+  quotes, data sheets, portals, slides and emails take the name, contact block, logo, colours and fonts from it
+  (`brand.yaml`, `brand.css`), not from a copy kept in a job.
 - **Every new drawing carries the CPME sheet format** (border, header band,
   DRAFT stamp until approved, CPME title block with logo): use
   `harness/cad-lib/cpme_titleblock.py`. **Revision letters
@@ -208,6 +211,9 @@ harness/
                          gives the three levels (harness, job, project) and that Bob is asked first
   cad-lib/               revfile.py (drawing filing), dxf-to-dwg / dwg-to-pdf,
                          cpme_titleblock.py (CPME sheet format), render_png.py
+  style-guide/           CPME USA style guide (company-wide): name, contact block, logo files, colours, fonts,
+                         writing, and the layout of proposals, data sheets, portals, slides and signatures;
+                         brand.yaml / brand.css hold the values for scripts and HTML
   lib/repo_paths.py      Every repo location, by name
   requirements*.txt      Pinned Python dependencies (repo venv; cadgen venv)
   tools/                 venv/ and venv-cadgen/ (gitignored, rebuilt from requirements)
@@ -272,8 +278,11 @@ and practice came from (Bob, chat, 2026-10-26). A part for one project only goes
 `.claude/skills/component-add`.
 
 Do not answer a best practice with a new routing check, gate or blocking rule when a better part solves it.
-Checks report; they do not block design progress. Known findings are accepted with their record (for example,
-the `sanitary.py` ACCEPT list).
+Checks report; they do not block design progress. Known findings are accepted with their record: a clash or a pipe
+support finding Bob has accepted is written, with his words, in the project's
+`<project>/01_Design_Basis/06_Assumptions_Open_Items/accepted-findings.yaml`, which `interference.py` and
+`pipe_supports.py` read (`harness/lib/accepted_findings.py`; Bob, chat, 2026-11-10), so no check file holds a
+project's records; the `sanitary.py` ACCEPT list is still in the check.
 
 ## Workflow steps and hand-off (TR-01, TR-03)
 
@@ -395,7 +404,7 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   `<MODEL-ID>-rev<X>-P<nn>.glb`, `<MODEL-ID>-rev<X>-P<nn>.blend` and
   `<MODEL-ID>-rev<X>-P<nn>-<view>.png`, with rows in that model's
   `revisions.csv` (notes start `P<nn>`). P numbers count within one revision;
-  a locked P folder never changes. Tool: `job/Typical-HWS-TYP/03_Working_Design/CAD/09_Presentation/`
+  a locked P folder never changes. Tool: `job/Typical-<ID prefix>/03_Working_Design/CAD/09_Presentation/`
   (README.md). The **web GLB** (decimated for the browser) is a portal asset,
   not a locked file.
 - **3D print files** (Bob, 2026-10-01: "make sure all future 3D Print files

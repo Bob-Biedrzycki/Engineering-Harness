@@ -43,7 +43,7 @@ hygienic lines, the job's product rules (`job/design-rules/`) on the classes the
 | 03_Utilities | Water, heating and cooling media and their returns, electrical, compressed air |
 | 04_Site_Layout_Interfaces | Access, battery limits, tie-ins, drains, connections |
 | 05_Standards_Specifications | Customer specs and controlled references; `Design_Rules/` holds this project's rule scope and values |
-| 06_Assumptions_Open_Items | P&ID questions, equipment concerns, open rule questions, missing inputs |
+| 06_Assumptions_Open_Items | P&ID questions, equipment concerns, open rule questions, missing inputs; `accepted-findings.yaml`, the check findings Bob has accepted, each with its record (the checks read it) |
 | 07_Approved_Baselines | Approved requirement and design-basis snapshots |
 | **02_Engineering** | Calculations and supporting analysis. A calculation folder may hold `Inputs/`, `Working/` and `Checked_Results/` |
 | 01 … 12 | Process cycle, thermal heat-up, hydraulics and pumps, heat exchanger sizing (`04_Heat_Exchanger_Sizing`), tanks, mechanical/structural, pressure protection, electrical loads, instrument selection, risk reviews, scripts and models, summaries. A folder the project's equipment does not need stays empty. `05_Tank_Sizing/tank-modifications.md` is used only if the project has a tank |

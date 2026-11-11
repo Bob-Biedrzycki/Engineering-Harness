@@ -1,0 +1,20 @@
+# Check findings accepted by decision on this project, each with its record (CLAUDE.md: "Known findings are accepted
+# with their record"; Bob, chat, 2026-11-10: accepted findings live in a per-project file the checks read).
+# harness/checks/interference.py and pipe_supports.py read this file (harness/lib/accepted_findings.py) and print an
+# accepted finding with its record instead of failing it. Nothing is accepted until Bob says so: every record quotes
+# him (or names the DEC or Q) and says what was accepted. An entry is added when he accepts a finding, never to make
+# a check pass. Every section is optional; the format is in harness/lib/accepted_findings.py.
+#
+# interference:
+#   - between: [<owner>, <owner>]
+#     record: "<what touches and why it is accepted> (Bob, chat, <date>: \"<his words>\")"
+# pipe_supports:
+#   zone:
+#     components: [<tag>, <tag>]
+#     record: "..."
+#   on_nozzle: "..."
+#   tie_in: "..."
+#   named: {<tag>: "..."}
+#   elbow: {<piece id>: "..."}
+#   pump: {"<P-nnn discharge>": "..."}
+#   clearance: {"<start of the support member's role>": "..."}

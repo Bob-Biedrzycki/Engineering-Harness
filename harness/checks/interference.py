@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
 import repo_paths as rp  # noqa: E402
 import rule_scope  # noqa: E402
+import accepted_findings  # noqa: E402
 
 REPO = rp.REPO
 if rp.HAS_MODEL:
@@ -28,13 +29,17 @@ if rp.HAS_MODEL:
 
 TOL = 0.05   # in; touching faces are not clashes
 # Pairs accepted by decision on this project: frozenset({owner_a, owner_b}) -> the record (DEC / Q and Bob's words).
-# Empty: nothing is accepted on this project yet.
-ACCEPTED: dict[frozenset, str] = {}
+# They are the project's records, read from its accepted-findings.yaml (harness/lib/accepted_findings.py; Bob, chat,
+# 2026-11-10); empty when the project has accepted nothing.
+ACCEPTED: dict[frozenset, str] = accepted_findings.interference_pairs()
 
 
 def main() -> int:
     if rp.skip_no_model("interference"):
         return 0
+    if accepted_findings.FAULT:
+        print(f"interference: ERROR - {accepted_findings.FAULT}")
+        return 3
     missing = rule_scope.model_missing()
     if missing:
         print(f"interference: PASS - not checked: {missing}; no bodies to compare")

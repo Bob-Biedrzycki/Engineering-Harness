@@ -1,0 +1,45 @@
+/* CPME USA brand tokens for HTML output (portals, data sheets, HTML slides).
+   Rules: harness/style-guide/README.md. Values: harness/style-guide/brand.yaml. Keep the three in step.
+   Fonts: load https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap */
+:root {
+  --cpme-navy: #0D1554;          /* logo navy */
+  --cpme-steel: #7E849E;         /* logo steel grey: rules and large text only */
+  --cpme-doc-blue: #0B5394;      /* section bars, header rule */
+
+  --bg: #F4F6FB;
+  --surface: #FFFFFF;
+  --ink: #0F1733;
+  --ink-2: #3A4466;
+  --ink-3: #6B7394;              /* muted */
+  --line: #CFD5E6;
+  --tint: #EEF2FB;
+  --accent: var(--cpme-doc-blue);
+  --accent-ink: #FFFFFF;
+
+  --ok: #138A5A;
+  --warn: #B7791F;
+  --bad: #C53030;
+
+  --head: "Archivo", "IBM Plex Sans", system-ui, "Segoe UI", Arial, sans-serif;
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+
+  --cpme-footer: "CPME USA LLC · 600 Faust Rd., Unit 38, Burlington, WI 53105 · www.cpme-usa.com";
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #070B22; --surface: #0E1433; --ink: #E8ECFB; --ink-2: #B8C0DE; --ink-3: #8790B5;
+    --line: #2C3767; --tint: #18214D; --accent: #5B8DEF;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #070B22; --surface: #0E1433; --ink: #E8ECFB; --ink-2: #B8C0DE; --ink-3: #8790B5;
+  --line: #2C3767; --tint: #18214D; --accent: #5B8DEF;
+}
+
+/* The logo on any dark background sits on a white tile. */
+.cpme-logo-tile { background: #FFFFFF; border-radius: 8px; padding: 4px 6px; display: inline-grid; place-items: center; }
+.cpme-logo-tile img { display: block; height: 100%; width: auto; }
+
+/* Section bar, as in CPME proposals. */
+.cpme-section-bar { background: var(--cpme-doc-blue); color: #FFFFFF; font-weight: 700; padding: 4px 10px; }
