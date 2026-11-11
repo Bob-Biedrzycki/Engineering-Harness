@@ -220,6 +220,17 @@ class FixtureRevisions(Scratch):
 
 
 class Landing(Scratch):
+    def setUp(self):
+        # A landing photo of 5 MiB or more is in the Drive store, with only its pointer in git. A checkout that has
+        # not pulled it (CI has no Drive sign-in) cannot build the landing page: not a defect of the builder.
+        photos = rp.PRESENTATIONS / "portal_assets" / "photos"
+        absent = sorted(p.name[:-len(".drive")] for p in photos.glob("*.drive")
+                        if not p.with_name(p.name[:-len(".drive")]).is_file())
+        if absent:
+            raise unittest.SkipTest(f"landing photo(s) in the Drive store and not pulled here: {', '.join(absent)} "
+                                    "(harness/scripts/drive_store.py pull)")
+        super().setUp()
+
     def test_one_tile_phone_detect_plain_panel_and_filing(self):
         out = self.work / "site-landing"
         r = run([LANDING, "--out", out])
