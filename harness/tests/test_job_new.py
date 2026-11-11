@@ -81,6 +81,13 @@ class NewJob(unittest.TestCase):
         gi = (self.job / ".gitignore").read_text(encoding="utf-8")
         self.assertIn("drive-store", gi)                                  # block written by drive_store.py pointers
 
+    def test_components_readme_from_master_template(self):
+        got = (self.job / "job" / "components" / "README.md").read_text(encoding="utf-8")
+        want = (self.master / JN.COMPONENTS_README_TEMPLATE).read_text(encoding="utf-8")
+        self.assertEqual(got, want)
+        header = (self.job / "job" / "components" / "component-register.csv").read_text(encoding="utf-8")
+        self.assertTrue(header.startswith("component_id,revision,status,supersedes,"), header)
+
     def test_drive_store_unknown_with_this_jobs_rules(self):
         import yaml
         new = yaml.safe_load((self.job / "job" / "drive-store.yaml").read_text(encoding="utf-8"))

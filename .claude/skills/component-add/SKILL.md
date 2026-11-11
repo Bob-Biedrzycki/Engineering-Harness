@@ -62,7 +62,8 @@ component details."
      2. **Look for an equal part** that has a maker model: another size or
         model of the same maker, or another maker, when it fits the duty
         just as well. Take it, and tell Bob which and why. A part the
-        customer specified or that sizing picked (TR-02, DEC-0001) stays.
+        customer specified or that sizing picked (TR-02, or the project DEC
+        that brings sizing in) stays.
      3. **Only then draw our own**, from the maker's dimensioned drawing
         with its page cited, and say so in `notes` ("our own drawing, no
         maker model"). Any maker mesh or Revit model found is kept in
@@ -73,10 +74,10 @@ component details."
      No question to a vendor for CAD (Bob, 2026-09-25); Bob never emails
      vendors.
    - **Nothing is parked** (Bob, chat, 2026-10-29: "get to the bottom of why
-     there still seems to be loose ends and fix them"; "We will not be
-     contacting Spirex, you need to use your own judgement or move on and
-     select another part"). A part never waits on a vendor ("ask the rep",
-     "confirm with Spirax"), on a later decision, or on a note to Bob. Decide
+     there still seems to be loose ends and fix them"; a vendor is not
+     contacted: use your own judgement or move on and select another part).
+     A part never waits on a vendor ("ask the rep", "confirm with the
+     maker"), on a later decision, or on a note to Bob. Decide
      it with a recorded reason, take an equal part, or ask Bob once, now. A
      maker model that fails a validity check after re-export is an accepted
      finding when its volume reads back unchanged and booleans work: file it

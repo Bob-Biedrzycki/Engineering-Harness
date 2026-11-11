@@ -9,7 +9,7 @@ Sign-ins, account creation and accepting terms stay Bob's. A delegating session 
 pages as images. Text extraction (pypdf) loses dimension letters, table columns and curves. This host has no
 poppler, so the Read tool's `pages` option does not render in a subagent (2026-10-27). What worked: install
 `pymupdf` into a venv in the agent's own scratchpad (never the repo venvs), render the drawing pages to PNG there,
-and Read the PNGs (CPM-124, CPM-125).
+and Read the PNGs.
 
 **Browser, not spoofing.** A shell download that sets a browser user-agent to get past a 403 is refused by the app
 as bot-check circumvention (2026-10-27). Read the vendor's product page in the browser instead. ifm US product pages
@@ -34,7 +34,7 @@ on disk.
   four files McMaster refused Chrome too (403, blank pages): stop, do not retry in a loop; finish later or ask Bob.
 - **TraceParts in Chrome, signed in:** `#direct-cad-download` queues the file; the ready file is the `a.download-item`
   in My activity whose text starts with the part number. A family page shows "No CAD available" per row when the
-  maker has no model (the Spirax M10F2). Scripted search fetches and quick page loads bring the CAPTCHA within a few
+  maker has no model. Scripted search fetches and quick page loads bring the CAPTCHA within a few
   parts: open product pages by hand-paced navigation only, and stop at the CAPTCHA.
 - **WIKA** publishes its 3D library openly: `https://www.wika.com/en-us/dokucment_categories_json_36656.json` is the
   full index (790 items: product type, description, `/media/3D-Data/<file>.stp`). Shell downloads of the STEP get

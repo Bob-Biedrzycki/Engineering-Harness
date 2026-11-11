@@ -15,7 +15,8 @@ Writes, in <folder> (which must not exist, or be empty):
     design framework lives - placeholders except the name and the repo;
   * job/drive-store.yaml: Drive folder and remote `unknown`; the size, directory and exclude rules of --from-job's;
   * job/carryover-terms.txt: --from-job's banned terms plus its own [this-job] terms (harness/lib/carryover_terms.py);
-  * job/components/README.md and component-register.csv (header only), from --from-job;
+  * job/components/README.md from the master's harness/templates/job/components/README.md (--from-job's only when the
+    master has none), and component-register.csv (header only: --from-job's, else harness/lib/components.py COLUMNS);
   * job/design-rules/README.md and job/knowledge/README.md stubs;
   * Agent-to-Agent Questions.md and Agent-to-Bob Questions.md: --from-job's rules headers, no entries;
   * README.md stub;
@@ -43,6 +44,7 @@ import harness_sync as HS  # noqa: E402
 
 REPO_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 PROJECT_RE = re.compile(r"^Project-\d+-\d+-[A-Z]+-\d{3}$")
+COMPONENTS_README_TEMPLATE = Path("harness/templates/job/components/README.md")
 QUESTION_FILES = {"Agent-to-Agent Questions.md": ("## Entries", "Agent-to-Agent Questions"),
                   "Agent-to-Bob Questions.md": ("## Open", "Agent-to-Bob Questions")}
 
@@ -229,7 +231,9 @@ def main(argv=None) -> int:
         **{k: v.format(name=name) for k, v in STUBS.items()},
         **{f: question_file(src / f, title, heading, name) for f, (heading, title) in QUESTION_FILES.items()},
     }
-    comp_readme = src / "job" / "components" / "README.md"
+    comp_readme = master / COMPONENTS_README_TEMPLATE      # company-wide template; an older master may lack it
+    if not comp_readme.is_file():
+        comp_readme = src / "job" / "components" / "README.md"
     if comp_readme.is_file():
         files["job/components/README.md"] = comp_readme.read_text(encoding="utf-8")
     for rel, text in files.items():
