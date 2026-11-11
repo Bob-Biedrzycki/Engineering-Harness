@@ -121,13 +121,13 @@ def model_records(m) -> list[dict]:
     """The fabricated bodies of a routed model (skidlib Model) as audit() records: every pipe piece, and every
     frame member, plate and support, and every loose pipe fitting that is not a library part. Purchased parts
     are left out (MAT-LIB-001)."""
+    import model_read as MR     # a model of either skidlib generation (harness/lib/model_read.py)
     spools = {sp.sid: sp for sp in m.spools}
-    out = [{"id": pc.pid, "kind": pc.kind, "material": pc.material or getattr(spools.get(pc.sid), "material", "")}
-           for pc in m.pieces()]
+    out = [{"id": pc.pid, "kind": pc.kind, "material": MR.piece_material(pc, spools)} for pc in MR.pieces(m)]
     for it in m.items.values():
         if it.kind in ("frame", "plate", "support") and (it.prims or it.member):
             out.append({"id": it.key, "kind": it.kind, "material": (it.member or {}).get("material", "")})
-        elif it.kind == "fitting" and not getattr(it, "comp_id", ""):      # a loose pipe fitting (reducer, cap, olet)
+        elif it.kind == "fitting" and not MR.comp_id(it):      # a loose pipe fitting (reducer, cap, olet)
             out.append({"id": it.key, "kind": it.kind, "material": (getattr(it, "bom", None) or {}).get("material", "")})
     return out
 
