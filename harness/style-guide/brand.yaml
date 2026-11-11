@@ -1,0 +1,70 @@
+# CPME USA brand values as data. The rules are in README.md (this folder); keep the two in step.
+# Harness level, company-wide (Bob, chat, 2026-11-10). Sources and open items: README.md.
+
+name:
+  legal: "CPME USA LLC"
+  company: "CPME USA"
+  short: "CPME"
+  copyright: "© CPME USA LLC. All Rights Reserved"
+
+contact:
+  street: "600 Faust Rd., Unit 38"
+  city_state_zip: "Burlington, WI 53105"
+  phone: "414-877-0770"
+  email_sales: "sales@cpme-usa.com"
+  email_support: "support@cpme-usa.com"
+  web: "www.cpme-usa.com"
+  linkedin: "www.linkedin.com/company/cpme-usa"
+  facebook: "www.facebook.com/CPMEUSA"
+  x: "@cpme_usa"
+  one_line: "CPME USA LLC · 600 Faust Rd., Unit 38, Burlington, WI 53105 · www.cpme-usa.com"
+  # Open item: harness/cad-lib/cpme_titleblock.py still prints 441 MILWAUKEE AVE STE 6 until Bob says to change it.
+
+products:
+  - {name: "ClearTrend", web: "www.cleartrend.io"}
+  - {name: "BeaconLink", web: "www.beaconlink.io"}
+
+logo:
+  png: "harness/style-guide/assets/cpme-logo.png"   # original bitmap, 288 x 216 px
+  svg: "harness/style-guide/assets/cpme-logo.svg"   # traced from the bitmap, not original vector art
+  dxf: "harness/cad-lib/cpme-logo.dxf"              # block CPME_LOGO_EMBEDDED
+  aspect: 1.333                                     # width / height
+  clear_space: 0.25                                 # fraction of logo height, every side
+  min_width_in: 0.5
+  min_width_px: 48
+  background: "white or very light; on dark, a white rounded tile"
+
+colors:
+  navy: "#0D1554"           # CPME Navy, logo (measured)
+  steel: "#7E849E"          # CPME Steel, logo (measured); large text and rules only
+  document_blue: "#0B5394"  # section bars, header rule (2025 proposal)
+  ink: "#0F1733"
+  ink_2: "#3A4466"
+  muted: "#6B7394"
+  rule: "#CFD5E6"
+  tint: "#EEF2FB"
+  page: "#F4F6FB"
+  white: "#FFFFFF"
+  status:
+    ok: "#138A5A"
+    warning: "#B7791F"
+    fail: "#C53030"
+
+fonts:
+  documents: {heading: "Arial", body: "Arial", numbers: "Arial"}
+  web: {heading: "Archivo", body: "IBM Plex Sans", numbers: "IBM Plex Mono",
+        fallback: "system-ui, 'Segoe UI', Arial, sans-serif",
+        google_fonts: "https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap"}
+  slides: {heading: "Arial", body: "Arial"}
+  email: {body: "Arial"}
+
+document_sizes_pt:
+  cover_title: 22
+  section_bar: 13
+  subheading: 11.5
+  body: 10.5
+  table: 9
+  footer: 8.5
+
+page:
+  default: "US Letter"   # open item: the 2025 proposal is US Legal; Bob to confirm for proposals

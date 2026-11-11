@@ -168,6 +168,9 @@ certification, and anything that requires a professional engineer's seal.
   and design revisions" below (TR-07, TR-08; conflict C-01).
 - Dates ISO 8601. Materials by ASTM grade (`A270 S2 316L`, `A554 304`,
   `A106 Gr B`, `A53 Gr B`).
+- **Everything CPME sends out follows `harness/style-guide/README.md`** (Bob, chat, 2026-11-10): proposals,
+  quotes, data sheets, portals, slides and emails take the name, contact block, logo, colours and fonts from it
+  (`brand.yaml`, `brand.css`), not from a copy kept in a job.
 - **Every new drawing carries the CPME sheet format** (border, header band,
   DRAFT stamp until approved, CPME title block with logo): use
   `harness/cad-lib/cpme_titleblock.py`. **Revision letters
@@ -208,6 +211,9 @@ harness/
                          gives the three levels (harness, job, project) and that Bob is asked first
   cad-lib/               revfile.py (drawing filing), dxf-to-dwg / dwg-to-pdf,
                          cpme_titleblock.py (CPME sheet format), render_png.py
+  style-guide/           CPME USA style guide (company-wide): name, contact block, logo files, colours, fonts,
+                         writing, and the layout of proposals, data sheets, portals, slides and signatures;
+                         brand.yaml / brand.css hold the values for scripts and HTML
   lib/repo_paths.py      Every repo location, by name
   requirements*.txt      Pinned Python dependencies (repo venv; cadgen venv)
   tools/                 venv/ and venv-cadgen/ (gitignored, rebuilt from requirements)
