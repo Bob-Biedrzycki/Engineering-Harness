@@ -8,10 +8,11 @@
   Rev A gets a page map, the web GLB and its base64 copy are in data/glb/, lines.html redirects to the line register.
 - --file into a scratch filing root (--file-root): the next letters A then B from revisions.csv, the revision folder
   read-only, store files appended, a filed folder never overwritten (TR-08).
-- build_landing.py: one tile (Project Tracker; mobile/ on a phone), a plain panel with no render; --file files once and
-  an identical rebuild files nothing.
+- build_landing.py: one tile per portal the project has (site_revs.portals(): Project Tracker alone on most projects,
+  mobile/ on a phone, a plain panel with no render); --file files once and an identical rebuild files nothing.
 - portal_lib.data.line_families: the S6 families are the line list's service classes (PIPE-SVC-001).
-- No page or link of a portal this job does not have (customer portal, estimating portal, quote page).
+- No page or link of a portal this project does not have (customer portal, estimating portal, quote page): the pages
+  are the builders' own registry less site.yaml hidden_pages, and the portals are site_revs.portals().
 
 Every build writes under <project>/_work/ (gitignored) and every filing under a temp folder; nothing is filed into
 06_Issued_Revisions/.
@@ -41,14 +42,27 @@ if not (rp.PRESENTATIONS / "build_portal.py").is_file():
     raise unittest.SkipTest(f"no presentation builders in {rp.PRESENTATIONS}")
 sys.path.insert(0, str(rp.PRESENTATIONS))
 import portal_fixture as FX  # noqa: E402
+import site_revs  # noqa: E402
 from portal_lib import data as D  # noqa: E402
+from portal_lib.pages import PAGES as REGISTRY  # noqa: E402
 
 PY = sys.executable
 BUILD = rp.PRESENTATIONS / "build_portal.py"
 LANDING = rp.PRESENTATIONS / "build_landing.py"
-PAGES = ["index.html", "model.html", "pid.html", "fabrication.html", "equipment.html", "structure.html",
-         "sanitary.html", "bom.html", "records.html"]
-NOT_THIS_JOB = re.compile(r"(?i)customer-portal|quoting-portal|estimating/|Fabrication Estimating|quote\.html|tank-modifications")
+# the tracker's pages: the builders' registry in nav order, less the pages site.yaml switches off
+_HIDDEN = set(site_revs.hidden_pages())
+PAGES = [f for f, _, _ in REGISTRY if f.removesuffix(".html") not in _HIDDEN]
+PORTALS = site_revs.portals()
+# what must not appear on a project that does not have it: the customer site, the estimating portal, a quote page
+# (no builder, or switched off), a page the registry does not have
+_NOT = (["customer-portal"] if "customer" not in PORTALS else []) \
+    + (["quoting-portal", "estimating/", "Fabrication Estimating"] if "estimating" not in PORTALS else []) \
+    + ([r"quote\.html"] if "quote.html" not in PAGES else []) \
+    + (["tank-modifications"] if "tank-modifications.html" not in PAGES else [])
+NOT_THIS_JOB = re.compile("(?i)" + "|".join(_NOT))
+# the landing page's tiles, in its order: the estimating portal, the tracker, the customer site
+TILES = (["estimating/index.html"] if "estimating" in PORTALS else []) + ["tracker/index.html"] \
+    + (["customer/index.html"] if "customer" in PORTALS else [])
 
 
 def run(args: list, env_models: Path | None = None) -> subprocess.CompletedProcess:
@@ -113,7 +127,8 @@ class ZeroRevisions(Scratch):
             if p != "model.html":   # Photos and Modeling may show the job-level (typical) models
                 self.assertNotIn('data-viewer=', h, p)               # no viewer host for the project's model
             self.assertNotIn("<!--viewer-js-->", h, p)
-            self.assertNotRegex(h, NOT_THIS_JOB, p)
+            if _NOT:
+                self.assertNotRegex(h, NOT_THIS_JOB, p)
         self.assertIn("No model revision is filed yet", html["fabrication.html"])
         self.assertIn("no filed revision yet", html["index.html"])
         self.assertIn("customer not named yet" if rp.CUSTOMER.lower() in ("", "unknown") else rp.CUSTOMER, html["index.html"])
@@ -169,7 +184,11 @@ class FixtureRevisions(Scratch):
         self.assertIn(f"{FX.LINE_A}-SP01", page)
         glbs = sorted(p.name for p in (out / "data" / "glb").iterdir() if p.name.startswith("skid-"))   # the project's
         self.assertTrue(any(n.endswith(".glb") for n in glbs) and any(n.endswith(".glb.js") for n in glbs), glbs)
-        self.assertTrue(all(n.startswith(f"skid-web-{rp.SKID_MODEL_ID}-revB") for n in glbs), glbs)
+        # the current revision's web GLB and its base64 copy; an older revision's only when the project's own store
+        # already holds one under that name (a project with filed revisions of its own)
+        self.assertTrue(all(n.startswith(f"skid-web-{rp.SKID_MODEL_ID}-rev") for n in glbs), glbs)
+        self.assertTrue(all(n.startswith(f"skid-web-{rp.SKID_MODEL_ID}-revB") for n in glbs if n.endswith(".js")), glbs)
+        self.assertTrue(any(n.startswith(f"skid-web-{rp.SKID_MODEL_ID}-revB") and n.endswith(".glb") for n in glbs), glbs)
         man = json.loads((out / "shared-assets.json").read_text(encoding="utf-8"))["assets"]
         self.assertTrue(any(n.startswith("portal.") and n.endswith(".js") for n in man))
 
@@ -201,20 +220,35 @@ class FixtureRevisions(Scratch):
 
 
 class Landing(Scratch):
+    def setUp(self):
+        # A landing photo of 5 MiB or more is in the Drive store, with only its pointer in git. A checkout that has
+        # not pulled it (CI has no Drive sign-in) cannot build the landing page: not a defect of the builder.
+        photos = rp.PRESENTATIONS / "portal_assets" / "photos"
+        absent = sorted(p.name[:-len(".drive")] for p in photos.glob("*.drive")
+                        if not p.with_name(p.name[:-len(".drive")]).is_file())
+        if absent:
+            raise unittest.SkipTest(f"landing photo(s) in the Drive store and not pulled here: {', '.join(absent)} "
+                                    "(harness/scripts/drive_store.py pull)")
+        super().setUp()
+
     def test_one_tile_phone_detect_plain_panel_and_filing(self):
         out = self.work / "site-landing"
         r = run([LANDING, "--out", out])
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         h = (out / "index.html").read_text(encoding="utf-8")
-        # one tile (Bob, chat, 2026-10-30, Rev B); a phone that has not chosen the desktop site gets mobile/
-        self.assertEqual(re.findall(r'class="land-tile[^"]*" href="([^"]+)"', h), ["tracker/index.html"])
+        # one tile per portal (the tracker alone: Bob, chat, 2026-10-30, Rev B)
+        self.assertEqual(re.findall(r'class="land-tile[^"]*" href="([^"]+)"', h), TILES)
         self.assertIn(">Project Tracker<", h)
         self.assertNotIn("Mobile Optimized", h)
-        self.assertIn('a.href="mobile/index.html"', h)
-        self.assertIn('"cpme-prefer-desktop")!=="1"', h)
-        self.assertNotRegex(h, NOT_THIS_JOB)
-        if not any(rp.PRESENTATION_RENDERS.glob("*.png")) and not any(rp.PRESENTATION_RENDERS.glob("*.jp*g")):
-            self.assertIn('class="home-hero plain"', h)
+        if _NOT:
+            self.assertNotRegex(h, NOT_THIS_JOB)
+        if TILES == ["tracker/index.html"]:
+            # the one-tile page: a phone that has not chosen the desktop site gets mobile/ from the tile itself (with
+            # more tiles the tracker's own pages send a phone there), and with no render the hero is a plain panel
+            self.assertIn('a.href="mobile/index.html"', h)
+            self.assertIn('"cpme-prefer-desktop")!=="1"', h)
+            if not any(rp.PRESENTATION_RENDERS.glob("*.png")) and not any(rp.PRESENTATION_RENDERS.glob("*.jp*g")):
+                self.assertIn('class="home-hero plain"', h)
         root = self.ext / "filed" / "portal-landing"
         r = run([LANDING, "--out", out, "--file", "--note", "Fixture", "--file-root", root])
         self.assertIn("filed portal-landing Rev A", r.stdout, r.stderr)
