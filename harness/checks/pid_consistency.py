@@ -29,10 +29,12 @@ REPO = rp.REPO
 if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
 
-# Untagged kinds and the id pattern each must carry (CLAUDE.md naming: FM-nnn, PS-nnn, PL-nnn). Leveling feet have no
-# naming rule on this project: a "foot"
-# item is checked as a tagged component until Bob sets one.
+# Untagged kinds and the id pattern each must carry (CLAUDE.md naming: FM-nnn, PS-nnn, PL-nnn). Leveling feet are
+# frame hardware, never P&ID tags (Bob, chat, 2026-11-10: "I am thoroughly confused why the leveling feet have any
+# relation to the P&ID"), so a "foot" item is not compared with the lists. No naming rule is set for feet, so any
+# id a model gives one is accepted (an empty pattern); a project's own numbering stays as its model writes it.
 UNTAGGED_KINDS = {"frame": r"^FM-\d{3}$", "support": r"^PS-\d{3}$", "plate": r"^PL-\d{3}$", "reservation": r"^$",
+                  "foot": r"",
                   # loose clamped commodity fittings (e.g. a TC end cap) are untagged like the spool fittings,
                   # but must carry a line on line-list.csv
                   "fitting": r"^$"}
