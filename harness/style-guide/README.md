@@ -27,8 +27,8 @@ disagree, the guide says which one wins and why.
 | `Documents\CPME Reference Material\1072-01 Coca Cola Atlantic Bottling Co. Proposal.pdf` (May 6, 2025) | Letterhead, footer band, section bars, quote layout, Arial, Document Blue `#0B5394`, voice of a proposal |
 | `Documents\CPME Reference Material\Abarta Coca-Cola CIP Double Skid - rev00.pdf` and `Title Block.pdf` | Drawing sheet format and title block (now in `harness/cad-lib/cpme_titleblock.py`) |
 | CPME logo bitmap (from the Abarta set) | Logo colours, measured: navy `#0D1554`, steel grey `#7E849E` |
-| Project portals (`portal.css`, CIP-Skid and Hot-Water-Set) | Web fonts, web colour tokens, light and dark themes, the white logo tile, the site footer |
-| `CIP-Product-Data-Sheet.html` (CIP-Skid typicals) | One-page data sheet layout, "no makers, tags or job numbers" rule for sales literature |
+| Project portals (`portal.css`, in the two skid jobs that have them) | Web fonts, web colour tokens, light and dark themes, the white logo tile, the site footer |
+| `CIP-Product-Data-Sheet.html` (a job's typicals) | One-page data sheet layout, "no makers, tags or job numbers" rule for sales literature |
 
 ## 1. Name
 
