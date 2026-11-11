@@ -534,6 +534,53 @@ def drive_store_plan(paths: list[str], base_ref: str, removes: list[str]) -> tup
     return list(dict.fromkeys(specs)), keep_out
 
 
+def earlier_unmerged_daily(branch: str, cwd: Path | None = None) -> list[str]:
+    """origin/daily/<date> branches dated before `branch` that hold commits origin/main lacks, oldest first (as
+    last fetched). A day that was never merged, or a late save on a day that was."""
+    refs = git("for-each-ref", "--format=%(refname:short)", "refs/remotes/origin/daily", cwd=cwd, check=False).split()
+    out = []
+    for r in sorted(refs):
+        if r < f"origin/{branch}" and git("rev-list", "--count", f"origin/{BASE}..{r}", cwd=cwd,
+                                           check=False).strip() not in ("", "0"):
+            out.append(r)
+    return out
+
+
+def new_day_base(branch: str, cwd: Path | None = None) -> str:
+    """What a NEW day's branch starts from: the newest earlier day branch that is not merged yet, when it already
+    holds everything on origin/main (a day that ended without its merge); otherwise origin/main. Before 2026-11-11
+    it was always origin/main, so the new day's branch left the earlier day's files out and CI on it failed for
+    work that needed them (Bob, 2026-11-11: "fix it")."""
+    main = f"origin/{BASE}"
+    for r in reversed(earlier_unmerged_daily(branch, cwd)):
+        if subprocess.run(["git", "merge-base", "--is-ancestor", main, r], cwd=cwd or REPO,
+                          capture_output=True).returncode == 0:
+            return r
+    return main
+
+
+def bring_in_earlier_days(wt: Path, branch: str, cwd: Path | None = None) -> list[str]:
+    """In a new day's worktree: merge every earlier unmerged day branch the worktree does not hold yet (a branch
+    that is behind origin/main, so the day could not simply start from it). A regular merge, never a rebase. A
+    merge that conflicts is undone and reported; the day's branch then goes on without that branch, which still
+    merges on its own at end of day. Returns the lines to print."""
+    notes = []
+    for r in earlier_unmerged_daily(branch, cwd):
+        if subprocess.run(["git", "merge-base", "--is-ancestor", r, "HEAD"], cwd=wt, capture_output=True).returncode == 0:
+            continue
+        m = subprocess.run(["git", "merge", "--no-edit", "-m",
+                            f"git: bring the unmerged {r.split('/', 1)[1]} into {branch}\n\n"
+                            f"Why: a new day's branch holds the earlier day's unmerged work (track.py save).", r],
+                           cwd=wt, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if m.returncode == 0:
+            notes.append(f"{branch} starts with the unmerged work of {r}")
+        else:
+            subprocess.run(["git", "merge", "--abort"], cwd=wt, capture_output=True)
+            notes.append(f"WARNING: {r} is not merged and could not be brought into {branch} (it conflicts with "
+                         f"origin/{BASE}); {branch} goes on without it")
+    return notes
+
+
 def cmd_daily_commit(a) -> None:
     go = require_go(a.bob_go, "committing and pushing the day's work")
     date = check_date(a.date)
@@ -564,8 +611,11 @@ def cmd_daily_commit(a) -> None:
         if a.start and remote_has:
             die(f"--start given but origin/{branch} already exists; the branch must build on origin/{branch}")
         # --start: stack the day's branch on another (e.g. an unmerged daily branch; Bob, 2026-09-25).
-        base_ref = a.start or (f"origin/{branch}" if remote_has else f"origin/{BASE}")
+        # A new day with no --start: the newest earlier unmerged day branch, else origin/main (new_day_base).
+        base_ref = a.start or (f"origin/{branch}" if remote_has else new_day_base(branch))
         git("rev-parse", "--verify", "--quiet", base_ref)
+        if base_ref not in (a.start, f"origin/{branch}", f"origin/{BASE}"):
+            print(f"{branch} starts from {base_ref}, which is not merged yet, so it holds that day's work", flush=True)
     # Drive store, before any worktree exists: .gitignore joins the paths when only its managed block
     # changed, and a selected large file is refused unless its pointer goes in its place (2026-10-07).
     removes = ([ln.strip() for ln in read_text(a.removes_file).splitlines() if ln.strip() and not ln.startswith("#")]
@@ -576,6 +626,9 @@ def cmd_daily_commit(a) -> None:
         git("worktree", "add", str(wt), branch, write=True)
     else:
         git("worktree", "add", "-b", branch, str(wt), base_ref, write=True)
+        if not DRY and not remote_has and not a.start:
+            for note in bring_in_earlier_days(wt, branch):
+                print(note, flush=True)
 
     def leave_out(dirpath: str, names: list[str]) -> list[str]:
         """copytree filter: Drive-store files never enter the worktree (their pointers do)."""
