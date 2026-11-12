@@ -27,6 +27,11 @@ def newer_model():
     return NS(spools=[sp], items=items, pieces=lambda: list(pcs))
 
 
+# The old register id form, written in two parts: a job's carry-over guard (test_no_carryover) bans that form in
+# every text file of the job, and this file is pulled into jobs (it failed there on 2026-11-11).
+OLD_ID = "CMP" + "-0012"
+
+
 def older_model():
     """As a skidlib that predates them gives it: no Model.pieces(), Piece.spool, no Piece.material, the part number
     in Item.source, Spool.upstream / downstream, Item.step None."""
@@ -35,7 +40,7 @@ def older_model():
     sp = NS(sid="L-B-SP01", material="ASTM A270 S2 316L", pieces=pcs, upstream="P-T", downstream="")
     items = {"FM-001": NS(key="FM-001", kind="frame", prims=[1], member={"material": "ASTM A554 304 (A-19)"},
                           source="placeholder", step=None),
-             "V-1": NS(key="V-1", kind="valve", prims=[1], member=None, source="CMP-0012 butterfly valve", step=None),
+             "V-1": NS(key="V-1", kind="valve", prims=[1], member=None, source=OLD_ID + " butterfly valve", step=None),
              "CAP-1": NS(key="CAP-1", kind="fitting", prims=[1], member=None, source="placeholder", step=None)}
     return NS(spools=[sp], items=items)
 

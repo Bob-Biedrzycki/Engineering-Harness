@@ -593,7 +593,7 @@ def bring_in_main(wt: Path, branch: str) -> list[str]:
     a reset or a rebase. A merge that conflicts is undone and reported, and the save goes on as before.
     Before 2026-11-11 a day's branch that existed was built on as it was. After that morning's merge the afternoon
     saves went on a branch that lacked what main had gained, and the evening merge conflicted in 34 files in
-    CIP-Skid and 4 in the master (Bob, 2026-11-11: "fix track.py now"). Returns the lines to print."""
+    one job and 4 in the master (Bob, 2026-11-11: "fix track.py now"). Returns the lines to print."""
     main = f"origin/{BASE}"
     if not main_is_ahead("HEAD", cwd=wt):
         return []
