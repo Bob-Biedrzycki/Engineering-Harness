@@ -15,7 +15,8 @@ given; every COMP-nnnn_* folder has a row for its id in its own library's regist
 
 Completeness of every current row (Bob, chat, 2026-10-29: "get to the bottom of why there still seems to be loose
 ends and fix them"; the check passed parts that were not ready, so nobody saw them): a cut sheet; a CPME STEP (the
-part is ready to place); a maker model, or a search record that covers every place in SEARCH_PLACES with none left
+part is ready to place), or a maker's STEP whose `install_practice` begins `placed directly` (no interference
+requirement, so no spool is added; Bob, chat, 2026-11-11); a maker model, or a search record that covers every place in SEARCH_PLACES with none left
 "not checked" (skill component-add); and no item parked on a vendor or on a later decision (PARKED), since Bob does
 not contact vendors and an open choice is decided or asked at once. A library with `completeness-scope.txt` beside
 its register has completeness checked only on the parts that file lists (the parts a model places); its other rows
@@ -47,6 +48,11 @@ SEARCH_PLACES = ("maker's site", "TraceParts", "3Dfindit", "BIMobject", "McMaste
 PARKED = re.compile(r"for bob\b|bob: (ask|sign in|bimobject|amtrol|spirotherm)|\bask (the )?(emerson|spirax|alfa laval|"
                     r"amtrol|spirotherm|watts|jumo|rep|sales|vendor)|confirm with (spirax|the vendor|the maker)|"
                     r"waits on a decision|when bob downloads|before a set needs it", re.I)
+# A maker's STEP placed as received is ready to place when the row's install_practice begins with this (Bob, chat,
+# 2026-11-11: a CPME STEP is one we generated because the maker provides none, or the maker's STEP with a spool
+# added from the maker's guidance; "If there is no interference requirements the Manufacturer's STEP is placed
+# directly.").
+PLACED_DIRECTLY = "placed directly"
 
 
 def completeness(r: dict, tag: str) -> list[str]:
@@ -57,7 +63,8 @@ def completeness(r: dict, tag: str) -> list[str]:
     out = []
     if not named("cut_sheet_file"):
         out.append(f"{tag}: no cut sheet")
-    if not named("cpme_step_file"):
+    direct = named("vendor_step_file") and r.get("install_practice", "").strip().lower().startswith(PLACED_DIRECTLY)
+    if not named("cpme_step_file") and not direct:
         out.append(f"{tag}: no CPME STEP (not ready to place)")
     if not named("vendor_step_file"):
         src = r.get("vendor_step_source", "")

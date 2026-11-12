@@ -94,8 +94,16 @@ component details."
    project in the job) and `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/*.yaml`
    (project level) before choosing a value: a job or project value beats the
    maker's minimum.
-4. **Revise the STEP to carry it.** A spool assembly from a script in `src/`,
-   with the ends of the line's service class (PIPE-SVC-001):
+4. **Revise the STEP to carry it, only where the maker's guidance sets an
+   interference requirement** (Bob, chat, 2026-11-11: a CPME STEP is either one
+   we generated because the maker provides none, or the maker's STEP with a
+   spool added from the maker's guidance to keep other components from
+   interfering; "If there is no interference requirements the Manufacturer's
+   STEP is placed directly."). With no such requirement (a clamp, gasket,
+   ferrule, hanger, a part carried as received inside a CPME spool part), skip
+   this step: leave `cpme_step_file` blank and begin `install_practice` with
+   `placed directly`, then the reason. Otherwise build a spool assembly from a
+   script in `src/`, with the ends of the line's service class (PIPE-SVC-001):
    - the vendor STEP placed unmodified;
    - the required straight run each side, so the part is already the right
      length: tube with weld ferrules at the run ends on hygienic lines, pipe

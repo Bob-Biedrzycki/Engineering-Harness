@@ -153,6 +153,15 @@ class Check(Scratch):
                      "COMP-0009_Acme_X: folder has no row", "header lacks notes"):
             self.assertIn(want, text)
 
+    def test_maker_step_placed_directly_is_ready_to_place(self):
+        tag = "t"
+        base = dict(cut_sheet_file="a.pdf", vendor_step_file="v.stp")
+        self.assertIn("t: no CPME STEP (not ready to place)", CR.completeness(row(**base), tag))
+        self.assertEqual(CR.completeness(row(**base, install_practice="Placed directly: no interference requirement"), tag), [])
+        # without a maker STEP there is nothing to place directly
+        out = CR.completeness(row(cut_sheet_file="a.pdf", install_practice="placed directly"), tag)
+        self.assertIn("t: no CPME STEP (not ready to place)", out)
+
     def test_completeness_scope_file_limits_the_parts_checked(self):
         write_register(self.job.register, [row("COMP-0001"), row("COMP-0002")])    # both unfinished
         write_register(self.prj.register, [])

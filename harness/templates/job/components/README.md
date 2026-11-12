@@ -16,7 +16,7 @@ as component details."
   |---|---|
   | `01_Cut_Sheet/` | The maker's cut sheet / datasheet (PDF), unchanged |
   | `02_STEP_Vendor/` | The maker's STEP, unchanged, under the maker's own file name |
-  | `03_STEP_CPME/` | Our revised STEP that carries the installation practice (straight run, ends, branch fitting, gaskets), `COMP-nnnn-<TAG-or-type>-<Maker>-<Model>[-spool]-Rev<X>.step`, read-only, never overwritten (TR-08) |
+  | `03_STEP_CPME/` | A CPME STEP, of one of two kinds (Bob, chat, 2026-11-11): (1) a STEP we generated because the maker provides none; (2) the maker's STEP with a spool added from the maker's guidance, to keep other components from interfering (straight run, ends, branch fitting, gaskets). `COMP-nnnn-<TAG-or-type>-<Maker>-<Model>[-spool]-Rev<X>.step`, read-only, never overwritten (TR-08). A part with no interference requirement has no CPME STEP: the maker's STEP is placed directly |
   | `04_Install_Practice/` | The maker's installation practice summarized with page citations (straight run, orientation, drop, immersion, torque) |
   | `src/` | The build123d script that builds the revised STEP around the maker's STEP |
 
@@ -38,6 +38,11 @@ as component details."
    A job or project rule value beats the maker's minimum.
 5. **Revised STEP** that carries the practice, with the ends of the line's service class (PIPE-SVC-001), filed in
    `03_STEP_CPME/` as the next revision; a register row is added; `drive_store.py pointers` is run.
+   **Only where the maker's guidance sets an interference requirement** (Bob, chat, 2026-11-11: "If there is no
+   interference requirements the Manufacturer's STEP is placed directly."). A part with none is finished at step 3:
+   its `cpme_step_file` stays blank and its `install_practice` begins `placed directly` and says why (no
+   interference requirement; or it is carried as received inside a CPME spool part, named). The register check
+   reads a maker STEP with that entry as ready to place.
 
 Nothing is parked on a vendor, on a later decision or on a note to Bob (Bob, chat, 2026-10-29): decide it with a
 recorded reason, take an equal part, or ask Bob once. `harness/checks/component_register.py` reports every current
