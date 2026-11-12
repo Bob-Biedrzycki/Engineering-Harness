@@ -181,9 +181,9 @@ agents decide the rest, do it and report in a line. That file gives the reasonin
 - **Everything CPME sends out follows `harness/style-guide/README.md`** (Bob, chat, 2026-11-10): proposals,
   quotes, data sheets, portals, slides and emails take the name, contact block, logo, colours and fonts from it
   (`brand.yaml`, `brand.css`), not from a copy kept in a job.
-- **Every new drawing carries the CPME sheet format** (border, header band,
-  DRAFT stamp until approved, CPME title block with logo): use
-  `harness/cad-lib/cpme_titleblock.py`. **Revision letters
+- **Every new drawing carries the CPME sheet format** (border, DRAFT stamp until approved, CPME title block
+  with logo; no header text, no notes sheet, the drawing centred in the frame; Bob, chat, 2026-10-21, company-wide
+  2026-11-11): use `harness/cad-lib/cpme_titleblock.py`. **Revision letters
   are sequential and nobody assigns them** (Bob, 2026-09-24; supersedes the
   2026-09-23 rule that the engineer assigns letters). The DRAFT stamp stays
   until the engineer approves; approval does not change the letter.

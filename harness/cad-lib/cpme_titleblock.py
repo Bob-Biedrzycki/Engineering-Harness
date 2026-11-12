@@ -1,5 +1,15 @@
-"""CPME sheet format: border, grid letters, header band, DRAFT stamp and the
-CPME title block with logo, for every drawing generated in this repository.
+"""CPME sheet format: border, grid letters, DRAFT stamp and the CPME title block
+with logo, for every drawing generated in this repository.
+
+Company-wide sheet format (Bob, chat, 2026-10-21: "These should apply to every drawing: No header text, and no
+notes sheet ... Drawing centred in the frame & legend spacing"; confirmed company-wide, Bob, chat, 2026-11-11:
+"The sheet format should be company wide"):
+  - no header band text on any drawing: the header / job_title / header_subtitle fields are accepted, so an
+    older generator still runs, and are not drawn; the top band holds the DRAFT stamp only
+  - the drawing is centred in the frame: centre_content() after the content is drawn, before draw_cpme_sheet()
+  - stacked sections (tables, legend blocks) sit section_gap() apart
+  - no notes sheet (each multi-sheet generator lists its sheets without one)
+  - the number cell is labelled PROJECT NUMBER and holds the project code
 
 Rule (Bob, chat, 2026-09-23): every new drawing carries the CPME title block.
 Rule (Bob, chat, 2026-09-24): revision letters are sequential, nobody assigns
@@ -51,14 +61,15 @@ DEFAULT_FIELDS = {
     # older Title Block.pdf (Bob, chat, 2026-11-10: "Yes, update it").
     "address": ("600 FAUST RD UNIT 38", "BURLINGTON WI 53105"),
     # project identity from <project>/project.yaml (<project> = rp.PROJECT).
-    # The keys name the sheet's cells as drawn on the standard sheet format ("job_title", "project"), not our terms
-    "header": f"CPME USA  /  {rp.CUSTOMER.upper()}",
-    "job_title": rp.PROJECT_INFO["skid_title"],
+    # The keys name the sheet's cells as drawn on the standard sheet format ("project"), not our terms.
+    # header, job_title and header_subtitle are accepted and not drawn (no header text on any drawing).
+    "header": "",
+    "job_title": "",
     "header_subtitle": "",
     "project": rp.CUSTOMER.upper(),
     "location": rp.PROJECT_INFO["location"],
-    "number": f"{rp.PROJECT_CODE} / N/A",
-    "number_label": "NUMBER / PANEL",   # the label of the number cell; a project may pass its own
+    "number": rp.PROJECT_CODE,
+    "number_label": "PROJECT NUMBER",   # the label of the number cell
     "title": "",
     "subtitle": rp.PROJECT_INFO["skid_title"],
     "source_line": "",
@@ -260,10 +271,7 @@ def draw_cpme_sheet(sh, doc, W: float, H: float, fields: dict) -> list[str]:
         y -= 1.152 * s
         k += 1
 
-    # ---- header band ------------------------------------------------------
-    T(f["header"], X(0.53), YT(0.65), 0.113, "L", bold=True)
-    T(f["job_title"], X(0.53), YT(1.01), 0.247, "L", bold=True)
-    T(f["header_subtitle"], X(0.53), YT(1.31), 0.103, "L")
+    # ---- top band: no header text on any drawing (Bob, chat, 2026-10-21), the DRAFT stamp only -------------
     stamp = f["stamp"]
     if stamp:
         T(stamp[0], X(14.65), YT(0.75), 0.103, "C", bold=True, rgb=(200, 0, 0))

@@ -71,16 +71,18 @@ class Helpers(unittest.TestCase):
     def test_empty_content_is_left_alone(self):
         self.assertEqual(tb.centre_content([], W, H), (0.0, 0.0))
 
-    def test_number_label_is_a_field_with_the_standard_default(self):
+    def test_no_header_text_and_the_project_number_cell(self):
+        """Company-wide (Bob, chat, 2026-10-21 and 2026-11-11): header fields are accepted and never drawn; the
+        number cell is labelled PROJECT NUMBER and holds the project code."""
         fields = {"revision": "A", "rev_rows": (("A", "NOTE", "2026-01-01"),)}
         sh = _Sheet()
-        tb.draw_cpme_sheet(sh, ezdxf.new(), W, H, fields)
-        self.assertIn("NUMBER / PANEL", sh.texts)
-        sh = _Sheet()
-        tb.draw_cpme_sheet(sh, ezdxf.new(), W, H, {**fields, "number_label": "PROJECT NUMBER", "header": "",
-                                                    "job_title": ""})
+        tb.draw_cpme_sheet(sh, ezdxf.new(), W, H, {**fields, "header": "HEADER TEXT", "job_title": "JOB TITLE",
+                                                    "header_subtitle": "SUBTITLE TEXT"})
+        for s in ("HEADER TEXT", "JOB TITLE", "SUBTITLE TEXT", "NUMBER / PANEL"):
+            self.assertNotIn(s, sh.texts)
         self.assertIn("PROJECT NUMBER", sh.texts)
-        self.assertNotIn("NUMBER / PANEL", sh.texts)
+        self.assertIn(rp.PROJECT_CODE, sh.texts)
+        self.assertIn("DRAFT - FOR ENGINEERING REVIEW", sh.texts)
 
 
 if __name__ == "__main__":
