@@ -581,6 +581,40 @@ def bring_in_earlier_days(wt: Path, branch: str, cwd: Path | None = None) -> lis
     return notes
 
 
+def main_is_ahead(ref: str, cwd: Path | None = None) -> bool:
+    """True when origin/main (as last fetched) holds commits `ref` lacks."""
+    return git("rev-list", "--count", f"{ref}..origin/{BASE}", cwd=cwd, check=False).strip() not in ("", "0")
+
+
+def bring_in_main(wt: Path, branch: str) -> list[str]:
+    """In the day's worktree, before the saved paths are copied in: make the day's branch hold everything on
+    origin/main. A branch that was already merged (a merge during the day, then more work the same date) moves
+    forward to origin/main, a fast-forward; a branch with unmerged work gets a regular merge of origin/main. Never
+    a reset or a rebase. A merge that conflicts is undone and reported, and the save goes on as before.
+    Before 2026-11-11 a day's branch that existed was built on as it was. After that morning's merge the afternoon
+    saves went on a branch that lacked what main had gained, and the evening merge conflicted in 34 files in
+    CIP-Skid and 4 in the master (Bob, 2026-11-11: "fix track.py now"). Returns the lines to print."""
+    main = f"origin/{BASE}"
+    if not main_is_ahead("HEAD", cwd=wt):
+        return []
+    if subprocess.run(["git", "merge-base", "--is-ancestor", "HEAD", main], cwd=wt, capture_output=True).returncode == 0:
+        m = subprocess.run(["git", "merge", "--ff-only", main], cwd=wt, capture_output=True, text=True,
+                           encoding="utf-8", errors="replace")
+        if m.returncode == 0:
+            return [f"{branch} was already merged; it now starts from {main}"]
+        return [f"WARNING: {branch} could not be moved forward to {main}: {(m.stderr or m.stdout).strip()[:200]}"]
+    m = subprocess.run(["git", "merge", "--no-edit", "-m",
+                        f"git: bring {BASE} into {branch}\n\n"
+                        f"Why: {BASE} gained work this day's branch lacks; holding it keeps the day's merge free "
+                        f"of conflicts (track.py save)."
+                        , main], cwd=wt, capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if m.returncode == 0:
+        return [f"{branch} now holds what {main} gained"]
+    subprocess.run(["git", "merge", "--abort"], cwd=wt, capture_output=True)
+    return [f"WARNING: {main} holds work that conflicts with {branch}; {branch} goes on without it. At end of day, "
+            f"day.py level brings the two together"]
+
+
 def cmd_daily_commit(a) -> None:
     go = require_go(a.bob_go, "committing and pushing the day's work")
     date = check_date(a.date)
@@ -597,15 +631,23 @@ def cmd_daily_commit(a) -> None:
     if wt.exists():
         die(f"worktree folder already exists: {wt} (finish or remove the previous run first)")
     local_has = bool(git("branch", "--list", branch).strip())
+    behind_origin = False
     if a.local:
         remote_has = bool(git("rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}", check=False).strip())
     else:
         remote_has = bool(git_remote("ls-remote", "--heads", "origin", branch).strip())
     if local_has:
         # Build on the local branch; never reset it (earlier local commits would be lost).
+        # A local branch that is only behind origin's (origin gained commits made elsewhere, e.g. day.py level on
+        # 2026-11-11) moves forward to it below, a fast-forward: no local commit is lost. Only a local branch with
+        # commits origin's lacks AND missing origin's commits is refused.
         if remote_has and not a.local and subprocess.run(
                 ["git", "merge-base", "--is-ancestor", f"origin/{branch}", branch], cwd=REPO).returncode != 0:
-            die(f"local {branch} does not contain origin/{branch}; reconcile by hand with Bob before committing")
+            if subprocess.run(["git", "merge-base", "--is-ancestor", branch, f"origin/{branch}"],
+                              cwd=REPO).returncode != 0:
+                die(f"local {branch} and origin/{branch} each hold commits the other lacks; reconcile by hand with "
+                    "Bob before committing")
+            behind_origin = True
         base_ref = branch
     else:
         if a.start and remote_has:
@@ -620,15 +662,36 @@ def cmd_daily_commit(a) -> None:
     # changed, and a selected large file is refused unless its pointer goes in its place (2026-10-07).
     removes = ([ln.strip() for ln in read_text(a.removes_file).splitlines() if ln.strip() and not ln.startswith("#")]
                if a.removes_file else [])
-    paths = gitignore_autoadd(paths, base_ref)
-    pathspecs, keep_out = drive_store_plan(paths, base_ref, removes)
+    # A day's branch that is already merged is moved forward to origin/main below (bring_in_main), so the Drive
+    # store plan reads origin/main's files in that case.
+    existing = (local_has or remote_has) and not a.start
+    plan_ref = base_ref
+    if behind_origin:
+        base_ref = f"origin/{branch}"      # what the worktree holds once the local branch has moved forward
+    if existing and main_is_ahead(base_ref) and subprocess.run(
+            ["git", "merge-base", "--is-ancestor", base_ref, f"origin/{BASE}"], cwd=REPO,
+            capture_output=True).returncode == 0:
+        plan_ref = f"origin/{BASE}"
+    paths = gitignore_autoadd(paths, plan_ref)
+    pathspecs, keep_out = drive_store_plan(paths, plan_ref, removes)
     if local_has:
         git("worktree", "add", str(wt), branch, write=True)
+        if behind_origin and not DRY:
+            ff = subprocess.run(["git", "merge", "--ff-only", f"origin/{branch}"], cwd=wt, capture_output=True,
+                                text=True, encoding="utf-8", errors="replace")
+            if ff.returncode != 0:
+                git("worktree", "remove", "--force", str(wt), write=True, check=False)
+                die(f"local {branch} could not be moved forward to origin/{branch}: "
+                    f"{(ff.stderr or ff.stdout).strip()[:200]}")
+            print(f"local {branch} moved forward to origin/{branch}", flush=True)
     else:
         git("worktree", "add", "-b", branch, str(wt), base_ref, write=True)
         if not DRY and not remote_has and not a.start:
             for note in bring_in_earlier_days(wt, branch):
                 print(note, flush=True)
+    if existing and not DRY:
+        for note in bring_in_main(wt, branch):
+            print(note, flush=True)
 
     def leave_out(dirpath: str, names: list[str]) -> list[str]:
         """copytree filter: Drive-store files never enter the worktree (their pointers do)."""

@@ -149,5 +149,72 @@ class NewDay(unittest.TestCase):
         self.assertEqual(g(wt, "rev-parse", "HEAD"), g(self.clone, "rev-parse", "origin/main"))
 
 
+@unittest.skipUnless(shutil.which("git"), "git is not on PATH")
+class SameDayAfterAMerge(NewDay):
+    """Bob, 2026-11-11 ("fix track.py now"): a day's branch that exists is brought level with origin/main before a
+    save builds on it (bring_in_main). That day a morning merge was followed by afternoon saves on the same branch,
+    and the evening merge conflicted."""
+
+    def existing_day(self, branch: str) -> tuple[Path, list[str]]:
+        """Open the existing day branch as cmd_daily_commit does, then bring main in."""
+        wt = self.tmp / ("again-" + branch.replace("/", "-"))
+        g(self.clone, "worktree", "add", "-q", "-b", branch, str(wt), f"origin/{branch}")
+        return wt, T.bring_in_main(wt, branch)
+
+    def merge_day(self, branch: str) -> None:
+        """The day's pull request: a merge commit on main, as GitHub makes it."""
+        wt = self.tmp / "wt-merge"
+        g(self.clone, "worktree", "add", "-q", "--detach", str(wt), "origin/main")
+        g(wt, "merge", "-q", "--no-ff", "-m", f"Merge {branch}", f"origin/{branch}")
+        g(wt, "push", "-q", "origin", "HEAD:refs/heads/main")
+        g(self.clone, "worktree", "remove", "--force", str(wt))
+        g(self.clone, "fetch", "-q", "origin")
+
+    def test_branch_level_with_main_is_left_alone(self):
+        self.save_day(DAY1, "origin/main", "day1.txt", "one\n")
+        wt, notes = self.existing_day(DAY1)
+        self.assertEqual(notes, [])
+        self.assertEqual(g(wt, "rev-parse", "HEAD"), g(self.clone, "rev-parse", f"origin/{DAY1}"))
+
+    def test_merged_day_branch_moves_forward_to_main(self):
+        """The fault of 2026-11-11: main holds an earlier day's files the merged day branch never had."""
+        self.save_day(DAY1, "origin/main", "day1.txt", "one\n")
+        self.save_day(DAY2, "origin/main", "day2.txt", "two\n")       # started without day 1 (the earlier fault)
+        self.merge_day(DAY1)
+        self.merge_day(DAY2)
+        wt, notes = self.existing_day(DAY2)
+        self.assertEqual(len(notes), 1)
+        self.assertIn("already merged", notes[0])
+        self.assertEqual(g(wt, "rev-parse", "HEAD"), g(self.clone, "rev-parse", "origin/main"))
+        self.assertTrue((wt / "day1.txt").is_file() and (wt / "day2.txt").is_file())
+        # an afternoon save that edits a day 1 file, then the evening merge: no conflict
+        self.commit(wt, "day1.txt", "one, edited in the afternoon\n", "afternoon save")
+        g(wt, "push", "-q", "origin", f"HEAD:refs/heads/{DAY2}")       # a fast-forward of the day's branch
+        g(self.clone, "fetch", "-q", "origin")
+        self.merge_day(DAY2)
+        self.assertEqual(g(self.clone, "show", "origin/main:day1.txt"), "one, edited in the afternoon")
+
+    def test_unmerged_day_branch_gets_a_merge_of_main(self):
+        self.save_day(DAY1, "origin/main", "day1.txt", "one\n")
+        self.main_moves_on("main2.txt", "main\n")
+        wt, notes = self.existing_day(DAY1)
+        self.assertEqual(len(notes), 1)
+        self.assertIn("now holds", notes[0])
+        self.assertTrue((wt / "day1.txt").is_file() and (wt / "main2.txt").is_file())
+        g(wt, "merge-base", "--is-ancestor", "origin/main", "HEAD")                 # raises if it is not
+        g(wt, "merge-base", "--is-ancestor", f"origin/{DAY1}", "HEAD")              # nothing reset or rebased
+        self.assertEqual(g(wt, "status", "--porcelain"), "")
+
+    def test_conflict_with_main_is_undone_and_reported(self):
+        self.save_day(DAY1, "origin/main", "base.txt", "the day's edit\n")
+        self.main_moves_on("base.txt", "main's edit\n")
+        wt, notes = self.existing_day(DAY1)
+        self.assertEqual(len(notes), 1)
+        self.assertTrue(notes[0].startswith("WARNING"), notes[0])
+        self.assertEqual((wt / "base.txt").read_text(encoding="utf-8"), "the day's edit\n")
+        self.assertEqual(g(wt, "status", "--porcelain"), "")
+        self.assertEqual(g(wt, "rev-parse", "HEAD"), g(self.clone, "rev-parse", f"origin/{DAY1}"))
+
+
 if __name__ == "__main__":
     unittest.main()
