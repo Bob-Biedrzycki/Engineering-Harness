@@ -61,7 +61,7 @@ JOB_COMPONENT_REGISTER = JOB_COMPONENTS / "component-register.csv"
 #     03_Working_Design/CAD/06_Drawings/Generators/ the typical drawing generators (JOB_DRAWING_SOURCES)
 #     03_Working_Design/CAD/09_Presentation/       lifelike render tools (JOB_PRESENTATIONS)
 #     03_Working_Design/PID/02_Tag_Lists/          the typical P&ID lists and each range model's lists (JOB_LISTS)
-#     03_Working_Design/Exports/build/, CAD/Fast_Builds/   work builds (gitignored)
+#     03_Working_Design/CAD/Builds/                        every model build, numbered (gitignored)
 #     06_Issued_Revisions/Drawings/, Models/       locked revisions (JOB_DRAWINGS, JOB_MODELS_FILED; TR-08)
 #     _work/                                       gitignored working copies (JOB_WORK)
 # The JOB_* names are kept from when these sat loose in job/ (before 2026-11-09), so their users did not change.
@@ -182,6 +182,26 @@ def _read_project_config(path: Path) -> dict[str, str]:
     return out
 
 
+BUILD_NAME = re.compile(r"^(?:rev([A-Z]+)|first)-(fast|full)-(\d{3})$")   # a build folder: rev<X>-fast-<nnn>, rev<X>-full-<nnn>
+
+
+def build_key(name: str) -> tuple | None:
+    """Sort key of a build folder name (letter A..Z then AA.., then its number), or None when it is not one. `first`
+    is the series of a model with no filed revision yet."""
+    m = BUILD_NAME.match(name)
+    return (len(m.group(1) or ""), m.group(1) or "", int(m.group(3))) if m else None
+
+
+def current_build(builds: Path) -> Path:
+    """The full build the model tools read (SKID_BUILD): the folder named in CPME_BUILD_DIR (set by model_iterate.py
+    for the steps of the build it is running), else the latest rev<X>-full-<nnn> under `builds`. With no full build
+    yet the path is `builds`/none, which does not exist, so a reader reports that there is nothing to read."""
+    if os.environ.get("CPME_BUILD_DIR"):
+        return Path(os.environ["CPME_BUILD_DIR"])
+    found = [p for p in builds.glob("*/*-full-[0-9][0-9][0-9]") if p.is_dir() and build_key(p.name)]
+    return max(found, key=lambda p: build_key(p.name)) if found else builds / "none"
+
+
 PROJECT_KEYS = ("project_id", "project_number", "project_code", "customer", "location", "skid_name", "skid_title",
                 "skid_description", "model_id", "pid_doc_id", "retired_model_id", "design_repo", "site_repo")
 _FOUND = _active_project()
@@ -232,10 +252,20 @@ SITE_REPO = PROJECT_INFO["site_repo"]          # owner/name of the presentation 
 SKID_MODEL_ID = PROJECT_INFO["model_id"]
 SKID_MODEL = CAD / "01_Master_Assembly" / SKID_MODEL_ID
 FRAME_CALC = ENGINEERING / "06_Mechanical_Structural" / "frame-calc"   # frame_calc.py and its results
-EXPORTS = WORKING / "Exports"            # regenerated build output (gitignored working copies)
-BUILD = EXPORTS / "build"
+EXPORTS = WORKING / "Exports"            # drawing previews and other throwaway output (gitignored)
+BUILD = EXPORTS / "build"                # side builds only (exploded parts); model builds are in BUILDS
 PREVIEW = EXPORTS / "preview"
-SKID_BUILD = BUILD / SKID_MODEL_ID       # working copy of the build (gitignored)
+# Every model build, fast or full, is one numbered folder that is never overwritten (Bob, chat, 2026-11-12):
+# BUILDS/rev<X>/rev<X>-fast-<nnn>/ and rev<X>-full-<nnn>/, <X> the last filed revision the build starts from, one
+# counter per letter shared by both kinds, one running list BUILDS/build-log.md. SKID_BUILD is the full build the
+# tools read (current_build). Before 2026-11-12 fast builds were in CAD/Fast_Builds and the one full build, overwritten
+# each time, in Exports/build/<MODEL-ID>; model_build.adopt_earlier_layout moves both once.
+BUILDS_ROOT = CAD / "Builds"
+BUILDS = BUILDS_ROOT
+FAST_BUILDS = BUILDS                     # the earlier name, kept for job code that reads it
+EARLIER_FAST_ROOT = CAD / "Fast_Builds"
+EARLIER_SKID_BUILD = BUILD / SKID_MODEL_ID
+SKID_BUILD = current_build(BUILDS)
 MODELS = ISSUED / "Models"               # filed designs (TR-08)
 SKID_FILED = MODELS / SKID_MODEL_ID      # filed revisions of the model (TR-08)
 # History only: a retired model ID whose filed revisions stay untouched (TR-08) after its source moved to
@@ -246,7 +276,6 @@ DRAWING_SOURCES = CAD / "06_Drawings" / "Generators"
 # Filed drawings (TR-08); CPME_DRAWINGS_ROOT points a test run at a scratch folder.
 DRAWINGS = Path(os.environ["CPME_DRAWINGS_ROOT"]) if os.environ.get("CPME_DRAWINGS_ROOT") else ISSUED / "Drawings"
 PID_FAST_EDITS = WORKING / "PID" / "Fast_Edits"  # model-to-pid.py --fast, rev<X>-fast-<nnn>; gitignored, not filed
-FAST_BUILDS = CAD / "Fast_Builds"        # model_iterate.py --fast, one new rev<X>/rev<X>-fast-<nnn>/ per run; gitignored, not filed
 ISSUE_INDEX = ISSUED / "00_Issue_Index"  # Issue_Register.csv; ISS-### packages sit beside it (Bob, 2026-10-26)
 
 WORK = PROJECT / "_work"                    # gitignored working copies
@@ -310,8 +339,8 @@ if not HAS_PROJECT:
 # job-level model; its configuration CFG (default B) is a document of its own, <MODEL-ID>-<CFG>, with its own
 # letters. For a job-level model the names below are redirected (<typical> = TYPICAL, the job/Typical-* folder):
 #     SKID_MODEL   JOB_MODELS/<MODEL-ID>/                         source (model.yaml, model.py, skidlib shim, exports)
-#     SKID_BUILD   <typical>/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/      work build (gitignored)
-#     FAST_BUILDS  <typical>/03_Working_Design/CAD/Fast_Builds/<MODEL-ID>/<CFG>/    fast builds (gitignored)
+#     BUILDS       <typical>/03_Working_Design/CAD/Builds/<MODEL-ID>/<CFG>/         every build, numbered (gitignored)
+#     SKID_BUILD   the latest full build under BUILDS (current_build)
 #     MODELS       <typical>/06_Issued_Revisions/Models/           filed; SKID_FILED = MODELS/<MODEL-ID>/, document
 #                                                                  id MODEL_DOC_ID = <MODEL-ID>-<CFG>
 #     DESIGN_RULES job/design-rules/   (a job-level model has no project level: its rules are the harness's and job's)
@@ -319,8 +348,7 @@ if not HAS_PROJECT:
 JOB_MODELS = Path(os.environ["CPME_JOB_MODELS_ROOT"]) if os.environ.get("CPME_JOB_MODELS_ROOT") \
     else TYPICAL_WORKING / "CAD" / "01_Master_Assembly"   # CPME_JOB_MODELS_ROOT points a test run at a scratch folder
 JOB_MODELS_WORK = JOB_WORK / "typical-models"   # gitignored caches of the typical-model library (step sizes, tag dumps)
-JOB_MODELS_BUILD = TYPICAL_WORKING / "Exports" / "build"      # work builds, as a project's BUILD (gitignored)
-JOB_MODELS_FAST = TYPICAL_WORKING / "CAD" / "Fast_Builds"     # fast builds, as a project's FAST_BUILDS (gitignored)
+JOB_MODELS_BUILDS = TYPICAL_WORKING / "CAD" / "Builds"        # every build, as a project's BUILDS_ROOT (gitignored)
 JOB_MODELS_FILED = JOB_ISSUED / "Models"
 
 
@@ -360,8 +388,11 @@ if MODEL_ID_ARG and not (HAS_PROJECT and MODEL_ID_ARG == PROJECT_INFO.get("model
     SKID_MODEL_ID = MODEL_ID_ARG
     SKID_MODEL = JOB_MODEL
     MODEL_DOC_ID = f"{SKID_MODEL_ID}-{MODEL_CONFIG}"
-    SKID_BUILD = JOB_MODELS_BUILD / SKID_MODEL_ID / MODEL_CONFIG
-    FAST_BUILDS = JOB_MODELS_FAST / SKID_MODEL_ID / MODEL_CONFIG
+    BUILDS_ROOT = JOB_MODELS_BUILDS
+    BUILDS = FAST_BUILDS = BUILDS_ROOT / SKID_MODEL_ID / MODEL_CONFIG
+    EARLIER_FAST_ROOT = TYPICAL_WORKING / "CAD" / "Fast_Builds"
+    EARLIER_SKID_BUILD = TYPICAL_WORKING / "Exports" / "build" / SKID_MODEL_ID / MODEL_CONFIG
+    SKID_BUILD = current_build(BUILDS)
     MODELS = JOB_MODELS_FILED
     SKID_FILED = MODELS / SKID_MODEL_ID
     DESIGN_RULES = JOB_DESIGN_RULES

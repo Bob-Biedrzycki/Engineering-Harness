@@ -36,7 +36,7 @@ If any is missing, stop and say which. Do not model from assumed data.
 - `<project>/03_Working_Design/CAD/` — build123d source, one folder per model (`<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`,
   with its own `piping/<line_no>/` and frame), and the drawing generators in
   `<project>/03_Working_Design/CAD/06_Drawings/Generators/`. Generated STEP/DXF are derived output, written to
-  `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` and `<project>/03_Working_Design/Exports/preview/`; a hand-off is filed
+  `<project>/03_Working_Design/CAD/Builds/` and `<project>/03_Working_Design/Exports/preview/`; a hand-off is filed
   under `<project>/06_Issued_Revisions/Models/` or `<project>/06_Issued_Revisions/Drawings/`.
 - Layout options (step 4a, skid layout): two or three, each with footprint, access and
   drainability notes, for the engineer to choose at Gate 2.

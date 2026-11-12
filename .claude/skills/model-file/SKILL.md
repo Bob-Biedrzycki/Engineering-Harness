@@ -1,6 +1,6 @@
 ---
 name: model-file
-description: Tier 2 of the skid-model pipeline for the project. Files the current work build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) as the next sequential revision under <project>/06_Issued_Revisions/Models/ (STEP zipped, GLB, every takeoff, list delta), read-only, with revisions.csv rows and Drive pointers. Use whenever Bob is to look at the model or anything built from it. No push.
+description: Tier 2 of the skid-model pipeline for the project. Files the latest full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) as the next sequential revision under <project>/06_Issued_Revisions/Models/ (STEP zipped, GLB, every takeoff, list delta), read-only, with revisions.csv rows and Drive pointers. Use whenever Bob is to look at the model or anything built from it. No push.
 ---
 
 # Model file (tier 2, when Bob looks at it)
@@ -8,8 +8,13 @@ description: Tier 2 of the skid-model pipeline for the project. Files the curren
 **When.** Before the model, a render of it or any takeoff is shown or handed to
 Bob or anyone else (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE
 DESIGNS. THEY MUST BE LABELED AS REVISIONS."). Run `model-iterate` first; this
-refuses a work build that is incomplete, failed a check, or is older than its
+refuses a build that is incomplete, failed a check, or is older than its
 source.
+
+**Which build** (Bob, chat, 2026-11-12: one numbered build series). The latest full build,
+`<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-full-<nnn>/`; `--build rev<X>-full-<nnn>` names another. A fast
+build has no STEP and is never filed. The description starts "Filed from build <name>" and every `revisions.csv`
+row's `source` gives the build folder, so a filed revision traces to the build it came from.
 
 **Accepting fast edits is `model-accept`, not this skill** (Bob, chat, 2026-10-15: "they should be run
 progamatically and deterministically. A P&ID revision should be part of the package."). `model_accept.py` calls

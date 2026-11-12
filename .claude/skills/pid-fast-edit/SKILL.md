@@ -21,7 +21,7 @@ fast model loop (`model-iterate`, `--fast`).
   to run). The copy refuses to run without `--fast`, so it can never file. Bob, chat, 2026-10-11:
   "Fast changes should be able to change anything requested without affecting the project files."
 
-- **Source:** the latest fast model build in `<project>/03_Working_Design/CAD/Fast_Builds/rev<X>/rev<X>-fast-<nnn>/` (default), or
+- **Source:** the latest fast model build in `<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/` (default), or
   `--fast-build revA-fast-001` (also `A-001`, or `001` for the latest letter), or `--model-rev <X>` for a filed model
   revision.
 - **Changes live in the fast-edit folder, never in project files** (Bob, chat, 2026-10-11: "Fast edits should

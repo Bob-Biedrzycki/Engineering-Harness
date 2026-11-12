@@ -99,7 +99,7 @@ a filed revision. Delete a tag. Hand Bob a raw gh or git command to type. Blocke
 |---|---|
 | Lists, registers, questions, knowledge, DEC drafts | 1 |
 | Sizing records where a project DEC brings sizing in (named in `job/JOB.md`) | 1 to draft; 2 for Bob to approve the selections |
-| Model build (tier 1) into `<project>/03_Working_Design/Exports/build/` | 1, after every change |
+| Model build (tier 1) into a new numbered folder under `<project>/03_Working_Design/CAD/Builds/` | 1, after every change |
 | File model revision (tier 2) or drawing revision | 1 (next letter, never overwrite, TR-08) |
 | Job or project design rule or value | 2 (Bob picks harness, job or project first) |
 | DEC decision content, HOLDs, Agent-to-Bob Questions | 2 |

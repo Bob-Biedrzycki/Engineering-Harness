@@ -64,7 +64,8 @@ class JobLevelModel(unittest.TestCase):
         self.assertEqual(o["level"], "job")
         self.assertEqual((o["model"], o["cfg"], o["doc"]), ("M-1", "X", "M-1-X"))
         self.assertEqual(Path(o["src"]), self.root / "M-1")
-        self.assertEqual(Path(o["build"]), rp.JOB_MODELS_BUILD / "M-1" / "X")
+        # no full build of this model yet: the path that says so, under the model's own builds folder
+        self.assertEqual(Path(o["build"]), rp.JOB_MODELS_BUILDS / "M-1" / "X" / "none")
         self.assertEqual(Path(o["filed"]), rp.JOB_ISSUED / "Models" / "M-1")
         self.assertEqual(Path(o["rules"]), rp.JOB_DESIGN_RULES)
         self.assertEqual(Path(o["data"]), (self.root / "_lists" / "A").resolve())

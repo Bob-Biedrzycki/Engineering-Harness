@@ -1,11 +1,13 @@
-"""model_file.py - tier 2 of the three-tier pipeline: file the work build as the next model revision.
+"""model_file.py - tier 2 of the three-tier pipeline: file a full build as the next model revision.
 
 The three-tier model pipeline (CPME practice). Skill: .claude/skills/model-file.
 Run it when Bob is to look at the model: a design shown or handed off is filed first, never pointed at in
 <project>/_work/ (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.").
 
 What it does, in order (it stops at the first refusal and writes nothing):
-    1. reads <project>/03_Working_Design/Exports/build/<MODEL-ID>/iterate-summary.json (written by model_iterate.py); refuses if the
+    1. reads the iterate-summary.json of the latest full build, <project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-full-<nnn>/
+       (written by model_iterate.py), or of the one --build names (Bob, chat, 2026-11-12: one numbered build series;
+       a revision is filed from a named build, and each revisions.csv row's source gives its folder); refuses if the
        build is incomplete, a check failed (unless --failing-ok "<reason>", recorded in the description), or
        the STEP, GLB or any takeoff is older than the newest source file (model source, <project>/03_Working_Design/PID/02_Tag_Lists lists,
        component models, design rules), or the GLB is older than the STEP;
@@ -27,7 +29,7 @@ long descriptions with quotes go through --description-file. --models-root <fold
 folder (a scratch copy, for testing this script; pointers are skipped there).
 
 --model-id <ID> --config <CFG> (Linear CPM-155; harness/lib/repo_paths.py) files a job-level model's configuration
-from its work build: document <MODEL-ID>-<CFG> (B and X each with their own letters from Rev A), every file named
+from its latest full build: document <MODEL-ID>-<CFG> (B and X each with their own letters from Rev A), every file named
 <MODEL-ID>-<CFG>-rev<X>..., the STEP zipped, plus the four review views, into
 job/Typical-<ID prefix>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-<CFG>-rev<X>/, whose parent's revisions.csv holds the rows of
 every configuration of that model.
@@ -77,7 +79,7 @@ def when(t: float) -> str:
 
 def check_build(failing_ok: str | None) -> dict:
     if not mb.SUMMARY.is_file():
-        refuse(f"no {rp.rel(mb.SUMMARY)}: run harness/scripts/model_iterate.py first")
+        refuse(f"no full build to file ({rp.rel(mb.SUMMARY)} is missing): run harness/scripts/model_iterate.py first")
     s = json.loads(mb.SUMMARY.read_text(encoding="utf-8"))
     if mb.JOB_LEVEL and s.get("document_id") != mb.DOC_ID:
         refuse(f"{rp.rel(mb.SUMMARY)} is for {s.get('document_id')}, not {mb.DOC_ID}; rerun model_iterate.py "
@@ -89,11 +91,13 @@ def check_build(failing_ok: str | None) -> dict:
                "to file it anyway with the reason recorded")
     missing = [rp.rel(p) for p in mb.build_files() if not p.is_file()]
     if missing:
-        refuse("work build is missing: " + ", ".join(missing))
+        zipped = " (its STEP was zipped when a later full build ran; file the latest full build)" \
+            if mb.STEP.with_name(mb.STEP.name + ".zip").is_file() else ""
+        refuse(f"build {mb.BUILD.name} is missing: " + ", ".join(missing) + zipped)
     mt, newest = mb.newest_source()
     stale = [f"{p.name} ({when(p.stat().st_mtime)})" for p in mb.build_files() if p.stat().st_mtime < mt]
     if stale:
-        refuse(f"work build is older than its source {rp.rel(newest)} ({when(mt)}): {', '.join(stale)}; rerun model_iterate.py")
+        refuse(f"build {mb.BUILD.name} is older than its source {rp.rel(newest)} ({when(mt)}): {', '.join(stale)}; rerun model_iterate.py")
     if mb.GLB.stat().st_mtime < mb.STEP.stat().st_mtime:
         refuse(f"{mb.GLB.name} is older than {mb.STEP.name}; rerun model_iterate.py")
     if mb.SUMMARY.stat().st_mtime < max(p.stat().st_mtime for p in mb.build_files()):
@@ -131,6 +135,7 @@ def main() -> int:
     ap.add_argument("--failing-ok", metavar="REASON", help="file a build whose checks failed; the reason is recorded")
     ap.add_argument("--dry-run", action="store_true", help="show the file set and the rows; write nothing")
     ap.add_argument("--models-root", type=Path, help="file into this folder instead (testing; pointers skipped)")
+    ap.add_argument("--build", metavar="NAME", help="the full build to file, e.g. revA-full-035 (default: the latest)")
     rp.add_model_args(ap)
     a = ap.parse_args()
     if mb.JOB_LEVEL:
@@ -138,6 +143,12 @@ def main() -> int:
         if name != rp.MODEL_CONFIG:
             refuse(f"--config {rp.MODEL_CONFIG}: " + (why or f"this is configuration {name}; use --config {name}"))
 
+    if a.build:
+        named = mb.find_build(a.build, rp.BUILDS)
+        if named is None or "-full-" not in named.name:
+            refuse(f"--build {a.build}: no full build of that name under {rp.rel(rp.BUILDS)} (a fast build has no "
+                   "STEP and is never filed)")
+        mb.use_build(named)
     root = (a.models_root or mb.FILED).resolve()
     real = root == mb.FILED.resolve()
     note = a.note or ("(dry run)" if a.dry_run else None)
@@ -163,11 +174,12 @@ def main() -> int:
         refuse(f"Rev {letter} folder already exists, a filed design is never overwritten (TR-08): "
                f"{rp.rel(folder) if real else folder}")
 
-    full_desc = desc + (" " if desc else "") + checks_text(s)
+    full_desc = desc + (" " if desc else "") + f"Filed from build {mb.BUILD.name}. " + checks_text(s)
     if a.failing_ok:
         full_desc += f" FILED WITH FAILING CHECKS ({', '.join(s['failed'])}): {a.failing_ok}"
     same = same_as_previous(root, prev)
-    print(f"model_file: {mb.DOC_ID} Rev {letter} (last filed {prev or 'none'}) -> {rp.rel(root) if real else root}"
+    print(f"model_file: {mb.DOC_ID} Rev {letter} from build {mb.BUILD.name} (last filed {prev or 'none'}) -> "
+          f"{rp.rel(root) if real else root}"
           f"{'  [DRY RUN, nothing written]' if a.dry_run else ''}")
     for src, dst in plan:
         extra = " (zipped)" if src == mb.STEP else ""

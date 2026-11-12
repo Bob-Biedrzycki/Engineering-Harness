@@ -257,9 +257,10 @@ job/
                          (tank-modifications.md), structural (frame-calc/), and the rest of 01..12
     03_Working_Design/   CAD/01_Master_Assembly/<MODEL-ID>/ (build123d source), 05_Purchased_Components/
                          (project-only components), 06_Drawings/Generators/, 09_Presentation/;
-                         CAD/Fast_Builds/ (gitignored); PID/02_Tag_Lists/ (the six P&ID lists, CSV);
+                         CAD/Builds/ (every model build, numbered, gitignored); PID/02_Tag_Lists/ (the six
+                         P&ID lists, CSV);
                          PID/Fast_Edits/ (gitignored, pid-fast-edit); BOM/; Electrical_Controls/
-                         (placeholder for the other teams); Exports/ (gitignored build output)
+                         (placeholder for the other teams); Exports/ (gitignored drawing previews)
     04_Vendor_Data/      Supplier documents and CAD, <category>/<tag>/ (Drive store)
     05_Reviews_Changes/  Internal, customer and vendor reviews, change requests, approvals
     06_Issued_Revisions/ Drawings/<DOC-ID>/ and Models/<MODEL-ID>/, one <ID>-rev<X>/ folder per handed-off revision,
@@ -308,7 +309,7 @@ never hand-edited.
 | 1. P&ID data | process-engineer | Current P&ID revision in `<project>/06_Issued_Revisions/Drawings/<PID-DOC-ID>/` | `<project>/03_Working_Design/PID/02_Tag_Lists/` line, equipment, valve, instrument, tie-in and motor-load lists; `pid-questions.md` | `pid-digitize` |
 | 2. P&ID revision | process-engineer (content), cad-design-engineer (generation, `<project>/03_Working_Design/CAD/06_Drawings/Generators/`) | Previous revision, `<project>/00_Project_Admin/05_Decision_Log/`, revision requests | New revision DWG + PDF filed in `<project>/06_Issued_Revisions/Drawings/`, with revision block row and clouds (TR-06..08) | `drawing-revise` |
 | 3. Equipment (forced) | process-engineer | `equipment-list.csv` as specified, `job/components/component-register.csv` | `<project>/01_Design_Basis/06_Assumptions_Open_Items/equipment-concerns.md` only. No sizing, no re-selection (TR-02). | `component-add` (STEPs only) |
-| 4a. Skid layout | cad-design-engineer | Step 1 lists, `<project>/03_Working_Design/CAD/05_Purchased_Components/`, `harness/design-rules/*.yaml`, `job/design-rules/*.yaml` and `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/*.yaml`, `<project>/02_Engineering/05_Tank_Sizing/tank-modifications.md` (only if the project has a tank) | `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/` source, output in `<project>/03_Working_Design/Exports/build/<MODEL-ID>/`, layout options, general arrangement drawing | `skid-layout` |
+| 4a. Skid layout | cad-design-engineer | Step 1 lists, `<project>/03_Working_Design/CAD/05_Purchased_Components/`, `harness/design-rules/*.yaml`, `job/design-rules/*.yaml` and `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/*.yaml`, `<project>/02_Engineering/05_Tank_Sizing/tank-modifications.md` (only if the project has a tank) | `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/` source, builds in `<project>/03_Working_Design/CAD/Builds/`, layout options, general arrangement drawing | `skid-layout` |
 | 4b. Pipe routing | cad-design-engineer | `line-list.csv`, step 4a output | `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/piping/<line>/`, spool list, weld map; piping split into separate bodies at every weld (TR-24) | `pipe-route` |
 | 4c. Takeoffs | cad-design-engineer | Step 4b model | Full BOM (TR-16), laser-cut-ready cut lists (TR-14), clamp, flange and gasket schedule | `model-iterate`, `model-file` |
 | Review | mechanical-piping, controls, electrical, engineering-manager | Outputs of 4a-4c | Findings against the rules and the TR register | `gate-package` |
@@ -427,7 +428,7 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   change to the model, however small (removing a part, moving a nozzle), is
   the next letter. Before any rebuild, check that the next revision's folder does
   not exist yet, and stop if it does.
-- The build's own output folder (e.g. `<project>/03_Working_Design/Exports/build/<MODEL-ID>/`) and `<project>/_work/` are
+- The build folders (`<project>/03_Working_Design/CAD/Builds/`) and `<project>/_work/` are
   working copies. Never point Bob at a working copy as the design: give him
   the filed revision's path. When he has been viewing a working copy, file it
   as a revision before rebuilding over it.
@@ -583,10 +584,16 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 
 | Tier | When | Script | Skill |
 |---|---|---|---|
-| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, materials, pipe supports, GLB, list delta, into `<project>/03_Working_Design/Exports/build/<MODEL-ID>/` only | `model-iterate` |
+| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, materials, pipe supports, GLB, list delta, into a new numbered folder under `<project>/03_Working_Design/CAD/Builds/` only | `model-iterate` |
 | 2. Accept | Bob says he accepts, or would like to file, the fast edit as Rev <X> | `harness/scripts/model_accept.py`: preflight (lists written from the model, open items recorded as notes), full build, `model_file.py`, then the P&ID, LSD and PFD filed when changed, PRRs, pointers; no push | `model-accept` |
-| 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
+| 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: the latest full build (or `--build <name>`), next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
 | 3. Close-out (optional) | only when Bob asks for a full check run: CI already runs the checks on every save | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |
+
+**One build series** (Bob, chat, 2026-11-12). All model editing is in `<project>/03_Working_Design/CAD/`: the source in
+`01_Master_Assembly/`, and every build of it, fast or full, in `Builds/rev<X>/` as a new numbered folder
+(`rev<X>-fast-<nnn>`, `rev<X>-full-<nnn>`; `<X>` the last filed revision, one counter per letter for both kinds).
+No build overwrites another, and each has a row in `Builds/build-log.md` naming the checks that ran. A revision is
+filed from a full build, and its `revisions.csv` rows name that build. `Exports/` holds only drawing previews.
 
 1. Read this file, `harness/knowledge/Todd Requirements.md`, and the sources the task
    names.

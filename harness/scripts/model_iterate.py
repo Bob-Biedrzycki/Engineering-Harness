@@ -1,4 +1,12 @@
-"""model_iterate.py - tier 1 of the three-tier pipeline: one full build of the skid model, every iteration.
+"""model_iterate.py - tier 1 of the three-tier pipeline: one build of the skid model, every iteration.
+
+One build series (Bob, chat, 2026-11-12: "many times it takes 30+ edits to get to the desired result"; one numbered,
+never-overwritten series in place of two build folders): every run, full or --fast, writes a new folder
+<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-full-<nnn>/ or rev<X>-fast-<nnn>/, <X> the last filed revision
+the build starts from (`first` before Rev A) and <nnn> the next number for that letter, shared by both kinds (001 again
+after each filing). Every build gets a row in Builds/build-log.md saying which checks ran. A full build is what
+model_file.py files; the steps a full build starts find its folder through CPME_BUILD_DIR (repo_paths.current_build).
+When a full build starts, the STEP of each earlier full build is zipped beside its other files.
 
 The three-tier model pipeline (Bob, chat, 2026-10-02: make
 iteration fast and close-out unattended). Skill: .claude/skills/model-iterate.
@@ -20,10 +28,10 @@ Runs, in this order (independent steps in parallel):
                     With no presentation site yet (site_revs.site_dormant: site_repo unknown or the builder
                     absent) the line reads "looks: no presentation site yet (...)" and the step passes
 
-Writes only to <project>/03_Working_Design/Exports/build/<MODEL-ID>/ (working copy, gitignored), plus logs/ and iterate-summary.json
-there. Never files, never pushes, never builds the portal. Prints one summary line per step.
+Writes only to its new folder under <project>/03_Working_Design/CAD/Builds/ (working copies, gitignored), with logs/ and
+iterate-summary.json there. Never files, never pushes, never builds the portal. Prints one summary line per step.
 
-    .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_iterate.py [--keep-going] [--no-glb] [--fast [--supports]]
+    .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_iterate.py [--keep-going] [--no-glb] [--fast [--supports]] [--request "..." --change "..."]
 
 --fast (Bob, chat, 2026-10-10: light-weight modelling that is very fast; "The fast build should still create a
 new file, and not overwrite an existing."; "I need to be able to see it ... whatever is fastest.") runs lists, list
@@ -31,22 +39,22 @@ delta, interference and the model-only envelope (~6 s) beside export_glb_fast.py
 straight from the model (~1 min); no STEP. The pipe supports check runs only with --supports, given only when Bob
 asks for it (Bob, chat, 2026-10-15: "The pipe support check is completley unnecessary until i request it.  do not
 check until i ask."). Each fast build writes into a new folder of its own,
-<project>/03_Working_Design/CAD/Fast_Builds/rev<X>/rev<X>-fast-<nnn>/ (Bob, 2026-10-10: "I would like the root Fast folder in the Job/Models
-folder"; Bob, 2026-10-11: "job/models/fast/revV/revV-fast-001. that way we can still track fast changes."), <X> the
-last filed revision the build starts from and <nnn> the next number for that letter (001 again after each filing),
-refused if it exists, and touches nothing else: the full build's files, its iterate-summary.json and
-earlier fast builds stay as they are. <project>/03_Working_Design/CAD/Fast_Builds/ is gitignored and outside the Drive store: viewing copies,
-not revisions. model_file.py never sees a fast build: run the full build once before filing.
+<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/ (Bob, 2026-10-10: "I would like the root Fast folder in the Job/Models
+folder"; Bob, 2026-10-11: "job/models/fast/revV/revV-fast-001. that way we can still track fast changes."),
+refused if it exists, and touches nothing else: every earlier build stays as it is.
+<project>/03_Working_Design/CAD/Builds/ is gitignored and outside the Drive store: working copies,
+not revisions. model_file.py never files a fast build: run the full build once before filing.
 
 Every fast build also draws the P&ID, line segment diagram and PFD from itself in check mode (about 1-2 s each,
 beside the GLB, nothing written) and ends with the running list "OPEN BEFORE REV <next>": failed checks, drawing
 errors, list delta rows, components registered since the last revision but not placed, questions opened since then
 (harness/lib/accept_preflight.py; Bob, chat, 2026-10-15: acceptance "should be run progamatically and
-deterministically"). --request "<Bob's words>" --change "<what changed>" appends the build's fast-log row itself.
+deterministically"). --request "<Bob's words>" --change "<what changed>" go in the build's build-log row (a fast
+build is logged when --request is given, a full build always).
 
 --model-id <ID> [--config <CFG>] (or CPME_MODEL_ID / CPME_MODEL_CONFIG; Linear CPM-155) builds a job-level model
 (a folder in the job-level models folder, harness/lib/repo_paths.py) in one configuration (B, X or a switch string the
-model accepts; default B) into job/Typical-<ID prefix>/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/; the checks it starts inherit the
+model accepts; default B) into job/Typical-<ID prefix>/03_Working_Design/CAD/Builds/<MODEL-ID>/<CFG>/, numbered the same way; the checks it starts inherit the
 choice. A job-level build also renders the review views (iso, plan, front, side PNGs from the build STEP,
 harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build skips the P&ID drawing checks
 (those are the project's drawings). Without --model-id everything is as above.
@@ -59,7 +67,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import json
+import os
 import subprocess
+import threading
 import sys
 import time
 from pathlib import Path
@@ -73,16 +83,15 @@ import accept_preflight as pf  # noqa: E402
 
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 PY_CADGEN = rp.TOOLS / "venv-cadgen" / "Scripts" / "python.exe"
-LOGS = mb.BUILD / "logs"
-FAST = rp.FAST_BUILDS   # <project>/03_Working_Design/CAD/Fast_Builds (Bob, 2026-10-10)
+BUILDS = rp.BUILDS      # <project>/03_Working_Design/CAD/Builds: every build, fast or full (Bob, 2026-11-12)
 
 
 class Step:
     """One subprocess step: its log goes to logs/<name>.log, its summary is the first line it prints."""
 
-    def __init__(self, name: str, cmd: list[str], logs: Path = LOGS):
+    def __init__(self, name: str, cmd: list[str], logs: Path | None = None):
         self.name, self.cmd = name, [str(c) for c in cmd]
-        self.log = logs / f"{name}.log"
+        self.log = (logs or mb.BUILD / "logs") / f"{name}.log"
         self.t0 = time.time()
         self.fh = open(self.log, "w", encoding="utf-8")
         self.proc = subprocess.Popen(self.cmd, cwd=rp.REPO, stdout=self.fh, stderr=subprocess.STDOUT,
@@ -112,13 +121,13 @@ def main() -> int:
     ap.add_argument("--no-glb", action="store_true", help="skip the GLB export (a build without a GLB cannot be filed)")
     ap.add_argument("--fast", action="store_true",
                     help="quick loop: lists, list delta, interference, model-only envelope; "
-                         "a quick GLB to look at, no STEP; a new <project>/03_Working_Design/CAD/Fast_Builds/rev<X>/rev<X>-fast-<nnn>/ folder each run, "
+                         "a quick GLB to look at, no STEP; a new <project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/ folder each run, "
                          "nothing overwritten")
     ap.add_argument("--supports", action="store_true",
                     help="with --fast: also run the pipe supports check (only when Bob asks for it)")
     ap.add_argument("--request", default="",
-                    help="with --fast: Bob's request (his words, trimmed); appends this build's fast-log row")
-    ap.add_argument("--change", default="", help="with --fast and --request: what this build changed, for the fast log")
+                    help="Bob's request (his words, trimmed), for this build's build-log row")
+    ap.add_argument("--change", default="", help="what this build changed, for the build log")
     rp.add_model_args(ap)
     a = ap.parse_args()
     for exe in (PY, PY_CADGEN):
@@ -140,28 +149,38 @@ def main() -> int:
             print(f"REFUSED: --config {rp.MODEL_CONFIG} is configuration {name} of {mb.MODEL_ID}; use --config {name} "
                   "(one document per configuration)", file=sys.stderr)
             return 2
+    for line in mb.adopt_earlier_layout(rp.BUILDS_ROOT, rp.EARLIER_FAST_ROOT, BUILDS, rp.EARLIER_SKID_BUILD,
+                                        mb.last_revision()):
+        print(f"model_iterate: {line}", flush=True)
     if a.fast:
         return fast(a)
 
     src_dir = rp.SKID_MODEL
     t0 = time.time()
     started = dt.datetime.now().replace(microsecond=0).isoformat(sep=" ")
-    mb.BUILD.mkdir(parents=True, exist_ok=True)
-    LOGS.mkdir(parents=True, exist_ok=True)
+    # a new numbered folder, never an earlier build's (Bob, chat, 2026-11-12); the steps started below find it
+    # through CPME_BUILD_DIR (repo_paths.current_build), and this process through mb.use_build
+    out = mb.new_build_dir("full", BUILDS, mb.last_revision())
+    if out.exists():
+        print(f"REFUSED: {rp.rel(out)} already exists (never overwritten)", file=sys.stderr)
+        return 2
+    (out / "logs").mkdir(parents=True)
+    os.environ["CPME_BUILD_DIR"] = str(out)
+    mb.use_build(out)
     mt, newest = mb.newest_source()
     print(f"model_iterate: {mb.DOC_ID} -> {rp.rel(mb.BUILD)} (newest source {rp.rel(newest)}, "
           f"{dt.datetime.fromtimestamp(mt):%Y-%m-%d %H:%M:%S})", flush=True)
     results: dict[str, dict] = {}
-
-    # stale STEP / GLB / views never survive a rebuild: a failed export leaves no file, so model_file refuses it
-    for p in [mb.STEP, mb.GLB] + mb.view_files():
-        p.unlink(missing_ok=True)
+    # the STEP of each earlier full build is zipped while this one runs
+    zipped: list[str] = []
+    zipper = threading.Thread(target=lambda: zipped.extend(mb.zip_earlier_steps(BUILDS, out)), daemon=True)
+    zipper.start()
 
     results["lists"] = Step("lists", [PY, src_dir / "export_lists.py"]).wait()
     say("lists", results["lists"])
     if results["lists"]["exit"] != 0 and not a.keep_going:
         print("model_iterate: STOPPED - export_lists reported model problems (fix the model, or --keep-going)")
-        return finish(results, started, t0, mt, newest)
+        return finish_full(a, results, started, t0, mt, newest, zipper, zipped)
 
     step = Step("step", [PY_CADGEN, src_dir / "export_step_direct.py"])
     side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"]),
@@ -201,7 +220,28 @@ def main() -> int:
         results["envelope"]["summary"] += " (model only: no new STEP)"
         say("envelope", results["envelope"])
         print("model_iterate: GLB not exported (no STEP)")
-    return finish(results, started, t0, mt, newest)
+    return finish_full(a, results, started, t0, mt, newest, zipper, zipped)
+
+
+def finish_full(a, results: dict, started: str, t0: float, mt: float, newest: Path, zipper, zipped: list) -> int:
+    """The end of a full build: its summary, the earlier STEPs zipped, and its build-log row."""
+    rc = finish(results, started, t0, mt, newest)
+    zipper.join()
+    if zipped:
+        print(f"model_iterate: STEP zipped in earlier full build(s): {', '.join(zipped)}")
+    mb.log_row(BUILDS, mb.BUILD.name, a.request or "(none given)", a.change or "full build",
+               checks_cell(results, f"{(time.time() - t0) / 60:.1f} min"))
+    print(f"model_iterate: build-log row added for {mb.BUILD.name}")
+    return rc
+
+
+def checks_cell(results: dict, tail: str) -> str:
+    """The Checks cell of a build-log row: only the checks that ran are named."""
+    short = {"interference": "int", "envelope": "env", "materials": "materials", "pipe_supports": "pipe_supports",
+             "list_delta": "list delta", "step": "STEP", "glb": "GLB"}
+    cell = "; ".join(f"{short[k]} {'PASS' if r['exit'] == 0 else 'FAIL'}" + (f" {r['rows']}" if k == "list_delta" and "rows" in r else "")
+                     for k, r in results.items() if k in short)
+    return f"{cell}; {tail}"
 
 
 def run_looks(glb: Path) -> dict:
@@ -236,7 +276,7 @@ def run_list_delta(folder: Path, what: str) -> dict:
 
 
 def fast(a) -> int:
-    """--fast: the ~6 s checks and a quick GLB, into a new <project>/03_Working_Design/CAD/Fast_Builds/rev<X>/rev<X>-fast-<nnn>/ folder; the STEP and the STEP-based
+    """--fast: the ~6 s checks and a quick GLB, into a new <project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/ folder; the STEP and the STEP-based
     envelope and GLB, nearly all of a ~6 min build, are left out. Nothing outside the new folder is written or removed."""
     # named for the filed revision the build starts from, as P&ID fast edits are (Bob, chat, 2026-10-11:
     # "job/models/fast/revV/revV-fast-001. that way we can still track fast changes.")
@@ -244,11 +284,7 @@ def fast(a) -> int:
     if not base:
         print(f"REFUSED: no filed revision of {mb.DOC_ID} to start a fast build from", file=sys.stderr)
         return 2
-    rev_dir = FAST / f"rev{base}"
-    rev_dir.mkdir(parents=True, exist_ok=True)
-    pre = f"rev{base}-fast-"
-    nums = [int(p.name[len(pre):]) for p in rev_dir.glob(pre + "*") if p.name[len(pre):].isdigit()]
-    out = rev_dir / f"{pre}{max(nums, default=0) + 1:03d}"
+    out = mb.new_build_dir("fast", BUILDS, base)   # one counter per letter, shared with the full builds
     if out.exists():
         print(f"REFUSED: {rp.rel(out)} already exists (never overwritten)", file=sys.stderr)
         return 2
@@ -302,26 +338,10 @@ def fast(a) -> int:
     rc = finish(results, started, t0, mt, newest, out, open_items=items, drawings=drawing_info)
     pf.print_items(items, f"OPEN BEFORE REV {nxt}")
     if a.request:
-        fast_log_row(out, a.request, a.change, results, len(items), nxt, time.time() - t0)
+        mb.log_row(BUILDS, out.name, a.request, a.change,
+                   checks_cell(results, f"open before Rev {nxt}: {len(items)}; {time.time() - t0:.0f} s"))
+        print(f"model_iterate --fast: build-log row added for {out.name}")
     return rc
-
-
-def fast_log_row(out: Path, request: str, change: str, results: dict, n_open: int, nxt: str, secs: float) -> None:
-    """One row in <project>/03_Working_Design/CAD/Fast_Builds/fast-log.md under today's heading (Bob, 2026-10-10: "start to keep a running list
-    in the fast folder for each revision."). Pipe supports are named only when that check ran."""
-    log = FAST / "fast-log.md"
-    cell = lambda s: (s or "").replace("|", "/").replace("\r", " ").replace("\n", " ").strip()  # noqa: E731
-    short = {"interference": "int", "envelope": "env", "pipe_supports": "pipe_supports", "list_delta": "list delta"}
-    checks = "; ".join(f"{short[k]} {'PASS' if r['exit'] == 0 else 'FAIL'}" + (f" {r['rows']}" if k == "list_delta" else "")
-                       for k, r in results.items() if k in short)
-    checks += f"; open before Rev {nxt}: {n_open}; {secs:.0f} s"
-    text = log.read_text(encoding="utf-8") if log.exists() else "# Fast builds: running list\n"
-    day = dt.date.today().isoformat()
-    add = "" if f"## {day}" in text else f"\n## {day}\n\n| Build | Time | Request | Result / note | Checks |\n|---|---|---|---|---|\n"
-    add += f"| {out.name} | {dt.datetime.now():%H:%M} | {cell(request)} | {cell(change)} | {cell(checks)} |\n"
-    with open(log, "a", encoding="utf-8", newline="\n") as f:
-        f.write(add if text.endswith("\n") else "\n" + add)
-    print(f"model_iterate --fast: fast-log row added for {out.name}")
 
 
 def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast_dir: Path | None = None,
@@ -333,6 +353,7 @@ def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast
     summary = {"model_id": mb.MODEL_ID, "started": started,
                "finished": dt.datetime.now().replace(microsecond=0).isoformat(sep=" "), "seconds": round(secs, 1),
                "newest_source": {"path": rp.rel(newest), "mtime": mt}, "steps": results, "failed": failed,
+               "build": (fast_dir or mb.BUILD).name, "kind": "fast" if fast_dir else "full",
                "complete": fast_dir is None and all(k in results for k in need)}
     if mb.JOB_LEVEL:
         summary.update({"document_id": mb.DOC_ID, "config": rp.MODEL_CONFIG})
@@ -340,7 +361,7 @@ def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast
         summary["open_items"] = open_items
     if drawings:
         summary["drawing_checks"] = drawings
-    # a fast build keeps its own summary; mb.SUMMARY (what model_file.py reads) stays the last full build's
+    # every build keeps its own summary; model_file.py reads a full build's
     (fast_dir / "iterate-summary.json" if fast_dir else mb.SUMMARY).write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     state = "PASS" if not failed else f"FAIL ({', '.join(failed)})"
@@ -348,8 +369,8 @@ def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast
         print(f"model_iterate --fast: {state} in {secs:.0f} s -> {rp.rel(fast_dir)}; no STEP, nothing "
               f"overwritten (run without --fast before filing)")
     else:
-        print(f"model_iterate: {state} in {secs / 60:.1f} min; working copy only, nothing filed "
-              f"(file it with harness/scripts/model_file.py when Bob looks at it)")
+        print(f"model_iterate: {state} in {secs / 60:.1f} min -> {rp.rel(mb.BUILD)}; nothing overwritten, nothing "
+              f"filed (file it with harness/scripts/model_file.py when Bob looks at it)")
     return 0 if not failed else 1
 
 

@@ -1,11 +1,16 @@
 """model_build - what a skid-model build is made of, shared by the three tiers (CPME practice).
 
-    harness/scripts/model_iterate.py   tier 1, every build: writes the work build (<project>/03_Working_Design/Exports/build/<MODEL-ID>/)
-    harness/scripts/model_file.py      tier 2, when Bob looks at it: files the work build as the next revision
+    harness/scripts/model_iterate.py   tier 1, every build: a new numbered folder in <project>/03_Working_Design/CAD/Builds/
+    harness/scripts/model_file.py      tier 2, when Bob looks at it: files a full build as the next revision
     harness/scripts/closeout.py        tier 3, once a day on Bob's word: Drive push, checks, portal, commit body
 
 One place names the build's files, the filed name of each, and the source files a build is derived from,
-so model_file can refuse a work build that is older than its source (TR-03, TR-08).
+so model_file can refuse a build that is older than its source (TR-03, TR-08).
+
+One build series (Bob, chat, 2026-11-12): every build, fast or full, is a new folder
+<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/ or rev<X>-full-<nnn>/, <X> the last filed revision
+it starts from, one counter per letter shared by both kinds, never overwritten, one row each in Builds/build-log.md.
+BUILD is the full build in hand: the latest one (repo_paths.current_build), or the one use_build names.
 
 The model is the project's skid model unless a job-level model is chosen (--model-id / --config, harness/lib/
 repo_paths.py). A job-level model files each configuration as its own document, DOC_ID = <MODEL-ID>-<CFG>, with its
@@ -16,11 +21,18 @@ document_id is DOC_ID (B and X share the model's filed folder). A job-level mode
 from __future__ import annotations
 
 import csv
+import datetime as dt
+import shutil
 import sys
+import zipfile
 from pathlib import Path
 
 import repo_paths as rp
 import components
+
+LOG_NAME = "build-log.md"            # the running list of builds, in the builds folder
+EARLIER_LOG_NAME = "fast-log.md"     # its name before 2026-11-12
+LOG_HEAD = "| Build | Time | Request | Result / note | Checks |\n|---|---|---|---|---|\n"
 
 # Takeoffs and records the build writes, in the order revisions.csv lists them (as Rev A, 2026-10-02).
 # The list delta is filed with each revision.
@@ -39,6 +51,98 @@ if rp.HAS_MODEL:   # no model yet: the functions below that read a revisions.csv
     SUMMARY = BUILD / "iterate-summary.json"   # written by model_iterate.py, read by model_file.py
     STEP = BUILD / f"{DOC_ID}.step"
     GLB = BUILD / f"{DOC_ID}.glb"
+
+
+def use_build(folder: Path | None = None) -> Path:
+    """Point BUILD, SUMMARY, STEP and GLB at `folder`, or at the latest full build when none is given (a script that
+    has just run model_iterate.py calls this, because these names were set when it started)."""
+    global BUILD, SUMMARY, STEP, GLB
+    BUILD = Path(folder) if folder is not None else rp.current_build(rp.BUILDS)
+    SUMMARY = BUILD / "iterate-summary.json"
+    STEP = BUILD / f"{DOC_ID}.step"
+    GLB = BUILD / f"{DOC_ID}.glb"
+    return BUILD
+
+
+def series_stem(last: str | None) -> str:
+    """The folder and name prefix of the builds that start from filed revision `last` (`first` before Rev A)."""
+    return f"rev{last}" if last else "first"
+
+
+def new_build_dir(kind: str, builds: Path, last: str | None) -> Path:
+    """The next build folder, not yet made: `builds`/<stem>/<stem>-<kind>-<nnn>, <nnn> one more than the highest
+    number of either kind for that letter (001 again after each filing). kind is "fast" or "full"."""
+    stem = series_stem(last)
+    nums = [k[2] for k in (rp.build_key(p.name) for p in (builds / stem).glob(f"{stem}-*") if p.is_dir()) if k]
+    return builds / stem / f"{stem}-{kind}-{max(nums, default=0) + 1:03d}"
+
+
+def find_build(name: str, builds: Path) -> Path | None:
+    """The build folder called `name` (rev<X>-full-<nnn>) under `builds`, or None."""
+    hits = [p for p in builds.glob(f"*/{name}") if p.is_dir() and rp.build_key(p.name)]
+    return hits[0] if hits else None
+
+
+def log_row(builds: Path, build: str, request: str, change: str, checks: str) -> None:
+    """One row in `builds`/build-log.md under today's heading (Bob, 2026-10-10: "start to keep a running list in the
+    fast folder for each revision."; every build since 2026-11-12)."""
+    log = builds / LOG_NAME
+    cell = lambda s: (s or "").replace("|", "/").replace("\r", " ").replace("\n", " ").strip()  # noqa: E731
+    text = log.read_text(encoding="utf-8") if log.exists() else "# Builds: running list\n"
+    day = dt.date.today().isoformat()
+    add = "" if f"## {day}" in text else f"\n## {day}\n\n{LOG_HEAD}"
+    add += f"| {build} | {dt.datetime.now():%H:%M} | {cell(request)} | {cell(change)} | {cell(checks)} |\n"
+    log.parent.mkdir(parents=True, exist_ok=True)
+    if not log.exists():
+        log.write_text(text, encoding="utf-8", newline="\n")
+    with open(log, "a", encoding="utf-8", newline="\n") as f:
+        f.write(add if text.endswith("\n") else "\n" + add)
+
+
+def adopt_earlier_layout(builds_root: Path, earlier_fast_root: Path, builds: Path, earlier_build: Path,
+                         last: str | None) -> list[str]:
+    """Once per checkout, bring the layout used before 2026-11-12 into the one series, and say what moved:
+    the fast builds folder is renamed to `builds_root`, its fast-log.md to build-log.md, and the one full build that
+    used to be overwritten (`earlier_build`, when it holds an iterate-summary.json) becomes the next numbered full
+    build. Nothing is copied or deleted; a move that cannot be made is reported and left."""
+    done = []
+    if earlier_fast_root.is_dir() and not builds_root.exists():
+        earlier_fast_root.rename(builds_root)
+        done.append(f"{earlier_fast_root.name}/ is now {builds_root.name}/")
+    elif earlier_fast_root.is_dir():
+        done.append(f"NOT MOVED: both {earlier_fast_root} and {builds_root} exist")
+    old_log, log = builds / EARLIER_LOG_NAME, builds / LOG_NAME
+    if old_log.is_file() and not log.exists():
+        old_log.rename(log)
+        done.append(f"{EARLIER_LOG_NAME} is now {LOG_NAME}")
+    if (earlier_build / "iterate-summary.json").is_file():
+        dst = new_build_dir("full", builds, last)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(earlier_build), str(dst))
+        log_row(builds, dst.name, "(none: the full build as it stood before every build was numbered)",
+                f"moved from {earlier_build.parent.name}/{earlier_build.name}, nothing rebuilt", "as in its iterate-summary.json")
+        done.append(f"the earlier full build is now {dst.name}")
+    return done
+
+
+def zip_earlier_steps(builds: Path, keep: Path) -> list[str]:
+    """Zip the STEP of every full build under `builds` except `keep` (<name>.step becomes <name>.step.zip beside it),
+    so only the build in hand holds an unzipped STEP (about a tenth of the size). Returns the builds zipped."""
+    done = []
+    for step in sorted(builds.glob("*/*-full-[0-9][0-9][0-9]/*.step")):
+        if step.parent == keep or not rp.build_key(step.parent.name):
+            continue
+        dst = step.with_name(step.name + ".zip")
+        part = dst.with_name(dst.name + ".partial")
+        zi = zipfile.ZipInfo(step.name, date_time=dt.datetime.fromtimestamp(step.stat().st_mtime).timetuple()[:6])
+        zi.compress_type = zipfile.ZIP_DEFLATED
+        with zipfile.ZipFile(part, "w", zipfile.ZIP_DEFLATED) as z, open(step, "rb") as fin, \
+                z.open(zi, "w", force_zip64=True) as fout:
+            shutil.copyfileobj(fin, fout, 1 << 22)
+        part.replace(dst)
+        step.unlink()
+        done.append(step.parent.name)
+    return done
 
 
 def filed_name(build_name: str, rev: str) -> str:

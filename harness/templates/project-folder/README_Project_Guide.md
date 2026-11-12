@@ -53,14 +53,14 @@ hygienic lines, the job's product rules (`job/design-rules/`) on the classes the
 | CAD/05_Purchased_Components | Project-only components (one-off adapters, customer-supplied items): `component-register.csv` and one `COMP-nnnn_<Maker>_<Model>/` folder each. Reusable parts live in the job library `job/components/` |
 | CAD/06_Drawings | `Generators/` (drawing scripts) and drawing-type folders |
 | CAD/07 … 09 | Reference geometry, design alternatives, presentation builders and assets |
-| CAD/Fast_Builds | Fast model builds; viewing copies, gitignored, never filed |
+| CAD/Builds | Every model build, fast or full, one numbered folder each (`rev<X>/rev<X>-fast-<nnn>`, `rev<X>-full-<nnn>`), never overwritten, with `build-log.md`; working copies, gitignored, never filed |
 | PID/01_Native | P&ID and PFD working files |
 | PID/02_Tag_Lists | The six P&ID lists: equipment, instrument, line, valve, tie-in, motor load |
 | PID/03 … 04 | Process descriptions; legends and symbols |
 | PID/Fast_Edits | P&ID fast edits; working copies, gitignored, never filed |
 | Electrical_Controls | Placeholder; the electrical and controls teams fill it in their own structure |
 | BOM/01 … 05 | Master BOM, equipment list, piping/valves/fittings, electrical and instruments, spares |
-| Exports | Regenerated build output (STEP, GLB, takeoffs, previews); gitignored working copies |
+| Exports | Drawing previews and other throwaway output; gitignored. Model builds are in CAD/Builds |
 | **04_Vendor_Data** | Supplier documents and manufacturer CAD, unchanged. One folder per tag, for example `02_Pumps/P-101_Maker_Model/` holding `01_Datasheets/ 02_CAD_Originals/ 03_Drawings_Submittals/ 04_Manuals/ 05_Certificates/ 06_Technical_Correspondence/` |
 | **05_Reviews_Changes** | Internal, customer and vendor reviews, change requests, approved changes, approvals, closed records. One folder per review (`REVW-001_…`) or change (`CR-001_…`) holding `Request/ Markups/ Responses/ Closure/` |
 | **06_Issued_Revisions** | Everything handed off, read-only (TR-08) |
