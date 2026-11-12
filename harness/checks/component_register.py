@@ -17,7 +17,9 @@ Completeness of every current row (Bob, chat, 2026-10-29: "get to the bottom of 
 ends and fix them"; the check passed parts that were not ready, so nobody saw them): a cut sheet; a CPME STEP (the
 part is ready to place); a maker model, or a search record that covers every place in SEARCH_PLACES with none left
 "not checked" (skill component-add); and no item parked on a vendor or on a later decision (PARKED), since Bob does
-not contact vendors and an open choice is decided or asked at once.
+not contact vendors and an open choice is decided or asked at once. A library with `completeness-scope.txt` beside
+its register has completeness checked only on the parts that file lists (the parts a model places); its other rows
+are library stock and are not reported (Bob, 2026-11-11; `completeness_scope`).
 
 Reports, never blocks (CLAUDE.md: checks report; a design-record finding, not a repo-integrity one, so CI shows it as
 a warning). Exit contract (harness/checks/README.md): 0 PASS, 1 with the "component_register: FAIL" summary =
@@ -76,6 +78,23 @@ def completeness(r: dict, tag: str) -> list[str]:
     return out
 
 
+SCOPE_FILE = "completeness-scope.txt"
+
+
+def completeness_scope(lib: C.Library) -> set[str] | None:
+    """The component ids whose completeness is checked in this library, or None for every current row.
+
+    A library may hold `completeness-scope.txt` beside its register: one COMP-nnnn per line (`#` starts a comment),
+    the parts a model places. With it, completeness is checked on those parts only and the other rows are library
+    stock, not reported (Bob, 2026-11-11: complete records for the parts in use; "we may never use" the rest).
+    The skill component-add adds a new part's id to the file. No file: every current row is checked."""
+    p = lib.root / SCOPE_FILE
+    if not p.is_file():
+        return None
+    return {m.group(0) for line in p.read_text(encoding="utf-8-sig").splitlines()
+            for m in [re.match(r"COMP-\d{4}", line.split("#")[0].strip())] if m}
+
+
 def _sha256(p: Path) -> str:
     h = hashlib.sha256()
     with open(p, "rb") as f:
@@ -108,6 +127,7 @@ def findings(libs: list[C.Library] | None = None) -> tuple[int, int, list[str]]:
             out.append(f"{where}: header lacks {', '.join(missing)}")
         pairs: Counter = Counter()
         current: Counter = Counter()
+        scope = completeness_scope(lib)
         for i, raw in enumerate(rows, 2):   # line 1 is the header
             n_rows += 1
             r = {**{k: (v or "").strip() for k, v in raw.items() if k is not None}, "_library": lib.level, "_root": lib.root}
@@ -124,7 +144,8 @@ def findings(libs: list[C.Library] | None = None) -> tuple[int, int, list[str]]:
                 current[cid] += 1
             if cid:
                 library_of[cid].add(lib.level)
-            out += completeness(r, tag)
+            if scope is None or cid in scope:
+                out += completeness(r, tag)
             for col, sha_col in C.FILE_COLUMNS:
                 p = C.resolve(r, r.get(col, ""))
                 if p is None:

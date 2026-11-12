@@ -116,7 +116,9 @@ component details."
    Rev, a new register row with `supersedes` set and the old row's `status`
    left as filed (a later row marks it superseded). Fill every register column
    you can (`job/components/README.md` lists them); `unknown` where the source
-   does not say. Then:
+   does not say. If the library has `completeness-scope.txt` beside its
+   register (the parts a model places; the register check reports only those),
+   add the part's `COMP-nnnn` to it. Then:
 
    ```
    .\harness\tools\venv\Scripts\python.exe harness\scripts\drive_store.py pointers

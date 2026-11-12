@@ -153,6 +153,19 @@ class Check(Scratch):
                      "COMP-0009_Acme_X: folder has no row", "header lacks notes"):
             self.assertIn(want, text)
 
+    def test_completeness_scope_file_limits_the_parts_checked(self):
+        write_register(self.job.register, [row("COMP-0001"), row("COMP-0002")])    # both unfinished
+        write_register(self.prj.register, [])
+        both = "\n".join(CR.findings(self.libs)[2])
+        self.assertIn("COMP-0001 rev A: no cut sheet", both)
+        self.assertIn("COMP-0002 rev A: no cut sheet", both)
+        (self.job.root / CR.SCOPE_FILE).write_text("# parts the model places\nCOMP-0001  # pump\n", encoding="utf-8")
+        self.assertEqual(CR.completeness_scope(self.job), {"COMP-0001"})
+        self.assertIsNone(CR.completeness_scope(self.prj))
+        scoped = "\n".join(CR.findings(self.libs)[2])
+        self.assertIn("COMP-0001 rev A: no cut sheet", scoped)
+        self.assertNotIn("COMP-0002", scoped)                                      # library stock: not reported
+
     def test_missing_register_reported(self):
         write_register(self.job.register, [])
         out = CR.findings(self.libs)[2]
