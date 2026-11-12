@@ -12,9 +12,12 @@ project needs something the guide does not cover, add it here (ask Bob first), n
 | `README.md` | This guide (the rules) |
 | `brand.yaml` | The same values as data, for scripts (colours, fonts, contact block, logo files) |
 | `brand.css` | The same values as CSS custom properties, for HTML pages, portals and data sheets |
-| `assets/cpme-logo.png` | The logo, 288 x 216 px, full colour, white background |
-| `assets/cpme-logo.svg` | The logo as SVG, 1000 x 743 viewBox (traced from the bitmap, see "Logo") |
-| `../cad-lib/cpme-logo.dxf` | The logo as a CAD block (`CPME_LOGO_EMBEDDED`), used by `cpme_titleblock.py` |
+| `assets/cpme-logo.svg` | **The logo, vector, full colour.** The master file: use it wherever SVG works (web, Word, PowerPoint, Inkscape, Illustrator) |
+| `assets/cpme-logo.pdf` | The same vector logo as PDF, for print and for programs that take PDF artwork |
+| `assets/cpme-logo-2400.png` | The vector logo rendered 2400 px wide, transparent background, for programs that need a bitmap |
+| `assets/cpme-logo-original.png` | The original 288 x 216 px bitmap the vector was measured from. Reference only |
+| `src/build_logo.py` | Builds `cpme-logo.svg` from the measured geometry (see "Logo") |
+| `../cad-lib/cpme-logo.dxf` | The logo as a CAD block (`CPME_LOGO_EMBEDDED`), one colour, used by `cpme_titleblock.py` |
 
 ## Sources
 
@@ -72,15 +75,25 @@ www.linkedin.com/company/cpme-usa
 The logo is a navy crescent "C" around a steel-grey "C", with "CPME" in navy inside it.
 
 **Files.** Use only the files in this folder and `cad-lib/cpme-logo.dxf`. Never redraw, retrace or AI-generate
-the logo. The PNG is the original bitmap. The SVG was traced from that bitmap for web use; it is not CPME's
-original vector artwork. **Open item:** ask whoever made the logo for the original vector file (AI, EPS, PDF or
-SVG); when it arrives it replaces the SVG here, with a note of where it came from.
+the logo again; `cpme-logo.svg` is the one vector master.
+
+**Where the vector came from.** No original vector artwork was found on Bob's computer (searched 2026-11-11:
+no AI, EPS, PDF or SVG source; the old portal SVG and the CAD block were both traced pixel by pixel from the
+288 x 216 px bitmap). On Bob's word (chat, 2026-11-11: "The vector logo should be somewhere on this computer,
+or you need to create it") it was rebuilt by `src/build_logo.py`:
+- each "C" is an ellipse with a second ellipse cut out of it, fitted to the bitmap's edges (fit error 0.12 to
+  0.25 px); the steel "C" is opened on the right by two straight cuts;
+- "CPME" is set in Dubai Bold outlines, each letter fitted to its box on the bitmap (Dubai Bold was the
+  closest of the installed fonts in weight, spacing and the short middle V of the M);
+- checked against the bitmap: 97.9 % of pixels the same colour, navy overlap 0.97, steel 0.89.
+The bitmap cuts off the bottom of the navy "C"; the vector shows the whole shape. If CPME's original artwork
+ever turns up, it replaces these files, with a note of where it came from.
 
 **Rules.**
 - Keep the proportions (about 4 : 3). Never stretch, rotate, recolour, outline, shadow or crop it.
 - Clear space on every side: at least one quarter of the logo's height.
-- Smallest size: 0.5 in wide in print, 48 px wide on screen. The PNG is 288 x 216 px, so in print it stays at
-  or under about 1.5 in wide (about 200 dpi); larger print needs the SVG or the original vector.
+- Smallest size: 0.5 in wide in print, 48 px wide on screen. No largest size: use the SVG or PDF and it stays
+  sharp at any size. Never use `cpme-logo-original.png` in new work.
 - Background: white or very light only. On navy or a photo, put the logo on a white tile with rounded corners
   (as on the website and the portal top bar). Never place it straight on a dark colour.
 - One colour: black only where colour is not possible (CAD title blocks on layer `P-ANNO-LOGO`, fax, stamps).
@@ -188,8 +201,8 @@ From the 2025 proposal:
   (bill of materials by area, total, quotation notes, payment terms), General conditions of work.
 - **Quotation table:** columns Catalog # | Description | Qty/Unit; one table per area (control panel, skid).
 - **Sign-off:** "Best Regards," then the signer's name (bold), signature, title (bold) and *CPME USA*.
-- **Page size:** US Letter for new documents. **Open item:** the 2025 proposal PDF is US Legal (8.5 x 14 in);
-  confirm with Bob whether proposals stay Legal.
+- **Page size:** US Letter (8.5 x 11 in), like every other CPME document (Bob, chat, 2026-11-11). The 2025
+  proposal was US Legal; new proposals are not.
 - File name: `<Project No> <Customer> Proposal.pdf`.
 
 ### 7.2 Data sheets and product literature (HTML printed to PDF)
@@ -252,11 +265,6 @@ CPME USA
 - [ ] Every value has its unit; nothing invented.
 - [ ] Sales literature has no makers, tags or job numbers.
 
-## Open items for Bob
-
-1. The original vector logo file, from whoever made it.
-2. Proposal page size: keep US Legal, or US Letter like everything else?
-
 ## Changes to this guide
 
 A change to this guide is asked of Bob first, like a harness design rule, and cites his answer here.
@@ -265,3 +273,5 @@ A change to this guide is asked of Bob first, like a harness design rule, and ci
 |---|---|---|
 | 2026-11-10 | First issue, from the sources listed above | Bob, chat, 2026-11-10 |
 | 2026-11-10 | Drawing title block moves to 600 Faust Rd., Unit 38 | Bob, chat, 2026-11-10: "Yes, update it" |
+| 2026-11-11 | Vector logo built (`src/build_logo.py`), with PDF and 2400 px PNG; the traced SVG and the 288 px PNG retired | Bob, chat, 2026-11-11: "The vector logo should be somewhere on this computer, or you need to create it" |
+| 2026-11-11 | Proposals on US Letter | Bob, chat, 2026-11-11: "Proposals should be on letter" |

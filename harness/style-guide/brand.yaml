@@ -25,10 +25,12 @@ products:
   - {name: "BeaconLink", web: "www.beaconlink.io"}
 
 logo:
-  png: "harness/style-guide/assets/cpme-logo.png"   # original bitmap, 288 x 216 px
-  svg: "harness/style-guide/assets/cpme-logo.svg"   # traced from the bitmap, not original vector art
-  dxf: "harness/cad-lib/cpme-logo.dxf"              # block CPME_LOGO_EMBEDDED
-  aspect: 1.333                                     # width / height
+  svg: "harness/style-guide/assets/cpme-logo.svg"       # vector master (built by src/build_logo.py)
+  pdf: "harness/style-guide/assets/cpme-logo.pdf"       # same vector, for print
+  png: "harness/style-guide/assets/cpme-logo-2400.png"  # 2400 px wide, transparent
+  original_bitmap: "harness/style-guide/assets/cpme-logo-original.png"  # 288 x 216 px, reference only
+  dxf: "harness/cad-lib/cpme-logo.dxf"                  # block CPME_LOGO_EMBEDDED, one colour
+  aspect: 1.361                                         # width / height of the vector artwork
   clear_space: 0.25                                 # fraction of logo height, every side
   min_width_in: 0.5
   min_width_px: 48
@@ -67,4 +69,4 @@ document_sizes_pt:
   footer: 8.5
 
 page:
-  default: "US Letter"   # open item: the 2025 proposal is US Legal; Bob to confirm for proposals
+  default: "US Letter"   # every document, proposals included (Bob, chat, 2026-11-11)
