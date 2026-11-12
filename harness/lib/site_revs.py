@@ -10,8 +10,10 @@ the last row of the document's revisions.csv (model_build.last_revision; revisio
     site_revs.hidden_models()            # model IDs kept off the site: <project>/03_Working_Design/CAD/09_Presentation/site.yaml
     site_revs.hidden_pages()             # ("quote",): tracker pages not built (site.yaml, 2026-10-08)
 
-The site is the project tracker, its landing page and Mobile Optimized (Bob, chat, 2026-10-30: no Customer Portal and
-no Fabrication Estimating Portal on this job), so every publish runs with "--quoting none".
+Every site is the project tracker, its landing page and Mobile Optimized. A project whose builders also make a
+Fabrication Estimating Portal (portal_lib/quoting.py) or a customer site (portal_lib/customer.py) publishes those too:
+    site_revs.portals()                  # ("tracker", "mobile") on most projects; plus "estimating" and "customer"
+A project with neither (Bob, chat, 2026-10-30) publishes with "--quoting none" and has no "quoting" or "customer" key.
     site_revs.site_dormant()             # "no presentation site yet (...)" while the project has none, else None
 """
 from __future__ import annotations
@@ -46,14 +48,31 @@ def site_dormant(needs: tuple[str, ...] = ("build_portal.py",), site_repo: str |
         return f"no presentation site yet ({where} has no {', '.join(missing)})"
     return None
 
+
+def portals(presentations: Path | None = None) -> tuple[str, ...]:
+    """The portals this project's builders make: always "tracker" and "mobile"; "estimating" (the Fabrication
+    Estimating Portal, record ID quoting-portal) when portal_lib/quoting.py is among the builders, and "customer" (the
+    customer site, record ID customer-portal) when portal_lib/customer.py is. No project yet: ()."""
+    if presentations is None and not rp.HAS_PROJECT:
+        return ()
+    lib = (presentations or rp.PRESENTATIONS) / "portal_lib"
+    return ("tracker", "mobile") + (("estimating",) if (lib / "quoting.py").is_file() else ()) \
+        + (("customer",) if (lib / "customer.py").is_file() else ())
+
+
 # publish_site.py argument -> filed document folder (<project>/06_Issued_Revisions/Portals/<doc>/revisions.csv)
 DOCS: dict[str, Path] = ({"rev": rp.PORTAL_FILED, "landing": rp.LANDING_FILED,
                           "mobile": rp.MOBILE_FILED}   # Mobile Optimized, mobile/ (Bob, 2026-10-17)
                          if rp.HAS_PROJECT else {})    # no project yet: nothing filed, nothing to publish
+if "estimating" in portals():
+    DOCS["quoting"] = rp.QUOTING_FILED                 # the Fabrication Estimating Portal, estimating/
+if "customer" in portals():
+    DOCS["customer"] = rp.CUSTOMER_FILED               # the customer site, customer/ (filed on Bob's word only)
 
 
 def newest(docs: dict[str, Path] | None = None) -> dict[str, str | None]:
-    """{"rev", "landing", "mobile"} -> the newest filed revision letter of each, or None if none is filed."""
+    """{"rev", "landing", "mobile"[, "quoting", "customer"]} -> the newest filed revision letter of each, or None if
+    none is filed."""
     return {k: last_revision(root) for k, root in (docs or DOCS).items()}
 
 
@@ -87,10 +106,14 @@ def hidden_pages(config: Path | None = None) -> tuple[str, ...]:
 
 
 def publish_args(revs: dict[str, str | None]) -> list[str]:
-    """publish_site.py arguments naming each revision explicitly: always "--quoting none" (no estimating portal on
-    this job); the landing page and Mobile Optimized when filed, else "none" (publish_site.py then lays out the
-    tracker alone at the root)."""
+    """publish_site.py arguments naming each revision explicitly: "--quoting none" unless the project has an
+    estimating portal with a filed revision; the landing page and Mobile Optimized when filed, else "none"
+    (publish_site.py then lays out the tracker alone at the root); "--customer <X>" only once a customer site
+    revision is filed (it is filed on Bob's word only)."""
     if not revs.get("rev"):
         raise ValueError("no project-portal revision is filed")
-    return ["--rev", revs["rev"], "--quoting", "none", "--landing", revs.get("landing") or "none",
+    args = ["--rev", revs["rev"], "--quoting", revs.get("quoting") or "none", "--landing", revs.get("landing") or "none",
             "--mobile", revs.get("mobile") or "none"]
+    if revs.get("customer"):
+        args += ["--customer", revs["customer"]]
+    return args

@@ -205,7 +205,7 @@ author never edits.
 ## Move to the harness, 2026-11-06 (not a review pass)
 
 Bob, chat, 2026-11-06: the frame modeling tools "should be included in the engineering Harness Master and applied
-to this Hot Water Set project appropirately". Done from the hot water set job (Hot-Water-Set repo) and copied to
+to this Hot Water Set project appropirately". Done from the hot water set job (its own repo) and copied to
 the master.
 
 - Moved from the CIP project's `02_Engineering/11_Scripts_Models/Structural_Models/` to `harness/structural-models/`;

@@ -18,9 +18,13 @@ they are skipped while that folder has no builders. The site_revs and publish_si
 - Bob, 2026-10-08: site_revs.hidden_pages reads site.yaml hidden_pages (the Quote page); the side menu carries
   "Launch floating model" only on a page with the floating window, under Expand all / Collapse all; the shared scripts
   carry the Pan toggle, the hint, the larger window default and the smaller pick box.
-- Bob, chat, 2026-10-30: the site is the project tracker, its landing page and Mobile Optimized; publish_site lays out
-  tracker/ and mobile/ beside the landing page and refuses any --quoting but "none"; portal_terms has the tracker's
-  rules only (warn mode, never FAIL).
+- Every site is the project tracker, its landing page and Mobile Optimized (Bob, chat, 2026-10-30); a project whose
+  builders make the Fabrication Estimating Portal or the customer site (site_revs.portals()) publishes those too:
+  publish_site lays out tracker/, estimating/ (when named), mobile/ and customer/ (when named) beside the landing page,
+  and a project without the estimating portal or customer site refuses any --quoting or --customer but "none";
+  site_revs.publish_args passes "--quoting none" unless an estimating revision is named; portal_terms lints the tracker
+  in warn mode (never FAIL) and the fabricator and customer audiences in fail mode. The cases hold for both kinds of
+  project; one that needs the estimating portal or customer site on this project skips without it.
 
 Every case works in a scratch folder under <project>/_work/ (gitignored); nothing filed is read or written.
 
@@ -162,11 +166,11 @@ class ViewerAssets(unittest.TestCase):
         self.assertIn("max-width: min(300px, 50%)", css)      # the pick box: at most half by half of the viewer
 
 
-class PortalTermsTrackerOnly(unittest.TestCase):
-    """portal_terms has the tracker's rules only (Bob, chat, 2026-10-30: no estimating or customer portal): it lints a
-    tracker or mobile folder in warn mode and never fails; it takes no --audience."""
+class PortalTermsAudiences(unittest.TestCase):
+    """portal_terms lints a tracker or mobile folder in warn mode and never fails (the tracker shows internal records
+    on purpose); the same text fails the fabricator and customer audiences."""
 
-    def test_warn_mode_never_fails(self):
+    def test_warn_mode_never_fails_and_public_audiences_do(self):
         sys.path.insert(0, str(REPO / "harness" / "checks"))
         import portal_terms as PT
         with scratch() as d:
@@ -177,8 +181,10 @@ class PortalTermsTrackerOnly(unittest.TestCase):
             out = io.StringIO()
             with contextlib.redirect_stdout(out):
                 self.assertEqual(PT.report(root, "Mobile Optimized", None), 0)
-            self.assertIn("portal_terms: PASS (warn mode)", out.getvalue())
-            self.assertFalse(hasattr(PT, "fab_terms"))
+                self.assertEqual(PT.report(root, "portal", None, "fabricator"), 1)
+                self.assertEqual(PT.report(root, "customer", None), 1)
+            self.assertIn("portal_terms: PASS (warn mode) - Mobile Optimized", out.getvalue())
+            self.assertIn("portal_terms: FAIL - portal", out.getvalue())
 
 
 @needs_builders
@@ -241,22 +247,81 @@ class AssetsPlan(unittest.TestCase):
 
 
 class PublishPlan(unittest.TestCase):
-    def test_site_layout_is_tracker_and_mobile(self):
+    def test_site_layout(self):
+        """Without the estimating portal and customer site: landing root, tracker/, mobile/ (as always). With them:
+        estimating/ after tracker/, customer/ last; the rest is the same."""
         docs = PS.docs_for("C", "B", "A")
         self.assertEqual([(r.name, f, pre) for r, f, pre in docs],
                          [("portal-landing", "portal-landing-revB", ""), ("project-portal", "project-portal-revC", "tracker/"),
                           ("mobile-portal", "mobile-portal-revA", "mobile/")])
         self.assertEqual([pre for _, _, pre in PS.docs_for("C", None, "A")], ["project-portal-revC/"])   # no landing: tracker only
-        self.assertFalse(hasattr(PS, "QUOTING"))
-        self.assertFalse(hasattr(PS, "EST"))
-        self.assertFalse(hasattr(rp, "QUOTING_FILED"))
+        full = PS.docs_for("C", "B", "A", quote="R", cus="D")
+        self.assertEqual([(r.name, f, pre) for r, f, pre in full],
+                         [("portal-landing", "portal-landing-revB", ""), ("project-portal", "project-portal-revC", "tracker/"),
+                          ("quoting-portal", "quoting-portal-revR", "estimating/"), ("mobile-portal", "mobile-portal-revA", "mobile/"),
+                          ("customer-portal", "customer-portal-revD", "customer/")])
+        self.assertEqual([d for d in full if d[2] not in ("estimating/", "customer/")], docs)
+        self.assertEqual(PS.docs_for("C", None, "A", quote="R", cus="D"), PS.docs_for("C", None))   # tracker-only layout
 
-    def test_publish_args_always_quoting_none(self):
+    def test_publish_args(self):
+        """"--quoting none" unless an estimating revision is named; "--customer" only once one is filed."""
         self.assertEqual(site_revs.publish_args({"rev": "J", "landing": "D", "mobile": "B"}),
                          ["--rev", "J", "--quoting", "none", "--landing", "D", "--mobile", "B"])
         self.assertEqual(site_revs.publish_args({"rev": "J", "landing": None, "mobile": None}),
                          ["--rev", "J", "--quoting", "none", "--landing", "none", "--mobile", "none"])
-        self.assertEqual(sorted(site_revs.DOCS), ["landing", "mobile", "rev"])
+        self.assertEqual(site_revs.publish_args({"rev": "X", "quoting": "P", "landing": "D", "mobile": "A"}),
+                         ["--rev", "X", "--quoting", "P", "--landing", "D", "--mobile", "A"])
+        self.assertEqual(site_revs.publish_args({"rev": "X", "quoting": "P", "landing": "D", "mobile": "A", "customer": "B"})[-2:],
+                         ["--customer", "B"])
+        have = site_revs.portals()
+        self.assertEqual(sorted(site_revs.DOCS), sorted(["landing", "mobile", "rev"]
+                                                        + (["quoting"] if "estimating" in have else [])
+                                                        + (["customer"] if "customer" in have else [])))
+
+    def test_portal_flags_need_the_portal(self):
+        """--quoting / --customer: "none" or nothing is always accepted; a letter is refused on a project without the
+        portal, and taken (or the newest filed) on one with it."""
+        with scratch() as t:
+            root = Path(t) / "quoting-portal"
+            root.mkdir()
+            (root / "revisions.csv").write_text("document_id,revision,file\nquoting-portal,R,quoting-portal-revR/a\n",
+                                                encoding="utf-8")
+            for has in (False, True):
+                self.assertIsNone(PS.pick("none", has, root, "x", "--quoting"))
+                self.assertIsNone(PS.pick("NONE", has, root, "x", "--quoting"))
+            self.assertIsNone(PS.pick(None, False, root, "x", "--quoting"))
+            with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit) as cm:
+                PS.pick("R", False, root, "x", "--quoting")
+            self.assertEqual(cm.exception.code, 2)
+            self.assertEqual(PS.pick("Q", True, root, "x", "--quoting"), "Q")
+            self.assertEqual(PS.pick(None, True, root, "x", "--quoting"), "R")   # the newest filed
+
+    def test_customer_site_goes_to_customer_and_adds_no_landing_link(self):
+        """The customer site (Bob, 2026-10-21) publishes as customer/, beside the other portals, only when named; the
+        landing page (its own filed folder at the root) is the same file with or without it."""
+        with scratch() as t:
+            d = Path(t)
+            land, cust = d / "portal-landing", d / "customer-portal"
+            (land / "portal-landing-revD").mkdir(parents=True)
+            (land / "portal-landing-revD" / "index.html").write_text('<a href="tracker/index.html"></a>', encoding="utf-8")
+            (cust / "customer-portal-revA").mkdir(parents=True)
+            (cust / "customer-portal-revA" / "index.html").write_text('<meta name="robots" content="noindex">', encoding="utf-8")
+            (cust / "customer-portal-revA" / "pid.html").write_text("<html>", encoding="utf-8")
+            only_land = PS.source_plan([(land, "portal-landing-revD", "")])
+            both = PS.source_plan([(land, "portal-landing-revD", ""), (cust, "customer-portal-revA", "customer/")])
+            self.assertEqual(sorted(k for k in both if k.startswith("customer/")), ["customer/index.html", "customer/pid.html"])
+            self.assertEqual(both["index.html"], only_land["index.html"])          # the landing page is the same file
+            self.assertNotIn("customer", both["index.html"].read_text(encoding="utf-8"))
+
+    def test_readme_without_the_extra_portals_is_the_plain_one(self):
+        """A project with no estimating portal and no customer site gets the README with the tracker and Mobile
+        Optimized only."""
+        fmt = dict(PS.PROJECT_FMT, rev="C", model="M", mrev="A", prev="A", date="2026-11-10", commit="abc1234", rows="")
+        text = PS.README6.format(land="B", mob_note=" **Rev A**", est_intro="", est_content="", cus_intro="", **fmt)
+        self.assertIn("a landing\npage with the **Project Tracker**", text)
+        self.assertIn("as `tracker/`,\nand the portals' shared data stores", text)
+        self.assertNotIn("Estimating", text)
+        self.assertNotIn("customer-portal", text)
 
 
     def test_shared_assets_go_to_the_site_root(self):

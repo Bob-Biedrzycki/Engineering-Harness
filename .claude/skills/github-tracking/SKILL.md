@@ -124,8 +124,8 @@ go. Bob's only action after the go is the merge on GitHub. In the steps
 below, "with the day's go" means those words from the go file.
 
 **The site is dormant until the job has one.** The site framework (project tracker,
-Mobile Optimized, landing page; no Customer Portal or Fabrication Estimating Portal on this job, Bob, chat,
-2026-10-30) is dormant until Bob defines the job's presentation site. While `site_repo` is `unknown` and no portal is filed, the site
+Mobile Optimized, landing page; plus the Fabrication Estimating Portal and the customer site on a project whose
+builders make them, `site_revs.portals()`; skill `site-publish`) is dormant until Bob defines the job's presentation site. While `site_repo` is `unknown` and no portal is filed, the site
 publish has nothing to do and is left out of the message to Bob until the job
 has a site. The steps below that name the site, the portals or
 `publish_site.py` apply from then.
@@ -228,7 +228,8 @@ has a site. The steps below that name the site, the portals or
    checks with gh that the day's PR merged and none is still open (refused
    if not), runs `sync-main` with that go, then (once the job has a site; the
    site framework is dormant until Bob defines the job's presentation site) runs `publish_site.py --dry-run` with the newest filed project-portal, mobile-portal and
-   portal-landing revisions (always `--quoting none`) (`harness/lib/site_revs.py`, the same reader as
+   portal-landing revisions (and quoting-portal and customer-portal where the project has them; `--quoting none`
+   otherwise) (`harness/lib/site_revs.py`, the same reader as
    close-out step 9) and publishes for real, with the same go, only when the
    dry run shows anything added, changed or removed on the site. Each step
    prints one result line (`go:`, `PR: merged`, `sync-main:`, `site:`).
@@ -249,8 +250,10 @@ has a site. The steps below that name the site, the portals or
    track.py daily-commit --date <YYYY-MM-DD> --paths-file <paths> --message-file <msg> --tag <DOC-ID>-rev<X> --bob-go "<Bob's words>"
    track.py daily-pr --date <YYYY-MM-DD> --title "Daily <date>: <summary>" --body-file <body> --bob-go "<Bob's words>"
    track.py sync-main --bob-go "<Bob's words>"
-   publish_site.py --rev <X> --quoting none --landing <Z> --mobile <M> --bob-go "<Bob's words>"
+   publish_site.py --rev <X> --quoting <Q or none> --landing <Z> --mobile <M> [--customer <C>] --bob-go "<Bob's words>"
    ```
+   `publish_site.py` pushes the site repo's `daily/<date>` branch, never its `main`; the end-of-day merge of that
+   branch is the publish (skill `site-publish`).
    **Push refused or no network?** `daily-commit --local` puts the commit
    and tags on the local `daily/<date>` branch only, with no sign-in and no
    push. Later, push with the day's go,

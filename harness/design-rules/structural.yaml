@@ -250,7 +250,7 @@ frame_materials:
       in_repo: no (AISC's file; the extracted list is frame-materials.csv)
     note: >-
       Since 2026-11-06 (Bob, chat: "Yes, wire them in") the typical models take every frame section, its grade and
-      weight from this list through job/Typical-HWS-TYP/03_Working_Design/CAD/01_Master_Assembly/_lib/structure.py shape(); their sizes (HSS6X3X1/4,
+      weight from this list through job/Typical-<ID prefix>/03_Working_Design/CAD/01_Master_Assembly/_lib/structure.py shape(); their sizes (HSS6X3X1/4,
       HSS4X4X1/4, HSS3X3X1/4, HSS2X2X3/16, HSS1-1/2X1-1/2X3/16) stay ASSUMPTION Q-0005. Before that they typed
       ASTM A500 Gr B; the list's grade for HSS is A500 Gr C, as the AISC 16th Edition tabulates.
     basis: >-
