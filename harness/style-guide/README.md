@@ -225,7 +225,8 @@ From the 2025 proposal:
 ### 7.4 Drawings
 
 - Every drawing carries the CPME sheet format from `harness/cad-lib/cpme_titleblock.py`: border with zone
-  numbers and letters, header band, DRAFT stamp until approved, title block with the logo, revision block.
+  numbers and letters, DRAFT stamp until approved, title block with the logo, revision block. No header text
+  and no notes sheet; the drawing is centred in the frame (Bob, chat, 2026-10-21; company-wide, 2026-11-11).
 - Revision letters, filing and clouds follow CLAUDE.md "Drawing and design revisions". This guide adds nothing
   to them.
 - Black on white. No brand colours on drawings.

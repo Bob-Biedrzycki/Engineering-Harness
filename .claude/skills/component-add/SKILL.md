@@ -62,7 +62,8 @@ component details."
      2. **Look for an equal part** that has a maker model: another size or
         model of the same maker, or another maker, when it fits the duty
         just as well. Take it, and tell Bob which and why. A part the
-        customer specified or that sizing picked (TR-02, DEC-0001) stays.
+        customer specified or that sizing picked (TR-02, or the project DEC
+        that brings sizing in) stays.
      3. **Only then draw our own**, from the maker's dimensioned drawing
         with its page cited, and say so in `notes` ("our own drawing, no
         maker model"). Any maker mesh or Revit model found is kept in
@@ -73,10 +74,10 @@ component details."
      No question to a vendor for CAD (Bob, 2026-09-25); Bob never emails
      vendors.
    - **Nothing is parked** (Bob, chat, 2026-10-29: "get to the bottom of why
-     there still seems to be loose ends and fix them"; "We will not be
-     contacting Spirex, you need to use your own judgement or move on and
-     select another part"). A part never waits on a vendor ("ask the rep",
-     "confirm with Spirax"), on a later decision, or on a note to Bob. Decide
+     there still seems to be loose ends and fix them"; a vendor is not
+     contacted: use your own judgement or move on and select another part).
+     A part never waits on a vendor ("ask the rep", "confirm with the
+     maker"), on a later decision, or on a note to Bob. Decide
      it with a recorded reason, take an equal part, or ask Bob once, now. A
      maker model that fails a validity check after re-export is an accepted
      finding when its volume reads back unchanged and booleans work: file it
@@ -93,8 +94,16 @@ component details."
    project in the job) and `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/*.yaml`
    (project level) before choosing a value: a job or project value beats the
    maker's minimum.
-4. **Revise the STEP to carry it.** A spool assembly from a script in `src/`,
-   with the ends of the line's service class (PIPE-SVC-001):
+4. **Revise the STEP to carry it, only where the maker's guidance sets an
+   interference requirement** (Bob, chat, 2026-11-11: a CPME STEP is either one
+   we generated because the maker provides none, or the maker's STEP with a
+   spool added from the maker's guidance to keep other components from
+   interfering; "If there is no interference requirements the Manufacturer's
+   STEP is placed directly."). With no such requirement (a clamp, gasket,
+   ferrule, hanger, a part carried as received inside a CPME spool part), skip
+   this step: leave `cpme_step_file` blank and begin `install_practice` with
+   `placed directly`, then the reason. Otherwise build a spool assembly from a
+   script in `src/`, with the ends of the line's service class (PIPE-SVC-001):
    - the vendor STEP placed unmodified;
    - the required straight run each side, so the part is already the right
      length: tube with weld ferrules at the run ends on hygienic lines, pipe
@@ -115,7 +124,9 @@ component details."
    Rev, a new register row with `supersedes` set and the old row's `status`
    left as filed (a later row marks it superseded). Fill every register column
    you can (`job/components/README.md` lists them); `unknown` where the source
-   does not say. Then:
+   does not say. If the library has `completeness-scope.txt` beside its
+   register (the parts a model places; the register check reports only those),
+   add the part's `COMP-nnnn` to it. Then:
 
    ```
    .\harness\tools\venv\Scripts\python.exe harness\scripts\drive_store.py pointers

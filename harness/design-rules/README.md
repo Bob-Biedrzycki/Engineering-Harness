@@ -27,6 +27,10 @@ like to be asked which designation it belongs in."
   level, the agent asks Bob whether it is **harness** (company-wide), **job** (all
   projects in this job) or **project** (this project only). The agent gives a
   recommendation in one line, with the reason, and waits for the answer.
+  The recommendation comes from one test (`harness/knowledge/First Principles.md`,
+  principle 2; Bob, 2026-11-11): harness if it holds for any CPME skid; job if it
+  would hold for a different customer's order of the same product; project if it
+  depends on one order's lines, tags, equipment, customer or decisions.
 - In a live session the question goes to Bob in chat. A subagent without chat
   puts it in root `Agent-to-Agent Questions.md` with a copy in `Agent-to-Bob Questions.md`, and does not write the rule
   until the answer is recorded.

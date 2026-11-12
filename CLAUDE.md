@@ -97,6 +97,16 @@ connections, valve actuator envelopes, panel mounting and clearances).
 sizing in (`job/JOB.md`), the configurator (TR-26), structural
 certification, and anything that requires a professional engineer's seal.
 
+## First principles (Bob, 2026-11-11)
+
+When a case is not named below, or something could go in two places, decide it from
+`harness/knowledge/First Principles.md` before asking: (1) one place per fact; (2) a thing lives at the level where
+it is true (harness, job, project; job level if it would hold for a different customer's order of the same
+product); (3) the master flows down, a job never patches the harness; (4) filed things never change, a fix rides
+the next revision; (5) a check either checks or says it did not; (6) unknown stays unknown until it is given, and
+nothing is filled in for the sake of a folder or a field; (7) Bob decides rule levels, gates and Todd's rows, and
+agents decide the rest, do it and report in a line. That file gives the reasoning, how to use it and worked cases.
+
 ## Hard rules
 
 1. **Never invent** part numbers, dimensions, tag numbers, material grades,
@@ -171,9 +181,9 @@ certification, and anything that requires a professional engineer's seal.
 - **Everything CPME sends out follows `harness/style-guide/README.md`** (Bob, chat, 2026-11-10): proposals,
   quotes, data sheets, portals, slides and emails take the name, contact block, logo, colours and fonts from it
   (`brand.yaml`, `brand.css`), not from a copy kept in a job.
-- **Every new drawing carries the CPME sheet format** (border, header band,
-  DRAFT stamp until approved, CPME title block with logo): use
-  `harness/cad-lib/cpme_titleblock.py`. **Revision letters
+- **Every new drawing carries the CPME sheet format** (border, DRAFT stamp until approved, CPME title block
+  with logo; no header text, no notes sheet, the drawing centred in the frame; Bob, chat, 2026-10-21, company-wide
+  2026-11-11): use `harness/cad-lib/cpme_titleblock.py`. **Revision letters
   are sequential and nobody assigns them** (Bob, 2026-09-24; supersedes the
   2026-09-23 rule that the engineer assigns letters). The DRAFT stamp stays
   until the engineer approves; approval does not change the letter.
@@ -199,7 +209,8 @@ Agent-to-Agent Questions.md  Agent-to-Bob Questions.md       Questions between a
 harness/
   knowledge/             Team, standards, documents, lists, setup plan,
                          Todd Requirements.md (TR-01..TR-26, binding on every agent),
-                         Approval Ladder.md: what needs Bob's word, by rung and category
+                         Approval Ladder.md: what needs Bob's word, by rung and category,
+                         First Principles.md: the seven principles the structure decides by
   checks/                Automated verification scripts (P&ID-to-model, sanitary, interference)
   scripts/               model_iterate.py / model_accept.py (+ model_file.py) / closeout.py (the model tiers),
                          track.py (GitHub tracking), drive_store.py (Google Drive store),

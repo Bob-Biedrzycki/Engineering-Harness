@@ -24,6 +24,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
 import repo_paths as rp  # noqa: E402
+import model_read as MR  # noqa: E402
 
 if rp.HAS_MODEL:
     sys.path.insert(0, str(rp.SKID_MODEL))
@@ -33,8 +34,11 @@ VOL_TOL = 0.01      # in^3 shared before a pair is a clash (touching faces and t
 BOX_TOL = 0.05      # in, box prefilter
 PORT_TOL = 0.10     # in, a port meets a joint / pipe end / port within this
 GAP_TOL = 0.06      # in, solid stand-off across a joint
-BEARING = {"frame", "support", "plate"}
+BEARING = {"frame", "support", "plate", "foot"}     # a leveling foot is frame hardware: it bears on the frame
 OPEN_BY_DESIGN = ("drain", "vent", "outlet_atm", "discharge", "test", "plug")
+# a face a model keeps as a reference point (the top of an actuator, a panel door, where a screen pulls out), not
+# a connection: nothing is meant to meet it, so it is counted and not reported OPEN
+REFERENCE_FACES = ("actuator", "door", "pull", "access", "service")
 
 
 def _bbox_of_prims(prims, prim_bbox):
@@ -59,20 +63,22 @@ def main() -> int:
         from skidlib import vec as V
         from skidlib.model import piece_prims
         from skidlib.reports import prim_bbox
-        m = layout.build(rp.MODEL_CONFIG or None)
-    except (ImportError, TypeError) as e:
-        # a model whose skidlib predates this check (no piece_prims / prim_bbox, or a build() that takes no
-        # configuration) cannot be read by it; interference.py still compares its bodies at envelope level
+    except ImportError as e:
+        # a model whose skidlib has no piece_prims / prim_bbox cannot be read by this check; interference.py still
+        # compares its bodies at envelope level
         print(f"solid_clash: PASS - not checked: this model's skidlib does not give what the check reads "
               f"({type(e).__name__}: {e}); no bodies compared")
         return 0
+    try:
+        m = MR.build(layout, rp.MODEL_CONFIG)     # either skidlib generation (harness/lib/model_read.py)
     except Exception as e:  # noqa: BLE001
         print(f"solid_clash: ERROR - model did not build: {type(e).__name__}: {e}")
         return 3
+    all_pieces = MR.pieces(m)
 
     # ---- OPEN: every port of a placed part meets something ---------------------------------------------------------
     anchors = [j.point for j in m.joints]
-    for pc in m.pieces():
+    for pc in all_pieces:
         for v in pc.geom.values():
             if isinstance(v, tuple) and len(v) == 3 and all(isinstance(c, (int, float)) for c in v):
                 anchors.append(v)
@@ -93,17 +99,22 @@ def main() -> int:
         bb = _bbox_of_prims([p for p in it.prims if not p.get("zone")], prim_bbox) if it is not None else None
         return bb is not None and all(bb[0][k] - PORT_TOL <= pt[k] <= bb[1][k] + PORT_TOL for k in range(3))
 
-    tubes = [(pc.geom["p0"], pc.geom["p1"], pc.od / 2) for pc in m.pieces() if pc.kind == "tube"]
+    tubes = [(pc.geom["p0"], pc.geom["p1"], pc.od / 2) for pc in all_pieces if pc.kind == "tube"]
+    # the run of a tee is pipe wall too (a flush-mount port welded on a header that is a tee's run)
+    tubes += [(pc.geom["run_p0"], pc.geom["run_p1"], pc.od / 2) for pc in all_pieces
+              if pc.kind == "tee" and "run_p0" in pc.geom and "run_p1" in pc.geom]
 
     def on_pipe_wall(pt) -> bool:
         # a weld boss or adapter seated on a pipe's outside surface
         return any(abs(V.point_seg_dist(pt, a, b) - r) <= PORT_TOL for a, b, r in tubes)
 
-    open_ports, open_ok = [], []
+    open_ports, open_ok, reference = [], [], 0
     for it in m.items.values():
         if it.kind in ("tie-in", "reservation") or it.kind in BEARING:
             continue
-        joined = {n for n, (p, _d) in it.faces.items()
+        ref = {n for n in it.faces if any(w in n.lower() for w in REFERENCE_FACES)}
+        reference += len(ref)
+        joined = ref | {n for n, (p, _d) in it.faces.items()
                   if any(V.dist(p, a) <= PORT_TOL for a in anchors)
                   or any(k != it.key and V.dist(p, q) <= PORT_TOL for k, _n, q in face_pts)
                   or any(near_box(k, p) for k in partners.get(it.key, ())) or on_pipe_wall(p)}
@@ -124,7 +135,7 @@ def main() -> int:
     # a spool whose first or last face meets nothing (no joint, part, tie-in or other spool recorded there)
     joint_pts = [j.point for j in m.joints]
     for sp in m.spools:
-        for end, label in ((sp.start, "start"), (sp.end, "end")):
+        for end, label in ((MR.spool_end(sp, "start"), "start"), (MR.spool_end(sp, "end"), "end")):
             if end:
                 continue
             pcs = sp.pieces[0] if label == "start" else sp.pieces[-1]
@@ -156,7 +167,7 @@ def main() -> int:
                     if c in m.items and c not in seen and m.items[c].kind not in BEARING:
                         seen.add(c)
                         todo.append(c)
-    piece_line = {pc.pid: pc.line for pc in m.pieces()}
+    piece_line = {pc.pid: pc.line for pc in all_pieces}
 
     def tap_pair(a, b) -> bool:
         # the boss itself, the run pipe under the boss, and a thermometer in its own well; two other parts of one
@@ -194,12 +205,19 @@ def main() -> int:
         mo = re.search(r"studs to X -([\d.]+) mm", r.get("frame", ""))
         if mo:
             stud_depth[r["component_id"]] = float(mo.group(1)) / 25.4
-    studded = {it.key: (it, stud_depth[it.comp_id]) for it in m.items.values() if it.comp_id in stud_depth}
+    studded = {it.key: (it, stud_depth[MR.comp_id(it)]) for it in m.items.values() if MR.comp_id(it) in stud_depth}
 
     clashes, gaps, measured, failed, taps, seats, ports_ok = [], [], 0, [], 0, [], []
+    no_cad, no_solid = "", []
     if not pairs_only:
         try:
             from skidlib import cad
+        except ImportError as e:
+            # a model whose skidlib has no cad module (piece_solid, placed_step, prim_solid) gives no body solids:
+            # the port checks above still run, the solids are not measured
+            pairs_only, no_cad = True, f"this model's skidlib has no cad module ({e})"
+    if not pairs_only:
+        try:
             from OCP.BRepAlgoAPI import BRepAlgoAPI_Common
             from OCP.BRepExtrema import BRepExtrema_DistShapeShape
             from OCP.GProp import GProp_GProps
@@ -210,11 +228,13 @@ def main() -> int:
             print(f"solid_clash: ERROR - geometry kernel not importable: {type(e).__name__}: {e}")
             return 3
         REPO = rp.REPO
+        if hasattr(cad, "attach"):
+            cad.attach(m)        # a cad module that reads the built model (instrument spool parts, tube wall)
         bodies = []          # (owner, kind, group, bbox, lazy solid)
         for it in m.items.values():
-            if it.kind in ("tie-in", "reservation") or not (it.prims or it.step.get("file")):
+            if it.kind in ("tie-in", "reservation") or not (it.prims or MR.step_of(it).get("file")):
                 continue
-            prims = [p for p in it.prims if not p.get("zone")]
+            prims = [p for p in it.prims if not p.get("zone") and not p.get("check_only")]
             bb = _bbox_of_prims(prims, prim_bbox)
             if bb is None:
                 continue
@@ -225,18 +245,31 @@ def main() -> int:
                 if bb is not None:
                     bodies.append([pc.pid, "pipe", sp.sid, bb, None, pc])
 
+        def has_step(obj) -> bool:
+            # the model's own answer where its cad module gives one (a STEP it finds by name in the component
+            # library); else the placement record's file, a path from the repo root
+            if hasattr(cad, "has_step"):
+                return bool(cad.has_step(obj))
+            f = MR.step_of(obj).get("file")
+            return bool(f) and (REPO / f).is_file()
+
         def solid(b):
             if b[4] is None:
                 obj = b[5]
-                if b[1] == "pipe":
-                    s = cad.piece_solid(obj)
-                elif obj.step.get("file") and (REPO / obj.step["file"]).is_file():
-                    s = cad.placed_step(obj)
-                else:
-                    parts = [x for x in (cad.prim_solid(p) for p in obj.prims if not p.get("zone")) if x is not None]
-                    s = parts[0] if parts else None
-                    for x in parts[1:]:
-                        s = s + x
+                try:
+                    if b[1] == "pipe":
+                        s = cad.piece_solid(obj)
+                    elif has_step(obj):
+                        s = cad.placed_step(obj)
+                    else:
+                        parts = [x for x in (cad.prim_solid(p) for p in obj.prims
+                                             if not p.get("zone") and not p.get("check_only")) if x is not None]
+                        s = parts[0] if parts else None
+                        for x in parts[1:]:
+                            s = s + x
+                except Exception as e:  # noqa: BLE001  (one body that cannot be built must not stop the check)
+                    no_solid.append((b[0], f"{type(e).__name__}: {e}"))
+                    s = None
                 b[4] = s.wrapped if s is not None else False
             return b[4]
 
@@ -285,7 +318,7 @@ def main() -> int:
                         # within BOLT_T outside the port face (pump, pump-trap); only that side is excused
                         for k in (oa, ob):
                             it_k = m.items.get(k)
-                            if it_k is not None and it_k.kind == "equipment" and it_k.step.get("file"):
+                            if it_k is not None and it_k.kind == "equipment" and MR.step_of(it_k).get("file"):
                                 eq = (it_k, BOLT_T)
                                 break
                     if pts or eq:
@@ -326,7 +359,7 @@ def main() -> int:
         # GAP: across each joint between a placed part and a pipe piece, and between parts stacked by `connects`,
         # the two solids should touch
         by_owner = {b[0]: b for b in bodies}
-        links = [(jn.jid, jn.a, jn.b) for jn in m.joints if jn.kind != "tie-in"]
+        links = [(jn.jid, jn.a, jn.b) for jn in m.joints if getattr(jn, "kind", "") != "tie-in"]
         # a `connects` pair is measured only where a port of one sits on the other (parts stacked on a tap); the rest
         # are envelope-level adjacency for interference.py (a routed line's pieces near the unit it leaves)
         def touching(a, b):
@@ -359,17 +392,20 @@ def main() -> int:
     head = (f"{len(clashes)} clash(es) on the solids ({measured} pairs measured, {taps} tap-stack pairs by design), "
             f"{len(open_ports)} open port(s), "
             f"{len(gaps)} gap(s) at joints, {len(loose)} part(s) with no ports") if not pairs_only else (
-            f"{len(open_ports)} open port(s), {len(loose)} part(s) with no ports (solids not measured: --pairs-only)")
+            f"{len(open_ports)} open port(s), {len(loose)} part(s) with no ports "
+            f"(solids not measured: {no_cad or '--pairs-only'})")
     print(f"solid_clash: {'FAIL' if bad else 'PASS'} - {head}; {time.time() - t0:.0f} s")
     for v, oa, ka, ob, kb in sorted(clashes, reverse=True):
         print(f"  CLASH {v:8.3f} in^3  {oa} ({ka})  x  {ob} ({kb})")
     for it, name, pt in open_ports:
-        print(f"  OPEN  {it.key} ({it.kind}, {it.comp_id or it.source}) port '{name}' at "
+        print(f"  OPEN  {it.key} ({it.kind}, {MR.comp_id(it) or it.source}) port '{name}' at "
               f"({pt[0]:.1f}, {pt[1]:.1f}, {pt[2]:.1f}) meets nothing")
     for it in loose:
         print(f"  LOOSE {it.key} ({it.kind}) has no ports: it cannot be connected")
     for gap, jn in sorted(gaps, key=lambda g: -g[0]):
         print(f"  GAP   {gap:.3f} in  {jn.jid}  {jn.a} / {jn.b}")
+    if reference:
+        print(f"  {reference} reference face(s) not treated as connections (names with: {', '.join(REFERENCE_FACES)})")
     for it, name, _pt, why in open_ok:
         print(f"  open by design: {it.key} port '{name}' ({why})")
     for v, oa, ob in sorted(seats, reverse=True):
@@ -378,6 +414,8 @@ def main() -> int:
     for v, oa, ob, fname in sorted(ports_ok, reverse=True):
         print(f"  PORT (information) {v:.3f} in^3  {oa} / {ob} at {fname}: inside the studs, bolts or companion "
               f"flange envelope the vendor STEP carries in front of its port face")
+    for owner, why in no_solid:
+        print(f"  NO SOLID {owner}: its body could not be built, so it was not compared ({why[:160]})")
     for oa, ob, why in failed:
         print(f"  NOT MEASURED {oa} x {ob}: {why}")
     return 1 if bad else 0

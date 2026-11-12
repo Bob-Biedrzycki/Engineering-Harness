@@ -474,6 +474,8 @@ class DriveStoreCommit(Base):
             return ""
         if args[0] in ("commit", "tag") or args[:2] == ("worktree", "remove"):
             return ""
+        if args[0] == "for-each-ref":
+            return ""        # no earlier day branch on origin: the new day starts from origin/main (new_day_base)
         raise AssertionError(f"unexpected git call {args}")
 
     def commit(self, paths: str, ignored=None, **kw):

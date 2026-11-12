@@ -23,6 +23,10 @@ Every record quotes Bob (or names the DEC / Q) and says what was accepted. A mis
       elbow: {L-140-SP01.pc05: "..."}         # elbow piece id -> record
       pump: {"P-101 discharge": "..."}        # pump connection label -> record
       clearance: {"L-100 supply tail support": "..."}   # start of the support member's role -> record
+    sanitary_routing:             # harness/checks/sanitary_routing.py (SAN-SLOPE-001, SAN-DL-001)
+      - object: "L-100 riser drain tee"                 # the routing row's object
+        value: "L 4.75 in, D 1.870 in, L/D 2.54"        # its exact measured value; a changed value fails again
+        record: "..."
 
 Stdlib plus PyYAML (the repo venv). A file that cannot be read sets FAULT; a check that finds FAULT prints
 "<check>: ERROR - ..." and exits 3 instead of quietly accepting nothing or everything.
@@ -52,8 +56,16 @@ def problems(d) -> list[str]:
         return []
     if not isinstance(d, dict):
         return ["the file is not a mapping of sections"]
-    out = [f"unknown section {k!r} (sections: interference, pipe_supports)" for k in d
-           if k not in ("interference", "pipe_supports")]
+    out = [f"unknown section {k!r} (sections: interference, pipe_supports, sanitary_routing)" for k in d
+           if k not in ("interference", "pipe_supports", "sanitary_routing")]
+    sr = d.get("sanitary_routing") or []
+    if not isinstance(sr, list):
+        out.append("sanitary_routing is not a list of entries")
+        sr = []
+    for i, e in enumerate(sr):
+        for k in ("object", "value", "record"):
+            if not (isinstance(e, dict) and str(e.get(k) or "").strip()):
+                out.append(f"sanitary_routing entry {i + 1}: no {k}")
     for i, e in enumerate(d.get("interference") or []):
         b = e.get("between") if isinstance(e, dict) else None
         if not (isinstance(b, list) and len(b) == 2 and all(isinstance(x, str) and x.strip() for x in b)):
@@ -116,6 +128,13 @@ def pipe_supports(d: dict | None = None) -> dict:
     for k in PS_MAPS:
         out[k] = {str(n): str(r).strip() for n, r in (ps.get(k) or {}).items()}
     return out
+
+
+def sanitary_routing(d: dict | None = None) -> dict[tuple[str, str], str]:
+    """(routing row object, exact measured value) -> record, for harness/checks/sanitary_routing.py."""
+    d = _project() if d is None else d
+    return {(str(e["object"]).strip(), str(e["value"]).strip()): str(e["record"]).strip()
+            for e in d.get("sanitary_routing") or []}
 
 
 def _project() -> dict:
