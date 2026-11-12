@@ -162,6 +162,21 @@ class ZipSteps(Scratch):
         self.assertTrue((f / "bom-model.csv").is_file())
         self.assertEqual(mb.zip_earlier_steps(self.builds, b), [])     # nothing left to zip
 
+    def test_a_locked_build_cannot_be_written_and_is_still_zipped(self):
+        a = self.make("revA-full-001", "M-1.step", "bom-model.csv")
+        (a / "logs").mkdir()
+        (a / "logs" / "lists.log").write_text("x", encoding="utf-8")
+        b = self.make("revA-full-002", "M-1.step")
+        mb.lock_build(a)
+        for f in (a / "bom-model.csv", a / "logs" / "lists.log", a / "M-1.step"):
+            with self.assertRaises(PermissionError):
+                f.write_text("changed", encoding="utf-8")
+        self.assertEqual(mb.zip_earlier_steps(self.builds, b), ["revA-full-001"])
+        self.assertFalse((a / "M-1.step").exists())
+        with self.assertRaises(PermissionError):
+            (a / "M-1.step.zip").write_bytes(b"changed")
+        self.assertEqual((a / "bom-model.csv").read_text(encoding="utf-8"), "x")
+
 
 if __name__ == "__main__":
     unittest.main()

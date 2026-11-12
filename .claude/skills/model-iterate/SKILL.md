@@ -17,6 +17,8 @@ and starts again at 001 after the next filing. No build overwrites or removes an
 iteration; the full build is one more numbered entry, run when the result is where Bob wants it, and it is what
 `model_file.py` files (`rp.SKID_BUILD` is the latest full build). When a full build starts, the STEP of each
 earlier full build is zipped beside its other files. The folder is gitignored and outside the Drive store.
+A finished build's files are read-only. Run the model's export scripts only through `model_iterate.py`: one started
+by hand writes into the latest full build and is refused by the file system, as it should be.
 Acceptance (`model-accept`) runs its own full build; don't run one by hand before it.
 
 **The one command** (repo root, repo venv; it calls the cadgen venv for the

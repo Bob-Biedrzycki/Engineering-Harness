@@ -6,7 +6,9 @@ never-overwritten series in place of two build folders): every run, full or --fa
 the build starts from (`first` before Rev A) and <nnn> the next number for that letter, shared by both kinds (001 again
 after each filing). Every build gets a row in Builds/build-log.md saying which checks ran. A full build is what
 model_file.py files; the steps a full build starts find its folder through CPME_BUILD_DIR (repo_paths.current_build).
-When a full build starts, the STEP of each earlier full build is zipped beside its other files.
+When a full build starts, the STEP of each earlier full build is zipped beside its other files. A finished build's
+files are read-only: the model's export scripts are run only by this script, and one started by hand, which would
+write into the latest full build, fails instead of changing it.
 
 The three-tier model pipeline (Bob, chat, 2026-10-02: make
 iteration fast and close-out unattended). Skill: .claude/skills/model-iterate.
@@ -364,6 +366,7 @@ def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast
     # every build keeps its own summary; model_file.py reads a full build's
     (fast_dir / "iterate-summary.json" if fast_dir else mb.SUMMARY).write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+    mb.lock_build(fast_dir or mb.BUILD)   # a finished build is kept as it is: its files are read-only from here
     state = "PASS" if not failed else f"FAIL ({', '.join(failed)})"
     if fast_dir:
         print(f"model_iterate --fast: {state} in {secs:.0f} s -> {rp.rel(fast_dir)}; no STEP, nothing "

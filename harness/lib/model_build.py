@@ -22,7 +22,9 @@ from __future__ import annotations
 
 import csv
 import datetime as dt
+import os
 import shutil
+import stat
 import sys
 import zipfile
 from pathlib import Path
@@ -125,6 +127,14 @@ def adopt_earlier_layout(builds_root: Path, earlier_fast_root: Path, builds: Pat
     return done
 
 
+def lock_build(folder: Path) -> None:
+    """Make every file of a finished build read-only, so nothing run later (an export script started by hand writes
+    into the latest full build) can change a build that is kept: it fails instead. Folders stay writable."""
+    for p in folder.rglob("*"):
+        if p.is_file():
+            os.chmod(p, stat.S_IREAD | stat.S_IRGRP | stat.S_IROTH)
+
+
 def zip_earlier_steps(builds: Path, keep: Path) -> list[str]:
     """Zip the STEP of every full build under `builds` except `keep` (<name>.step becomes <name>.step.zip beside it),
     so only the build in hand holds an unzipped STEP (about a tenth of the size). Returns the builds zipped."""
@@ -140,6 +150,8 @@ def zip_earlier_steps(builds: Path, keep: Path) -> list[str]:
                 z.open(zi, "w", force_zip64=True) as fout:
             shutil.copyfileobj(fin, fout, 1 << 22)
         part.replace(dst)
+        os.chmod(dst, stat.S_IREAD | stat.S_IRGRP | stat.S_IROTH)
+        os.chmod(step, stat.S_IWRITE | stat.S_IREAD)   # a finished build's files are read-only (lock_build)
         step.unlink()
         done.append(step.parent.name)
     return done
