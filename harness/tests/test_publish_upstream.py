@@ -1,6 +1,7 @@
 """Tests for publish_site.py and the site repo's own commits (upstream), and its packager run as a check.
 
-- keep_path: .github/**, .gitattributes and README.md are KEEP; published content is not.
+- keep_path: .github/**, .gitattributes, README.md and the save tool's root .gitignore and drive-store.json are KEEP;
+  published content is not.
 - sync_site on a fake site repo (a bare origin, the site clone, and a second clone standing in for the site repo's
   owners):
     level                         -> "no upstream commits", nothing written
@@ -87,9 +88,11 @@ class FakeSite(unittest.TestCase):
 
 class KeepPath(unittest.TestCase):
     def test_keep_paths(self):
-        for p in (".github/workflows/package.yml", ".github/packaging/package_portals.py", ".gitattributes", "README.md"):
+        for p in (".github/workflows/package.yml", ".github/packaging/package_portals.py", ".gitattributes", "README.md",
+                  ".gitignore", "drive-store.json"):   # the last two: written by the global save tool (day.py)
             self.assertTrue(PS.keep_path(p), p)
-        for p in ("index.html", "estimating/index.html", "data/glb/x.glb", "docs/README.md", ".git/config"):
+        for p in ("index.html", "estimating/index.html", "data/glb/x.glb", "docs/README.md", ".git/config",
+                  "tracker/drive-store.json", "data/.gitignore"):
             self.assertFalse(PS.keep_path(p), p)
 
 
