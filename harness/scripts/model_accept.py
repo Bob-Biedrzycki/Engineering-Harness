@@ -20,16 +20,16 @@ In order; nothing is filed until step 4:
        drawn cleanly: those cannot be filed); every other item still open goes into the revision description as a
        known open item and the acceptance goes on. One round of questions, never a loop.
     3. full build (model_iterate.py, about 6 min) with every check; any failure stops it (exit 3, nothing filed).
-    4. model_file.py --rev <X>: the description is built from Bob's words, the fast-log rows since the last
+    4. model_file.py --rev <X>: the description is built from Bob's words, the build-log rows since the last
        revision, and the known open items.
     5. the P&ID, line segment diagram and PFD, each drawn from the filed model in check mode first and filed at its
        own next letter only when its content changed (its revision clouds against the last filed sheet; the model
        revision text is not counted); then the P&ID revision requests raised since the last issued one are marked
        issued.
-    6. drive_store.py pointers (Locked; `track.py save` saves and backs it up), a fast-log row, <project>/_work/accept/rev<X>/accepted.md.
+    6. drive_store.py pointers (Locked; `track.py save` saves and backs it up), a build-log row, <project>/_work/accept/rev<X>/accepted.md.
 
 --preflight-only runs step 1 and prints the list; it changes no state and files nothing.
---sandbox <folder> (testing this script only) reuses the current work build instead of step 3 and files into the
+--sandbox <folder> (testing this script only) reuses the latest full build instead of step 3 and files into the
 folder: the model through model_file.py --models-root, the drawings through CPME_DRAWINGS_ROOT (seeded with each
 drawing's revisions up to the one before its last, so a change is there to file), drawn from the last filed model
 letter; the state, PRR file and fast log are copies in the folder. Nothing under job/ is written except the fast
@@ -85,9 +85,9 @@ def save_state(path: Path, state: dict) -> None:
 
 
 def fast_log_rows(base: str) -> list[dict]:
-    """The fast-log rows of the builds since the last revision was filed (Build rev<base>-fast-nnn, logged after
-    the filing time in revisions.csv: rows of a letter filed more than once that day are left out)."""
-    log = rp.FAST_BUILDS / "fast-log.md"
+    """The build-log rows of the builds since the last revision was filed (Build rev<base>-fast-nnn or -full-nnn,
+    logged after the filing time in revisions.csv: rows of a letter filed more than once that day are left out)."""
+    log = rp.BUILDS / mb.LOG_NAME
     if not log.is_file():
         return []
     filed = mb.filed_rows()
@@ -98,7 +98,7 @@ def fast_log_rows(base: str) -> list[dict]:
             day = ln[3:].strip()
             continue
         c = [x.strip() for x in ln.strip().strip("|").split("|")]
-        if len(c) >= 4 and c[0].startswith(f"rev{base}-fast-") and f"{day} {c[1]}" >= since:
+        if len(c) >= 4 and c[0].startswith((f"rev{base}-fast-", f"rev{base}-full-")) and f"{day} {c[1]}" >= since:
             rows.append({"build": c[0], "time": c[1], "request": c[2], "result": c[3]})
     return rows
 
@@ -109,7 +109,7 @@ def description(letter: str, base: str, state: dict, known: list[dict]) -> str:
              f"Bob, chat, {dt.date.today().isoformat()}: {words}."]
     rows = fast_log_rows(base)
     if rows:
-        parts.append("Fast builds (<project>/03_Working_Design/CAD/Fast_Builds/fast-log.md): " + " ".join(
+        parts.append("Builds (<project>/03_Working_Design/CAD/Builds/build-log.md): " + " ".join(
             f"{r['build']} ({r['request'][:200]}): {r['result'][:400]}" for r in rows))
     if state.get("list_changes"):
         parts.append("Lists updated from the model (harness/lib/list_from_model.py): "
@@ -121,7 +121,7 @@ def description(letter: str, base: str, state: dict, known: list[dict]) -> str:
 
 
 def latest_fast_build(base: str) -> Path | None:
-    d = rp.FAST_BUILDS / f"rev{base}"
+    d = rp.BUILDS / f"rev{base}"
     builds = sorted((p for p in d.glob(f"rev{base}-fast-[0-9][0-9][0-9]") if p.is_dir()), key=lambda p: p.name)
     return builds[-1] if builds else None
 
@@ -246,7 +246,7 @@ def main() -> int:
     rc, _ = run([PY, rp.SCRIPTS / "model_iterate.py", "--fast", "--supports"], echo=False)
     fast = latest_fast_build(base)
     if fast is None or not (fast / "iterate-summary.json").is_file():
-        print("model_accept: STOPPED - the preflight build did not run (see <project>/03_Working_Design/CAD/Fast_Builds)", flush=True)
+        print("model_accept: STOPPED - the preflight build did not run (see <project>/03_Working_Design/CAD/Builds)", flush=True)
         return 3
     list_changes = []
     if not a.preflight_only and not box:
@@ -290,9 +290,11 @@ def main() -> int:
 
     # ---- 3. full build -------------------------------------------------------------------------------------
     print("[2/6] full build with every check (about 6 min)", flush=True)
-    rc, _ = (0, "") if box else run([PY, rp.SCRIPTS / "model_iterate.py"])
+    rc, _ = (0, "") if box else run([PY, rp.SCRIPTS / "model_iterate.py", "--request", f"Bob: {words}"[:300],
+                                     "--change", f"full build for the acceptance of Rev {letter}"])
+    mb.use_build()   # the full build just made is a new numbered folder (Bob, chat, 2026-11-12)
     if box:
-        print("    SANDBOX: the current work build is reused")
+        print(f"    SANDBOX: the latest full build is reused ({mb.BUILD.name})")
     failing_ok = []
     if rc != 0:
         bs = json.loads(mb.SUMMARY.read_text(encoding="utf-8")) if mb.SUMMARY.is_file() else {}
@@ -351,7 +353,7 @@ def main() -> int:
     rc, _ = (0, "") if box else run([PY, rp.SCRIPTS / "drive_store.py", "pointers"])
     if rc != 0:
         failed.append("drive_store.py pointers")
-    log = box / "fast-log.md" if box else rp.FAST_BUILDS / "fast-log.md"
+    log = box / mb.LOG_NAME if box else rp.BUILDS / mb.LOG_NAME
     with open(log, "a", encoding="utf-8", newline="\n") as f:
         f.write(f"| (accepted) | {dt.datetime.now():%H:%M} | Bob: {' / '.join(state['bob'])[:300].replace('|', '/')} | "
                 f"{'; '.join(f'{k} {v}' for k, v in filed.items())} filed by model_accept.py | "

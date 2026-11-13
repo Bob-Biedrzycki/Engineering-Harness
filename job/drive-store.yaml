@@ -30,4 +30,4 @@ directories:
   job/*/03_Working_Design/CAD/05_Purchased_Components: [step, stp, pdf, dwg, dxf, zip, igs, iges]
 
 # Never scanned (gitignored working copies and tool environments).
-exclude: [.git, harness/tools, .venv, job/_work, job/*/_work, job/*/03_Working_Design/Exports, job/*/03_Working_Design/CAD/Fast_Builds, job/*/03_Working_Design/PID/Fast_Edits]
+exclude: [.git, harness/tools, .venv, job/_work, job/*/_work, job/*/03_Working_Design/Exports, job/*/03_Working_Design/CAD/Builds, job/*/03_Working_Design/CAD/Fast_Builds, job/*/03_Working_Design/PID/Fast_Edits]

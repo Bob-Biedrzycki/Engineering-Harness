@@ -15,7 +15,7 @@ and the job's design framework in `job/knowledge/` (named in `job/JOB.md`).
 layout and piping specifics** (on every job, the section "Layout and piping
 specifics for skid-layout and pipe-route"). Where the project has a tank,
 also its `02_Engineering/05_Tank_Sizing/tank-modifications.md`.
-Writes `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/` source and builds to `<project>/03_Working_Design/Exports/build/<MODEL-ID>/`
+Writes `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/` source and builds to a new numbered folder under `<project>/03_Working_Design/CAD/Builds/`
 (`model-iterate`).
 
 ## What goes on the skid

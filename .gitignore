@@ -21,7 +21,9 @@ Thumbs.db
 desktop.ini
 .venv/
 # _work/ also holds the derived lists-viewer.xlsx (rebuild: harness/scripts/build_lists_workbook.ps1).
-# Fast builds (model_iterate.py --fast; Bob, 2026-10-10): viewing copies, not revisions; never committed or pushed.
+# Model builds (model_iterate.py, fast and full; Bob, 2026-10-10 and 2026-11-12): working copies, not revisions; never
+# committed or pushed. Fast_Builds is the folder's name before 2026-11-12, until a checkout's first build renames it.
+job/*/03_Working_Design/CAD/Builds/
 job/*/03_Working_Design/CAD/Fast_Builds/
 # P&ID fast edits (model-to-pid.py --fast; Bob, 2026-10-11): viewing copies, not revisions; never committed or pushed.
 job/*/03_Working_Design/PID/Fast_Edits/

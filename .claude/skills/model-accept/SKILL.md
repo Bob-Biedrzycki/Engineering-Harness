@@ -38,7 +38,7 @@ What it does, with no judgement in between:
    Never take it to Bob as a question.
 3. Full build (about 6 min); a pipe supports failure alone is filed with `--failing-ok` and recorded.
 4. `model_file.py --rev <X>`, then the P&ID, LSD and PFD (once their generators exist), each filed at its own next letter only when its content changed. Then PRRs raised since the last issued one are marked issued,
-   `drive_store.py pointers`, a fast-log row, and `<project>/_work/accept/rev<X>/accepted.md`.
+   `drive_store.py pointers`, a build-log row, and `<project>/_work/accept/rev<X>/accepted.md`.
 
 **Never.**
 - Run `model_file.py` or a drawing generator by hand for an acceptance.
@@ -52,4 +52,4 @@ What it does, with no judgement in between:
 "nothing committed or pushed". On exit 3: fix the defect it names and rerun; tell Bob only if it cannot be fixed.
 
 **Testing the script** (software-developer only): `--sandbox <new folder>` files into a scratch folder and reuses
-the current work build. `--preflight-only` prints the list and changes nothing.
+the latest full build. `--preflight-only` prints the list and changes nothing.

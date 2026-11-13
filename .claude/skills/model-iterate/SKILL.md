@@ -1,13 +1,24 @@
 ---
 name: model-iterate
-description: Tier 1 of the skid-model pipeline for the project. One full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - takeoffs, STEP, interference, envelope, materials, pipe supports, GLB and the list delta - into the working copy <project>/03_Working_Design/Exports/build/. Use after any edit to the model source, the <project>/03_Working_Design/PID/02_Tag_Lists lists, component models or design rules, before showing anything to Bob. Never files, never pushes.
+description: Tier 1 of the skid-model pipeline for the project. One build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - takeoffs, STEP, interference, envelope, materials, pipe supports, GLB and the list delta - into a new numbered folder under <project>/03_Working_Design/CAD/Builds/ (fast or full, never overwritten). Use after any edit to the model source, the <project>/03_Working_Design/PID/02_Tag_Lists lists, component models or design rules, before showing anything to Bob. Never files, never pushes.
 ---
 
 # Model iterate (tier 1, every build)
 
 **When.** After every change to `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`
 (`rp.SKID_MODEL`; `<MODEL-ID>` is `rp.SKID_MODEL_ID`, named in `job/JOB.md`), the `<project>/03_Working_Design/PID/02_Tag_Lists/`
-lists, `job/components/` models or the design rules. Run it as often as you like; it only writes the working copy.
+lists, `job/components/` models or the design rules. Run it as often as you like; it only writes a new working copy.
+
+**One build series** (Bob, chat, 2026-11-12: one numbered, never-overwritten series in place of two build folders;
+"many times it takes 30+ edits to get to the desired result"). Every run, full or `--fast`, writes a new folder
+`<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-full-<nnn>/` or `rev<X>-fast-<nnn>/`. `<X>` is the last filed
+model revision the build starts from (`first` before Rev A); `<nnn>` is one counter per letter shared by both kinds
+and starts again at 001 after the next filing. No build overwrites or removes another. Fast edits are the unit of
+iteration; the full build is one more numbered entry, run when the result is where Bob wants it, and it is what
+`model_file.py` files (`rp.SKID_BUILD` is the latest full build). When a full build starts, the STEP of each
+earlier full build is zipped beside its other files. The folder is gitignored and outside the Drive store.
+A finished build's files are read-only. Run the model's export scripts only through `model_iterate.py`: one started
+by hand writes into the latest full build and is refused by the file system, as it should be.
 Acceptance (`model-accept`) runs its own full build; don't run one by hand before it.
 
 **The one command** (repo root, repo venv; it calls the cadgen venv for the
@@ -22,7 +33,7 @@ STEP itself):
 them). `<CFG>` is `B`, `X` or a switch string such as `E-OPT1-OPT3` (default `B`); a string equal to B or X is
 refused with the right name, and one that is not a row of `job/knowledge/size-range/config-matrix.csv` is refused
 with the reason. Source is `job/Typical-<ID prefix>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`, the build goes to
-`job/Typical-<ID prefix>/03_Working_Design/Exports/build/<MODEL-ID>/<CFG>/` (with the iso, plan, front and side review PNGs), and the rules
+`job/Typical-<ID prefix>/03_Working_Design/CAD/Builds/<MODEL-ID>/<CFG>/`, numbered the same way (with the iso, plan, front and side review PNGs), and the rules
 are the harness and job levels only: `envelope.py` reads `job/design-rules/layout.yaml` `shipping_envelope`. The
 list delta compares against the configuration's rows of `job/Typical-<ID prefix>/03_Working_Design/PID/02_Tag_Lists/<CL|DS>/`. `--fast` needs a filed
 revision of that configuration and skips the P&ID drawing checks. Commands and the model-writing rules:
@@ -42,29 +53,28 @@ model-only envelope (about 6 s), and beside them `export_glb_fast.py`, a GLB to
 look at straight from the model with no STEP (about 1 min, instead of about
 6 min for the full build; Bob, 2026-10-10: "I need to be able to see it ...
 whatever is fastest"). Each run writes a new folder,
-`<project>/03_Working_Design/CAD/Fast_Builds/rev<X>/rev<X>-fast-<nnn>/` (Bob, 2026-10-11: so
-fast changes can still be tracked). `<X>` is the last filed model revision the build starts from (`revisions.csv`), `<nnn>`
-counts up for that letter and starts again at 001 after the next filing, the same as P&ID fast edits; refused if
+`<project>/03_Working_Design/CAD/Builds/rev<X>/rev<X>-fast-<nnn>/` (Bob, 2026-10-11: so
+fast changes can still be tracked), numbered in the one series above; refused if
 it exists. The folder holds
 `<MODEL-ID>-rev<X>-fast-<nnn>.glb`, its own takeoffs, logs and
 `iterate-summary.json`, and overwrites or removes nothing else (Bob,
 2026-10-10: "The fast build should still create a new file, and not overwrite
 an existing."). Give Bob the fast GLB's path; do not start the CAD viewer or
 make a `cad_show` link for a fast build (Bob, 2026-10-10: "remove launching the viewer server from the fast skill.
-It is unnecesarry."). `<project>/03_Working_Design/CAD/Fast_Builds/` is
-gitignored and excluded from the Drive store: viewing copies with a coarser
-mesh, not revisions, never filed, committed or pushed. `model_file.py` never
-sees a fast build: run once without `--fast` before filing. **When Bob's prompt says "fast build"**,
+It is unnecesarry."). A fast build is a viewing copy with a coarser
+mesh, not a revision, never filed, committed or pushed. `model_file.py` never
+files a fast build: run once without `--fast` before filing. **When Bob's prompt says "fast build"**,
 run every build of that task with `--fast`, do not file, and report the
 path to the fast GLB and the check lines (no viewer); a full build and filing only when he
 asks for them. **No pipe supports check in a fast edit until Bob asks for it** (Bob, chat, 2026-10-15: "The pipe
 support check is completley unnecessary until i request it.  do not check until i ask."; earlier, 2026-10-11: "I'm
 not worried about pipe supports for these fast edits."): `--fast` does not run `pipe_supports.py`; add `--supports`
-only on a build where Bob has asked for the support check. Don't mention supports in the report or the fast log
+only on a build where Bob has asked for the support check. Don't mention supports in the report or the build log
 otherwise, and make no hanger edit to clear a finding unless he asks.
 
-**Fast log** (Bob, 2026-10-10: "start to keep a running list in the fast folder for each revision."): every
-fast build gets one row in `<project>/03_Working_Design/CAD/Fast_Builds/fast-log.md`, written by the script: pass
+**Build log** (Bob, 2026-10-10: "start to keep a running list in the fast folder for each revision."): every
+build gets one row in `<project>/03_Working_Design/CAD/Builds/build-log.md` (`fast-log.md` before 2026-11-12), written by the script; the row names
+only the checks that ran. A full build is always logged; for a fast build pass
 `--request "<Bob's words, trimmed>" --change "<what this build changed, or why it was superseded>"` and it adds
 the row (build name, time, request, change, the check results, the open count) under today's heading. Never write
 the row by hand. A build another session made gets its row from that session.
@@ -97,7 +107,7 @@ its `face_colours` `part` no longer finds the mesh (see `component-add`).
 The looks feed the presentation site, dormant until the job has one: with no
 `materials.yaml` the line says so and is not a failure.
 `--fast` does not run it. One summary line per step; full logs in
-`<project>/03_Working_Design/Exports/build/<MODEL-ID>/logs/`; `iterate-summary.json` there is
+the build folder's `logs/`; `iterate-summary.json` there is
 what `model_file.py` checks.
 
 **List delta.** `list-delta.csv` / `.md`: tags in the model not on the
@@ -111,5 +121,5 @@ point Bob at `<project>/_work/` as the design (TR-08). Not a substitute for
 `pid_consistency` (close-out runs it) or the frame calc.
 
 **Hand-off line.** `model_iterate: PASS|FAIL in <min>`, each check's summary
-line, the list delta row count, the `looks:` line, and "working copy only,
+line, the list delta row count, the `looks:` line, the build's name (`rev<X>-full-<nnn>`), and "working copy only,
 not filed".
