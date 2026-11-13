@@ -24,7 +24,8 @@ its merge into the site's main, on Bob's end-of-day word, is the publish.
        checkout is on main with a clean tree (it is never written or moved).
     1b. Upstream commits: fetches origin main in the site checkout and names every commit on origin/main since the last
        publish (a "Site: ..." commit or the merge of a daily/<date> branch), each marked KEEP-only or TOUCHES
-       PUBLISHED CONTENT. KEEP-only commits (.github/**, .gitattributes, README.md) are carried: the branch is built on
+       PUBLISHED CONTENT. KEEP-only commits (.github/**, .gitattributes, README.md, and the save tool's .gitignore and
+       drive-store.json) are carried: the branch is built on
        origin/main. One outside KEEP refuses (the publish would overwrite it). Dry run: listed, a fetch failure is a
        WARNING. Never a reset, rebase, force or merge. The branch builds on origin/daily/<date> when an earlier
        publish today is not merged yet (it must contain origin/main), else on origin/main.
@@ -114,8 +115,10 @@ EST = "estimating/"
 # its direct link (or an unlabeled landing tile); its pages carry robots noindex
 CUSTOMER = rp.CUSTOMER_FILED
 CUS = "customer/"
-# never replaced on the site; .github holds the site repo's own packaging workflow
-KEEP = {".git", ".gitattributes", "README.md", ".github"}
+# never replaced on the site; .github holds the site repo's own packaging workflow. .gitignore and drive-store.json
+# are the two files the global save tool (Claude-Git-Tools day.py) writes when it first saves in a folder; the site
+# repo got them on 2026-11-13 with a packager change, so they are the site repo's own and not published content
+KEEP = {".git", ".gitattributes", "README.md", ".github", ".gitignore", "drive-store.json"}
 # the publish notes, rewritten by every publish at the site root, so it is not KEEP (an upstream commit touching it is
 # published content and refuses); it is never part of the plan and never counted as added, changed or removed, and no
 # page links it, so the site's packager does not take it
