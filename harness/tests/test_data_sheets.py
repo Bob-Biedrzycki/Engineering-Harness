@@ -190,17 +190,39 @@ class DataSheets(unittest.TestCase):
         self.assertTrue(DS.note_ok("Panel weight is not yet known."))
         self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight is not yet known.")
         self.assertEqual(DS.plain_reason("Not on brochure"), "The value is not given on brochure.")
-        # a verbless note that names what is pending says it is not yet known (second review DS-30), never dropped
-        self.assertEqual(DS.plain_reason("Customer utility spec"), "Customer utility spec is not yet known.")
-        self.assertEqual(DS.plain_reason("Plant air conditions at BL-08"), "Plant air conditions at BL-08 are not yet known.")
+        # the generator's own short forms are reworded; any other note that is not a sentence stops the run, and
+        # is never dropped (orchestrator, round 2, DS-29 / DS-30)
         self.assertEqual(DS.plain_reason("6P739 manufacturer and model not resolved"),
                          "6P739 manufacturer and model are not yet resolved.")
-        # a labelled data note keeps its values (DS-29: the tank weight basis)
-        self.assertTrue(DS.note_ok("Weight basis: empty 375 lb; water SG 1.0; 4 legs."))
+        with self.assertRaises(DS.NoteFails):
+            DS.plain_reason("Plant air conditions at BL-08")
+        with self.assertRaises(DS.NoteFails):
+            DS.plain_reason("Weight basis: empty 375 lb; water SG 1.0; 4 legs")
         _, rec, sheets = self.records()
         for sh in sheets.values():
             for n in sh.notes:
                 self.assertTrue(DS.note_ok(n), f"{sh.tag} prints a note that is not a sentence: {n!r}")
+
+    def test_a_note_that_is_not_a_sentence_stops_the_run_and_the_values_file_answers_it(self):
+        write_csv(self.lists / "equipment-list.csv", EQUIPMENT_COLS, [{
+            "tag": "EQ-1", "description": "Holding vessel", "pid_sheet": "1", "size_rating": "unknown (Plant air at BL-08)",
+            "component_id": "unknown", "empty_weight_lb": "unknown", "operating_weight_lb": "unknown",
+            "operating_weight_max_lb": "unknown", "weight_basis": "unknown", "support_count": "4",
+            "load_per_support_max_lb": "unknown"}])
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = DS.main(["--settings", str(self.settings), "--html-only", "--out", str(self.tmp / "p")])
+        self.assertEqual(code, 2)
+        self.assertIn("EQ-1 | Plant air at BL-08", err.getvalue())        # the tag and the text, nothing dropped
+        values = self.tmp / "values.yaml"
+        values.write_text("EQ-1:\n  Size / rating:\n    reason: \"The plant air conditions at BL-08 are not yet known\"\n"
+                          "  Empty weight:\n    basis_only: true\n    reason: kept in the basis on purpose\n",
+                          encoding="utf-8")
+        self.settings.write_text(self.settings.read_text(encoding="utf-8") + f"overrides: {values.as_posix()}\n",
+                                 encoding="utf-8")
+        _, rec, sheets = self.records()
+        self.assertEqual(sheets["EQ-1"].failed, [])
+        self.assertIn("The plant air conditions at BL-08 are not yet known.", sheets["EQ-1"].notes)
 
     def test_a_basis_only_clause_never_prints(self):
         # DS-20 / DS-27: model-revision talk stays in the basis CSV; a cell keeps only the connection itself

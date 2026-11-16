@@ -372,7 +372,12 @@ _VERB = re.compile(r"(?i)\b(?:is|are|was|were|be|been|being|has|have|had|gives?|
                    r"printed|decided|received|chosen|known|required|decoded|checked|stated|selected|fitted|"
                    r"installed|mounted|drains?|calls?|depends?|applies|apply|runs?|reads?|follows?|uses?|used|"
                    r"recommends?|recommended|rated|tested|built|made|sized|specified|listed|named|left|kept|"
-                   r"remains?|stays?|opens?|closes?|seats?|sits?|cover(?:s|ed)?)\b")
+                   r"remains?|stays?|opens?|closes?|seats?|sits?|cover(?:s|ed)?|"
+                   # auxiliaries and the other verbs the records' notes use (a word list, so it is kept generous)
+                   r"do|does|did|can|cannot|could|must|should|will|would|may|might|shall|"
+                   r"stands?|publish(?:es|ed)?|order(?:s|ed)?|resolved?|counts?|counted|lies|lie|weighs?|"
+                   r"goes|go|gets?|includes?|included|supplies|supplied|provides?|provided|"
+                   r"confirm|states?|matches|match|fits?|holds|points?|leads?|lacks?|misses|missing|saved|found)\b")
 _DANGLING = re.compile(r"(?i)(?:\b(?:for|to|the|a|an|of|with|and|or|on|in|at|by|from|per|as|is|are|its|their)|[:,;(/-])\s*\.?$")
 # the generator's own short forms, said as sentences
 def _be(subject: str) -> str:
@@ -395,13 +400,17 @@ _LABELLED = re.compile(r"^[A-Z][\w /,()-]{1,40}:\s+\S")   # "Weight basis: empty
 
 
 def note_ok(text: str) -> bool:
-    """A note may print: it ends on no dangling word, and it is either a labelled data note ('Weight basis: ...',
-    whose clauses are values) or says something with a verb. A note is reworded before this test (as_sentence),
-    never dropped for want of a verb when it carries a value (second review DS-29, DS-30)."""
+    """A note is a plain full sentence: every clause has a verb, it ends on no dangling word, and it has at least
+    three words. The generator never drops a note that fails this: the run stops with the tag and the text, and the
+    note is rewritten by hand in the values file or marked basis_only there (orchestrator, round 2, DS-29/DS-30)."""
     t = (text or "").strip()
     if not t or _DANGLING.search(t) or len(re.findall(r"[A-Za-z]{2,}", t)) < 3:
         return False
-    return bool(_LABELLED.match(t) or _VERB.search(t))
+    return all(_VERB.search(c) for c in re.split(r";\s+", t.rstrip(".")) if c.strip())
+
+
+class NoteFails(Exception):
+    """A note or TBD reason that is not a plain full sentence: the run stops; nothing is dropped."""
 
 
 def as_sentence(text: str) -> str:
@@ -414,17 +423,14 @@ def as_sentence(text: str) -> str:
             continue
         if re.match(r"(?i)waits for ", c):                       # a short form even though "waits" is a verb
             c = re.sub(r"(?i)^waits for (.+)$", r"the value is to be taken from \1", c)
+        elif _SENTENCE[1][0].search(c) and not re.search(r"(?i)\b(?:is|are)\b", c):   # "X not resolved"
+            c = _SENTENCE[1][0].sub(_SENTENCE[1][1], c)
         elif not _VERB.search(c):
             for rx, to in _SENTENCE:
                 if rx.search(c):
                     c = rx.sub(to, c)
                     break
         out.append(c)
-    # a note with no verb at all that names what is pending ("Plant air conditions at BL-08") says it is not yet
-    # known, rather than being dropped (second review DS-30); a labelled data note stays as it is
-    if out and not any(_VERB.search(c) for c in out) and not _LABELLED.match("; ".join(out)) \
-            and len(out) == 1 and len(re.findall(r"[A-Za-z]{2,}", out[0])) >= 3:
-        out[0] = f"{out[0]} {_be(re.split(r' (?:at|on|in|for|of) ', out[0])[0])} not yet known"
     s = "; ".join(out)
     return (s[:1].upper() + s[1:] + ".") if s else ""
 
@@ -438,7 +444,9 @@ def plain_reason(text: str) -> str:
     if not v or _UNACTIONABLE.match(v) or not face_ok(v) or not re.search(r"[A-Za-z]{3}", v):
         return ""
     v = as_sentence(v)
-    return v if note_ok(v) and face_ok(v) else ""
+    if not note_ok(v):
+        raise NoteFails(v)          # never dropped: the caller records it and the run stops
+    return v
 
 
 # ------------------------------------------------------------------------------------------------ records
@@ -711,13 +719,18 @@ class Sheet:
         self.sources: list[str] = [f"{listname} row {tag}"]
         self.basis: list[dict] = []        # one row per printed cell and footnote (basis CSV)
         self._pending: list[dict] = []     # cells made since the last add(): labelled there
+        self.failed: list[str] = []        # notes that are not plain sentences: the run stops on them
 
     def note(self, text: str, record: str = "") -> int | None:
         """Number for a footnote, or None when the reason has nothing a reader outside CPME can act on (the cell is
         then just TBD). The printed words are scrubbed to the sheet-face rule; the full reason, ids included, goes to
         the basis CSV. A reason that names the same question / HOLD as an earlier note reuses its number."""
         full = (text or "").strip()
-        text = plain_reason(full)
+        try:
+            text = plain_reason(full)
+        except NoteFails as e:
+            self.failed.append(f"{e} (record: {record or 'the sheet'}; from: {full[:160]})")
+            return None
         if not text:
             return None
         ids = set(self.NOTE_IDS.findall(full))
@@ -732,7 +745,7 @@ class Sheet:
                     n = i + 1
                     break
                 a, c = words(text), words(old)       # the same reason in other words: one note
-                if a and c and len(a & c) / len(a | c) >= 0.5:
+                if a and c and len(a & c) / len(a | c) >= 0.8:   # near-identical only: a merge must not give a cell another cell's reason
                     n = i + 1
                     break
         if n is None:
@@ -754,16 +767,23 @@ class Sheet:
         A value no record gives prints TBD; a value that fails the sheet-face check after scrubbing prints TBD and
         its basis row says why (status 'scrubbed to TBD')."""
         why = None
+        basis_only = False
         if override is not None:
             if isinstance(override, dict):
                 why = override.get("reason")
+                basis_only = bool(override.get("basis_only"))     # reason kept in the basis CSV on purpose
                 if override.get("source"):
                     self.sources.append(override["source"])
-                raw = override.get("value", "")
+                if "value" in override:
+                    raw = override.get("value", "")
+                    f = None if override.get("value") is None else str(override["value"]).strip()
+                else:                                              # a reason only: the list value stands
+                    raw = "" if raw is None else str(raw)
+                    f = None
             else:
                 raw = override
+                f = str(raw).strip()
             raw = "" if raw is None else str(raw)
-            f = raw.strip()
         else:
             raw = "" if raw is None else str(raw)
             f = None
@@ -771,10 +791,12 @@ class Sheet:
         who = (w[1] or "").strip() if w else ""          # who can answer: the basis CSV only, never the sheet
         rec_name = " | ".join(where) if where else ""
         sup = lambda n: f"<sup>{n}</sup>" if n else ""
+        # basis_only in the values file: the reason is kept in the basis CSV on purpose and no note prints
+        mknote = (lambda r_: None) if basis_only else (lambda r_: self.note(r_, rec_name))
         if is_unknown(raw) or not raw.strip():
             self.open += 1
             r = why or reason(raw) or ""
-            n = self.note(r, rec_name)
+            n = mknote(r)
             self._keep(TBD, raw, where, r, n, who, "TBD")
             return f'<span class="unk">{TBD}</span>{sup(n)}'
         f = f if f is not None else fact(raw)
@@ -783,7 +805,7 @@ class Sheet:
         f_clean = scrub(f)
         if not f_clean or not face_ok(f_clean):   # "none" is a value and prints (second review DS-04, DS-09)
             self.open += 1                 # nothing printable is left: TBD, the record's words kept in the basis
-            n = self.note(why or reason(raw) or "", rec_name)
+            n = mknote(why or reason(raw) or "")
             self._keep(TBD, raw, where, why or "", n, who, "scrubbed to TBD")
             return f'<span class="unk">{TBD}</span>{sup(n)}'
         status = "scrubbed" if f_clean != f else ""
@@ -798,7 +820,7 @@ class Sheet:
                 r = f"Open: {clause}" + (f" ({', '.join(ids)})" if ids else "")
             # a note that only repeats the cell (its ids are not printed) says nothing: no note (second review DS-25)
             rep = scrub(re.sub(r"(?i)^open:\s*", "", r)).lower().strip(" .")   # before any rewording
-            n = None if (not why and (not rep or rep in f.lower())) else self.note(r, rec_name)
+            n = None if (not why and (not rep or rep in f.lower())) else mknote(r)
             if n is None and not why:
                 self.basis.append({"section": "Notes", "field": "(no note)", "printed": "", "reason": r,
                                    "record": rec_name})
@@ -870,9 +892,12 @@ def held_instrument(rec: Records, comp: dict) -> dict | None:
 def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model: str = "") -> list:
     rec = sh.rec
     if comp is None:
-        return [("Manufacturer", sh.cell(maker or "unknown")), ("Model", sh.cell(model or "unknown")),
+        o = lambda label: ov(rec, sh.tag, label)          # the job's wording for an item with no register row
+        return [("Manufacturer", sh.cell(maker or "unknown", override=o("Manufacturer"))),
+                ("Model", sh.cell(model or "unknown", override=o("Model"))),
                 ("Component", sh.cell(raw_cid if is_unknown(raw_cid)
-                                      else f"unknown (component {raw_cid} is not in the component register)"))]
+                                      else f"unknown (component {raw_cid} is not in the component register)",
+                                      override=o("Component")))]
     cid = comp["component_id"]
     sh.sources.append(f"component register {cid} Rev {comp['revision']}")
     lit = literature(comp)
@@ -903,7 +928,7 @@ def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model
         ("Pressure rating", sh.cell(comp["pressure_rating"], W("pressure_rating"), override=ov(rec, cid, "Pressure rating"))),
         ("Temperature rating", sh.cell(comp["temperature_rating"], W("temperature_rating"),
                                        override=ov(rec, cid, "Temperature rating"))),
-        ("Weight", sh.cell(comp["weight_lb"], W("weight_lb"), "lb")),
+        ("Weight", sh.cell(comp["weight_lb"], W("weight_lb"), "lb", override=ov(rec, cid, "Weight"))),
         ("Install practice", sh.cell(install_practice(comp["install_practice"]), W("install_practice"),
                                      override=ov(rec, cid, "Install practice"))),
         ("Literature", sh.cell(lit, W("cut_sheet_file"), override=ov(rec, cid, "Literature")) if lit
@@ -955,8 +980,10 @@ def service(sh: Sheet, line_no: str) -> list:
         ("Tube", sh.cell(f"{ln['size_od_in']} in OD × {fact(ln['gauge'])}" if not is_unknown(ln["size_od_in"]) else "unknown")),
         ("Material", sh.cell(f"{ln['material']}, {fact(ln['spec'])}" if not is_unknown(ln["material"]) else ln["material"],
                              W("material"), override=ov(sh.rec, sh.tag, "Line material"))),   # job wording: DS-15
-        ("Design pressure", sh.cell(ln["design_press_psig"], W("design_press_psig"), "psig")),
-        ("Design temperature", sh.cell(ln["design_temp_f"], W("design_temp_f"), "°F")),
+        ("Design pressure", sh.cell(ln["design_press_psig"], W("design_press_psig"), "psig",
+                                    override=ov(sh.rec, sh.tag, "Design pressure"))),
+        ("Design temperature", sh.cell(ln["design_temp_f"], W("design_temp_f"), "°F",
+                                       override=ov(sh.rec, sh.tag, "Design temperature"))),
         ("Internal finish", sh.cell(ln["finish_ra"], W("finish_ra"), override=ov(sh.rec, sh.tag, "Internal finish"))),
     ]
 
@@ -993,7 +1020,12 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
     ])
     if not loose:
         known = [c for c in ("empty_weight_lb", "operating_weight_lb", "operating_weight_max_lb") if not is_unknown(r[c])]
-        n = sh.note("Weight basis: " + reason(r["weight_basis"]).rstrip(".")) if known else None
+        # the weight basis as plain sentences: the values file's "Weight basis" reason when the job writes one
+        # (orchestrator, round 2, DS-29), else the list's basis; a basis that is not a sentence stops the run
+        wb = ov(rec, tag, "Weight basis", cid)
+        wb_text = (wb.get("reason") if isinstance(wb, dict) else wb) if wb is not None else None
+        n = (sh.note(wb_text or ("Weight basis: " + reason(r["weight_basis"]).rstrip(".")), "equipment-list.csv | " + tag +
+                     " | weight_basis") if known and not (isinstance(wb, dict) and wb.get("basis_only")) else None)
         wcell = lambda col, label: (sh.cell(r[col], W(col), "lb", override=ov(rec, tag, label)) +
                                       ("" if is_unknown(r[col]) or not n else f"<sup>{n}</sup>"))   # job wording: DS-16/17
         sh.add("Weights and supports", [
@@ -1007,10 +1039,11 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
     if motor:
         M = lambda col: ("motor-load-list.csv", tag, col)
         sh.add("Motor", [
-            ("Power", sh.cell(motor["hp"], M("hp"), "hp")),
+            ("Power", sh.cell(motor["hp"], M("hp"), "hp", override=ov(rec, tag, "Motor power"))),
             ("Supply", sh.cell(motor["voltage"] if is_unknown(motor["voltage"]) else
-                               f"{motor['voltage']} V, {motor['phase']} phase", M("voltage"))),
-            ("Drive", sh.cell(motor["starter_or_vfd"], M("starter_or_vfd"))),
+                               f"{motor['voltage']} V, {motor['phase']} phase", M("voltage"),
+                               override=ov(rec, tag, "Motor supply"))),
+            ("Drive", sh.cell(motor["starter_or_vfd"], M("starter_or_vfd"), override=ov(rec, tag, "Motor drive"))),
             ("Motor tag", sh.cell(motor["tag"], M("tag"))),
         ])
         sh.sources.append(f"motor-load-list.csv row {tag}")
@@ -1478,6 +1511,11 @@ def run(argv: list[str] | None = None) -> int:
             raise Refused(f"not in the tag lists: {', '.join(unknown_tags)}")
         sheets = [sh for sh in sheets if sh.tag in a.tags]
     today = dt.date.today().isoformat()
+    failed = [(sh.tag, x) for sh in sheets for x in sh.failed]
+    if failed:
+        raise Refused("these notes are not plain full sentences; rewrite each by hand in the values file (a "
+                      "'reason' for that field) or mark it basis_only there with a reason:\n" +
+                      "\n".join(f"  {t_} | {x}" for t_, x in failed))
     # what each printed cell came from (the cells were made as the sheets were built): rewritten for the sheets of
     # this run, every run; never printed
     job_rows = [{"document_id": "ALL", "section": "Job basis notes", **{k: str(v) for k, v in n.items()}}
