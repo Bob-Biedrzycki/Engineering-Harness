@@ -69,7 +69,10 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     # "REV A" pass; and a model build name (revB-full-007). The sheet's own footer path is exempt as a whole.
     ("model revision", re.compile(
         r"\bMODEL\b[^.;]{0,30}?\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\b|\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\s+(?:OF\s+THE\s+)?MODEL\b|"
-        r"\brev[A-Z]{1,2}-(?:fast|full)-\d{3}\b", re.I)),
+        r"\brev[A-Z]{1,2}-(?:fast|full)-\d{3}\b|"
+        # the model's revision named in words (DS-27: "OPEN FOR THE NEXT MODEL REVISION" on two data sheets): the
+        # design process, not the drawing. The drawing's own REVISION box and "REV A" have no MODEL / NEXT in them
+        r"\bmodel\s+revisions?\b|\bnext\s+(?:model\s+)?revisions?\b|\brevision\s+of\s+the\s+model\b", re.I)),
     ("component register number", re.compile(r"\bC(?:O)?MP-\d{4}\b", re.I)),
     # the model's own record codes: assumption numbers (A-19), general-note keys (GN-LASER), install and
     # support-install items (SI-02, SH-06)

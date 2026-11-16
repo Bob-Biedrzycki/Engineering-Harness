@@ -104,6 +104,13 @@ class CheckTextTests(unittest.TestCase):
         for s in ("REV A", "REVISION", "A", "REV  DESCRIPTION  DATE", "FAST-001 - NOT ISSUED", "REV A, FIRST ISSUE"):
             self.good(s)
 
+    def test_ds27_model_revision_in_words(self):
+        for s in ("BRANCH DESIGN OPEN FOR THE NEXT MODEL REVISION", "AT THE NEXT REVISION", "MODEL REVISIONS",
+                  "THE REVISION OF THE MODEL"):
+            self.bad(s, "model revision")
+        for s in ("REVISION", "REVISION BLOCK", "REVISIONS ARE CLOUDED", "MODEL NO. 12 PUMP"):
+            self.good(s)
+
     def test_internal_words(self):
         for w in ("PER THE TAKEOFF", "FROM THE MANIFEST", "HELPER 3", "ORCHESTRATOR", "HARNESS RULE"):
             self.bad(w, "internal word")
