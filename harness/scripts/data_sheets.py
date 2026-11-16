@@ -109,6 +109,7 @@ class Settings:
     no_line_text: str = "mounted on equipment (no line, no service class)"
     text_rules: dict = field(default_factory=dict)
     basis: Path | None = None          # the basis CSV: what each printed cell came from (never printed)
+    basis_notes: list = field(default_factory=list)   # the job's own basis rows (open matters for the next lists pass)
 
     @property
     def basis_csv(self) -> Path:
@@ -155,7 +156,8 @@ def load_settings(path: Path | None = None) -> Settings:
                     answers=[_repo_path(a) for a in (answers if isinstance(answers, list) else [answers])],
                     preview_dir=_repo_path(d.get("preview_dir")), valve_titles=dict(d.get("valve_titles") or {}),
                     no_line_text=str(d.get("no_line_text") or Settings.no_line_text),
-                    text_rules=dict(d.get("text_rules") or {}), basis=_repo_path(d.get("basis")))
+                    text_rules=dict(d.get("text_rules") or {}), basis=_repo_path(d.get("basis")),
+                    basis_notes=list(d.get("basis_notes") or []))
 
 
 def drawings_root(cfg: Settings) -> Path:
@@ -363,14 +365,62 @@ def set_commodity_numbers(register: dict) -> None:
     _COMMODITY_RX = re.compile(rf"(?:\s*\bwith\b)?(?:\s*\b(?:McMaster(?:-Carr)?|Steel & O'Brien)\b)?\s*\b(?:{alt})\b(?![-\w])")
 
 
+# A printed note is a full sentence a reader outside CPME can act on, or it is not printed (orchestrator, round 2,
+# on DS-15..DS-17 and DS-25). A clause has a verb from this list, and the note does not end on a dangling word.
+_VERB = re.compile(r"(?i)\b(?:is|are|was|were|be|been|being|has|have|had|gives?|given|takes?|taken|shows?|shown|"
+                   r"says?|waits?|confirms?|confirmed|holds?|ships?|carr(?:y|ies)|comes?|needs?|sets?|assigned|"
+                   r"printed|decided|received|chosen|known|required|decoded|checked|stated|selected|fitted|"
+                   r"installed|mounted|drains?|calls?|depends?|applies|apply|runs?|reads?|follows?|uses?|used|"
+                   r"recommends?|recommended|rated|tested|built|made|sized|specified|listed|named|left|kept|"
+                   r"remains?|stays?|opens?|closes?|seats?|sits?|cover(?:s|ed)?)\b")
+_DANGLING = re.compile(r"(?i)(?:\b(?:for|to|the|a|an|of|with|and|or|on|in|at|by|from|per|as|is|are|its|their)|[:,;(/-])\s*\.?$")
+# the generator's own short forms, said as sentences
+_SENTENCE = [(re.compile(r"(?i)^(.{2,60}?) TBD$"), r"\1 is not yet known"),
+             (re.compile(r"(?i)^waits for (.+)$"), r"the value is to be taken from \1"),
+             (re.compile(r"(?i)^no (.+)$"), r"there is no \1"),
+             (re.compile(r"(?i)^not (on|in|at|by|from) (.+)$"), r"the value is not given \1 \2"),
+             (re.compile(r"(?i)^not (.+)$"), r"the value is not \1"),
+             (re.compile(r"(?i)^(.+?) pending\b(.*)$"), r"\1 is pending\2")]
+
+
+def note_ok(text: str) -> bool:
+    """A note may print: every clause has a verb, and it ends on no dangling word."""
+    t = (text or "").strip()
+    if not t or _DANGLING.search(t):
+        return False
+    return all(_VERB.search(c) for c in re.split(r";\s+", t.rstrip(".")) if c.strip())
+
+
+def as_sentence(text: str) -> str:
+    """The generator's short forms ('Panel weight TBD', 'Not on brochure') said as sentences, clause by clause;
+    capital first letter, full stop at the end."""
+    out = []
+    for c in re.split(r";\s+", (text or "").strip().rstrip(".")):
+        c = c.strip()
+        if not c:
+            continue
+        if re.match(r"(?i)waits for ", c):                       # a short form even though "waits" is a verb
+            c = _SENTENCE[1][0].sub(_SENTENCE[1][1], c)
+        elif not _VERB.search(c):
+            for rx, to in _SENTENCE:
+                if rx.search(c):
+                    c = rx.sub(to, c)
+                    break
+        out.append(c)
+    s = "; ".join(out)
+    return (s[:1].upper() + s[1:] + ".") if s else ""
+
+
 def plain_reason(text: str) -> str:
-    """A footnote's reason as it may print: scrubbed, and empty when nothing a reader outside CPME can act on is
-    left (orchestrator, 2026-11-16: 'if it has none, the cell is just TBD')."""
+    """A footnote's reason as it may print: scrubbed, said as a sentence, and empty when nothing a reader outside
+    CPME can act on is left (orchestrator, 2026-11-16: 'if it has none, the cell is just TBD'; every printed note a
+    full sentence)."""
     v = scrub(text)
-    v = re.sub(r"(?i)^(?:open:\s*)", "Open: ", v).strip(" :;,")
+    v = re.sub(r"(?i)^(?:open:\s*)", "", v).strip(" :;,")
     if not v or _UNACTIONABLE.match(v) or not face_ok(v) or not re.search(r"[A-Za-z]{3}", v):
         return ""
-    return v[:1].upper() + v[1:]
+    v = as_sentence(v)
+    return v if note_ok(v) and face_ok(v) else ""
 
 
 # ------------------------------------------------------------------------------------------------ records
@@ -729,7 +779,7 @@ class Sheet:
                 ids = sorted(set(R.IDS_RX.findall(raw.split("||")[0])))
                 r = f"Open: {clause}" + (f" ({', '.join(ids)})" if ids else "")
             # a note that only repeats the cell (its ids are not printed) says nothing: no note (second review DS-25)
-            n = None if (not why and plain_reason(r).lower().removeprefix("open: ") in f.lower()) else self.note(r, rec_name)
+            n = None if (not why and plain_reason(r).lower().rstrip(".") in f.lower()) else self.note(r, rec_name)
             if n is None and not why:
                 self.basis.append({"section": "Notes", "field": "(no note)", "printed": "", "reason": r,
                                    "record": rec_name})
@@ -885,7 +935,7 @@ def service(sh: Sheet, line_no: str) -> list:
         ("Service class", sh.cell(ln["service_class"], W("service_class"), override=ov(sh.rec, sh.tag, "Service class"))),
         ("Tube", sh.cell(f"{ln['size_od_in']} in OD × {fact(ln['gauge'])}" if not is_unknown(ln["size_od_in"]) else "unknown")),
         ("Material", sh.cell(f"{ln['material']}, {fact(ln['spec'])}" if not is_unknown(ln["material"]) else ln["material"],
-                             W("material"))),
+                             W("material"), override=ov(sh.rec, sh.tag, "Line material"))),   # job wording: DS-15
         ("Design pressure", sh.cell(ln["design_press_psig"], W("design_press_psig"), "psig")),
         ("Design temperature", sh.cell(ln["design_temp_f"], W("design_temp_f"), "°F")),
         ("Internal finish", sh.cell(ln["finish_ra"], W("finish_ra"), override=ov(sh.rec, sh.tag, "Internal finish"))),
@@ -925,11 +975,12 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
     if not loose:
         known = [c for c in ("empty_weight_lb", "operating_weight_lb", "operating_weight_max_lb") if not is_unknown(r[c])]
         n = sh.note("Weight basis: " + reason(r["weight_basis"]).rstrip(".")) if known else None
-        wcell = lambda col: (sh.cell(r[col], W(col), "lb") + ("" if is_unknown(r[col]) or not n else f"<sup>{n}</sup>"))
+        wcell = lambda col, label: (sh.cell(r[col], W(col), "lb", override=ov(rec, tag, label)) +
+                                      ("" if is_unknown(r[col]) or not n else f"<sup>{n}</sup>"))   # job wording: DS-16/17
         sh.add("Weights and supports", [
-            ("Empty weight", wcell("empty_weight_lb")),
-            ("Operating weight", wcell("operating_weight_lb")),
-            ("Operating weight, max", wcell("operating_weight_max_lb")),
+            ("Empty weight", wcell("empty_weight_lb", "Empty weight")),
+            ("Operating weight", wcell("operating_weight_lb", "Operating weight")),
+            ("Operating weight, max", wcell("operating_weight_max_lb", "Operating weight, max")),
             ("Supports", sh.cell(r["support_count"], W("support_count"))),
             ("Load per support, max", sh.cell(r["load_per_support_max_lb"], W("load_per_support_max_lb"), "lb")),
         ])
@@ -1410,8 +1461,10 @@ def run(argv: list[str] | None = None) -> int:
     today = dt.date.today().isoformat()
     # what each printed cell came from (the cells were made as the sheets were built): rewritten for the sheets of
     # this run, every run; never printed
-    bpath = write_basis(cfg, [r for sh in sheets for r in basis_rows(sh, cfg.doc_prefix + sh.tag)],
-                        {cfg.doc_prefix + sh.tag for sh in sheets})
+    job_rows = [{"document_id": "ALL", "section": "Job basis notes", **{k: str(v) for k, v in n.items()}}
+                for n in cfg.basis_notes]
+    bpath = write_basis(cfg, [r for sh in sheets for r in basis_rows(sh, cfg.doc_prefix + sh.tag)] + job_rows,
+                        {cfg.doc_prefix + sh.tag for sh in sheets} | {"ALL"})
 
     if a.fast:
         made = write_fast(cfg, rec, sheets, root, a.request, today, pdf=not a.html_only)

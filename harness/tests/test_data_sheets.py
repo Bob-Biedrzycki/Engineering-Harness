@@ -136,7 +136,7 @@ class DataSheets(unittest.TestCase):
         self.assertIn("Holding vessel, 10 gal", page)
         self.assertIn("4", page)
         # a footnote keeps a plain reason; one with nothing a reader can act on is left off and the cell is just TBD
-        self.assertIn("Waits on the maker's drawing", DS.page_text(page))
+        self.assertIn("Waits on the maker's drawing.", DS.page_text(page))
         rows = DS.basis_rows(sheets["EQ-1"], "TST-DS-EQ-1")
         load = next(r for r in rows if r["field"] == "Load per support, max")
         self.assertEqual((load["printed"], load["note"], load["who_can_answer"]), ("TBD", "", "Bob"))
@@ -170,7 +170,7 @@ class DataSheets(unittest.TestCase):
     def test_rule_b_a_scrub_never_leaves_a_fragment(self):
         self.assertEqual(DS.scrub("No weight on the brochure; Q-0068 for the vendor drawing"),
                          "No weight on the brochure; waits for the vendor drawing")
-        self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight TBD")
+        self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight is not yet known.")
         # only the failing comma piece goes, the rest of the clause stays
         self.assertEqual(DS.scrub("1 in clamp ends, joint J033 to SAN-UTIL-002 spool, 316L wetted body"),
                          "1 in clamp ends, 316L wetted body")
@@ -181,6 +181,31 @@ class DataSheets(unittest.TestCase):
         self.assertEqual(DS.scrub("PIPE-SVC-001 air"), "")
         _, rec, sheets = self.records()
         self.assertIn(">TBD<", sheets["EQ-1"].cell("PIPE-SVC-001 air"))
+
+    def test_every_printed_note_is_a_sentence(self):
+        # orchestrator, round 2: a note is a full sentence a reader outside CPME can act on, or it is not printed
+        self.assertFalse(DS.note_ok("Panel weight"))                      # no verb
+        self.assertFalse(DS.note_ok("No weight on the FZX brochure; for the vendor drawing"))
+        self.assertFalse(DS.note_ok("The weight is to be taken from the"))  # dangling word
+        self.assertTrue(DS.note_ok("Panel weight is not yet known."))
+        self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight is not yet known.")
+        self.assertEqual(DS.plain_reason("Not on brochure"), "The value is not given on brochure.")
+        self.assertEqual(DS.plain_reason("Customer utility spec"), "")       # nothing to act on: no note
+        _, rec, sheets = self.records()
+        for sh in sheets.values():
+            for n in sh.notes:
+                self.assertTrue(DS.note_ok(n), f"{sh.tag} prints a note that is not a sentence: {n!r}")
+
+    def test_a_basis_only_clause_never_prints(self):
+        # DS-20 / DS-27: model-revision talk stays in the basis CSV; a cell keeps only the connection itself
+        _, rec, sheets = self.records()
+        sh = sheets["EQ-1"]
+        raw = ("integrated 2 in clamp, no thread; branch design open for the next model revision, dead-leg case "
+               "for the sanitary review")
+        page = sh.cell(raw)
+        self.assertNotIn("model revision", page)
+        self.assertNotIn("sanitary review", page)
+        self.assertIn("integrated 2 in clamp", page)
 
     def test_rule_c_a_commodity_loses_its_number_a_selected_item_keeps_its_own(self):
         reg = {"COMP-0001": [{"component_id": "COMP-0001", "selection": "commodity", "model": "S7SWWK-2-PL",
