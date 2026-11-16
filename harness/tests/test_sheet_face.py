@@ -104,6 +104,14 @@ class CheckTextTests(unittest.TestCase):
         for s in ("REV A", "REVISION", "A", "REV  DESCRIPTION  DATE", "FAST-001 - NOT ISSUED", "REV A, FIRST ISSUE"):
             self.good(s)
 
+    def test_signed_axis_letters(self):
+        for s in ("TK-101 STAND -X END MEMBER", "-X END 45 DEG MITRE", "FRONT RAIL FM-003, +X LEG INTO FM-002",
+                  "TK-101 LEG -X", "TK-101 TANK LEG (-X, REAR)", "THE +Y SIDE", "+Z END"):
+            self.bad(s, "model axis")
+        for s in ("X FROM C", "Y FROM B", "Z FROM A", "X FR C", "4 X 3 X .188 RECT TUBE", "SECTION X-X",
+                  "+/-.010", "1-1/2 X 3", "TK-101 END", "FRONT", "W6X12"):
+            self.good(s)
+
     def test_ds27_model_revision_in_words(self):
         for s in ("BRANCH DESIGN OPEN FOR THE NEXT MODEL REVISION", "AT THE NEXT REVISION", "MODEL REVISIONS",
                   "THE REVISION OF THE MODEL"):

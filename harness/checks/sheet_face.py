@@ -92,6 +92,11 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("hold, gate or review status", re.compile(
         r"\bHOLD\s*\((?:NOT RECEIVED|H\d+)\)|\bGATE\s+\d\b|\bFOR\s+(?:THE\s+)?(?:ENGINEER'?S?\s+)?REVIEW\b|"
         r"\bREV\s+\d+,\s+FOR\s+REVIEW\b|\bEARLIER JOB\b", re.I)),
+    # a model axis with its sign as a word (-X END, +Y SIDE, (-X, REAR); orchestrator 2026-11-16): a fabricator has no
+    # axes; the drawings name FRONT, REAR, TK-101 END, TK-103 END. Coordinate headings (X FROM C, X FR C), sizes
+    # (4 X 3), SECTION X-X and tolerances (+/-.010) pass: no sign directly before the letter, or a word or hyphen
+    # before the sign
+    ("model axis letter", re.compile(r"(?<![\w-])[+-][XYZ](?!\w)", re.I)),
     ("rule family or tracker name", re.compile(
         r"\b(?:SAN|GDT|PIPE|LAY|DRF|TAG|STR|INST|MAT|CHAIN)\s+RULES?\b|\bCPM-\d+\b|\bPARTSLIB\b", re.I)),
 ]
