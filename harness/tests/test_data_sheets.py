@@ -99,13 +99,90 @@ class DataSheets(unittest.TestCase):
             DS.load_settings(self.settings)
         self.assertIn("doc_prefix", str(c.exception))
 
-    def test_no_model_and_no_datum_record_print_unknown_with_the_reason(self):
+    def test_no_model_and_no_datum_record_print_tbd_and_keep_the_reason_in_the_basis(self):
+        # Before the sheet-face rule (DRF-FACE-001, 2026-11-16) the page printed "unknown" and the reason; the reason
+        # is a record matter, so the page prints TBD and the basis row keeps the reason (Helper 4, plan set round 2).
         _, rec, sheets = self.records()
         page = DS.render(sheets["EQ-1"], "TST-DS-EQ-1", "A", "2026-01-01")
-        self.assertIn("no filed model is named in the data sheet settings", page.lower())
-        self.assertIn("model unknown", page)
+        self.assertNotIn("unknown", page.lower())
+        self.assertIn('<span class="unk">TBD</span>', page)
+        rows = DS.basis_rows(sheets["EQ-1"], "TST-DS-EQ-1")
+        loc = next(r for r in rows if r["field"] == "Location")
+        self.assertEqual(loc["printed"], "TBD")
+        self.assertIn("no filed model is named in the data sheet settings", loc["raw"])
+        self.assertIn("model unknown", next(r for r in rows if r["field"] == "sources")["raw"])
         self.assertEqual(DS.datum_origin(None)[2], "no datum record is named in the data sheet settings")
         self.assertIn("is missing", DS.datum_origin(self.tmp / "absent.tol.yaml")[2])
+
+    # ---- the sheet-face rule (DRF-FACE-001): the clean sheet is the only sheet
+    def test_the_sheet_prints_no_internal_reference_and_the_basis_keeps_it(self):
+        write_csv(self.lists / "equipment-list.csv", EQUIPMENT_COLS, [{
+            "tag": "EQ-1", "description": "Holding vessel, 10 gal (SRC-0011 p. 3)", "pid_sheet": "1",
+            "size_rating": "10 gal per SAN-DL-001; checked by Bob", "component_id": "unknown",
+            "empty_weight_lb": "unknown (waits on the maker's drawing, Q-0010)", "operating_weight_lb": "unknown",
+            "operating_weight_max_lb": "unknown", "weight_basis": "unknown", "support_count": "4",
+            "load_per_support_max_lb": "unknown - answers: Bob"}])
+        answers = self.tmp / "answers.csv"
+        write_csv(answers, ["file", "tag", "column", "waits_on", "who_can_answer"],
+                  [{"file": "equipment-list.csv", "tag": "EQ-1", "column": "load_per_support_max_lb",
+                    "waits_on": "frame calc", "who_can_answer": "Bob"}])
+        self.settings.write_text(self.settings.read_text(encoding="utf-8") + f"answers: [{answers.as_posix()}]\n",
+                                 encoding="utf-8")
+        cfg, rec, sheets = self.records()
+        page = DS.render(sheets["EQ-1"], "TST-DS-EQ-1", "A", "2026-01-01")
+        self.assertEqual(DS.face_findings(page), [], "nothing on the sheet fails the sheet-face check")
+        for word in ("SRC-0011", "SAN-DL-001", "Q-0010", "Bob", "answers:", "unknown", "Sources:", ".csv"):
+            self.assertNotIn(word, page)
+        self.assertIn("Holding vessel, 10 gal", page)
+        self.assertIn("4", page)
+        # a footnote keeps a plain reason; one with nothing a reader can act on is left off and the cell is just TBD
+        self.assertIn("Waits on the maker's drawing", DS.page_text(page))
+        rows = DS.basis_rows(sheets["EQ-1"], "TST-DS-EQ-1")
+        load = next(r for r in rows if r["field"] == "Load per support, max")
+        self.assertEqual((load["printed"], load["note"], load["who_can_answer"]), ("TBD", "", "Bob"))
+        self.assertIn("equipment-list.csv", load["record"])
+        size = next(r for r in rows if r["field"] == "Size / rating")
+        self.assertIn("SAN-DL-001", size["raw"], "the record's own words are kept in the basis")
+        self.assertNotIn("SAN-DL-001", size["printed"])
+        # the basis CSV keeps other documents' rows when one document is rewritten
+        p = DS.write_basis(cfg, [{"document_id": "TST-DS-EQ-9", "field": "x", "printed": "y"}], {"TST-DS-EQ-9"})
+        DS.write_basis(cfg, rows, {"TST-DS-EQ-1"})
+        with open(p, encoding="utf-8") as fh:
+            docs = {r["document_id"] for r in csv.DictReader(fh)}
+        self.assertEqual(docs, {"TST-DS-EQ-1", "TST-DS-EQ-9"})
+
+    def test_scrub_takes_whole_pieces_never_half_a_sentence(self):
+        self.assertEqual(DS.scrub("none upstream of the seat (SAN-UTIL-002); PIPE-SVC-001 air carries no rule"),
+                         "none upstream of the seat")
+        self.assertEqual(DS.scrub("H5 plant air conditions at BL-08"), "plant air conditions at BL-08")
+        self.assertEqual(DS.scrub("plug seal unknown"), "plug seal TBD")
+        self.assertEqual(DS.plain_reason("No record gives it yet"), "")
+        self.assertEqual(DS.plain_reason("whether it takes the lowest rating is Bob's decision"), "")
+
+    # ---- fast drawings (plan set round 2, brief D2)
+    def test_fast_drawings_are_numbered_never_overwritten_and_logged(self):
+        cfg, rec, sheets = self.records()
+        fast = self.tmp / "Fast_Drawings"
+        os.environ["CPME_FAST_ROOT"] = str(fast)
+        self.addCleanup(os.environ.pop, "CPME_FAST_ROOT", None)
+        DS.file_sheets(cfg, [sheets["EQ-1"]], self.root, self.stage, "first issue", "", "2026-01-01",
+                       pdf_maker=fake_pdf)
+        with self.assertRaises(DS.Refused):
+            DS.write_fast(cfg, rec, [sheets["EQ-1"]], self.root, "", "2026-01-02", pdf_maker=fake_pdf)
+        one = DS.write_fast(cfg, rec, list(sheets.values()), self.root, "clean sheets", "2026-01-02",
+                            pdf_maker=fake_pdf)
+        two = DS.write_fast(cfg, rec, [sheets["EQ-1"]], self.root, "again", "2026-01-02", pdf_maker=fake_pdf)
+        self.assertEqual([s for s, *_ in one], ["TST-DS-EQ-1-revA-fast-001", "TST-DS-EQ-2-first-fast-001"])
+        self.assertEqual(two[0][0], "TST-DS-EQ-1-revA-fast-002")
+        self.assertTrue(all(pages == 1 and face == 0 for _, _, pages, face in one + two))
+        page = (fast / "TST-DS-EQ-1" / "TST-DS-EQ-1-revA-fast-002" / "TST-DS-EQ-1-revA-fast-002.html").read_text(
+            encoding="utf-8")
+        self.assertIn("FAST-002 - NOT ISSUED", page)
+        log = (fast / "fast-log.md").read_text(encoding="utf-8")
+        self.assertEqual(log.count("| TST-DS-EQ-"), 3)
+        self.assertIn("| clean sheets |", log)
+        self.assertEqual(sorted(p.name for p in (self.root / "TST-DS-EQ-1").iterdir()),
+                         ["TST-DS-EQ-1-revA", "revisions.csv"], "a fast drawing never touches the filed revisions")
 
     # ---- the CPME-Generated label
     def test_generated_name_carries_the_label_after_the_revision(self):

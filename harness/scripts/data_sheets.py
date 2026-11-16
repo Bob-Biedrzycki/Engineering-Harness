@@ -9,7 +9,15 @@ value comes from a record, read at run time:
   - optional overrides         a YAML file the settings name: a clean wording of a field, with its source, where the
                                list's prose does not read as a data sheet value
   - optional "who answers"     CSV files the settings name: who can answer an unknown value
-A value no record gives is never estimated (hard rule 1): it prints "unknown" with a footnote giving the reason.
+A value no record gives is never estimated (hard rule 1): it prints TBD.
+
+What prints follows the sheet-face rule (DRF-FACE-001, harness/checks/sheet_face.py; Bob, chat, 2026-11-16: a sheet
+sent out may carry no internal reference). There is one sheet, the clean one: no record ids (SRC-, COMP-, Q-, H, EC-,
+DEC-, rule ids), no file names, no model numbers, no people's names, no "unknown". A footnote keeps only a plain
+reason a reader outside CPME can act on; when none is left the cell is just TBD. Nothing is lost: every printed cell
+and footnote has a row in the basis CSV (`basis` in the settings; default data-sheets.basis.csv beside the overrides
+file) with the record it came from, the record's own words, the reason with its ids, who can answer, and the sheet's
+sources. A text that still fails the check after scrubbing prints TBD, and its row says so.
 
 Everything about one job is in its settings file, job/data-sheets.yaml (rp.DATA_SHEET_SETTINGS); this script holds no
 job's values. A job without that file makes no generated data sheets, and the script says so.
@@ -23,7 +31,13 @@ only the changed and new sheets are written to the preview folder. It never file
     python harness/scripts/data_sheets.py --all              # preview every tag, changed or not
     python harness/scripts/data_sheets.py --tags <TAG> <TAG> # only these tags
     python harness/scripts/data_sheets.py --html-only        # no PDF (faster; no page check)
+    python harness/scripts/data_sheets.py --fast --request "<the words it answers>" [--tags ...]   # fast drawings
     python harness/scripts/data_sheets.py --file --tags <TAG> --note "<32 characters>" --description "<what changed>"
+
+Fast drawings (plan set round 2, brief D2): numbered working copies of every sheet named (all with no --tags), each in
+<level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/<DOC>-<base>-fast-<nnn>/ (<base> rev<X> for the last filed letter,
+else first), HTML + PDF, never overwritten, not filed, with a row in that folder's fast-log.md and the sheet-face
+result. The revision cell shows the base letter and FAST-<nnn> - NOT ISSUED.
 
 File names (Bob, 2026-11-16: generated data sheets are "labeled in the file name as CPME Generated"): a generated
 sheet files as <DOC-ID>-rev<X>/<DOC-ID>-rev<X>-CPME-Generated.html and .pdf, read-only, with a revisions.csv row per
@@ -94,6 +108,13 @@ class Settings:
     valve_titles: dict = field(default_factory=dict)
     no_line_text: str = "mounted on equipment (no line, no service class)"
     text_rules: dict = field(default_factory=dict)
+    basis: Path | None = None          # the basis CSV: what each printed cell came from (never printed)
+
+    @property
+    def basis_csv(self) -> Path:
+        if self.basis:
+            return self.basis
+        return (self.overrides.parent if self.overrides else self.path.parent) / "data-sheets.basis.csv"
 
 
 def _repo_path(v) -> Path | None:
@@ -134,7 +155,7 @@ def load_settings(path: Path | None = None) -> Settings:
                     answers=[_repo_path(a) for a in (answers if isinstance(answers, list) else [answers])],
                     preview_dir=_repo_path(d.get("preview_dir")), valve_titles=dict(d.get("valve_titles") or {}),
                     no_line_text=str(d.get("no_line_text") or Settings.no_line_text),
-                    text_rules=dict(d.get("text_rules") or {}))
+                    text_rules=dict(d.get("text_rules") or {}), basis=_repo_path(d.get("basis")))
 
 
 def drawings_root(cfg: Settings) -> Path:
@@ -216,6 +237,77 @@ def configure(text_rules: dict | None = None) -> None:
 
 
 configure()
+
+
+# ------------------------------------------------------------------------------------------------ sheet face
+# What may print (DRF-FACE-001). The check itself is harness/checks/sheet_face.py; this script scrubs a text to it and,
+# when a text still fails, prints TBD and keeps the words in the basis CSV.
+TBD = "TBD"
+
+
+def _load_sheet_face():
+    if "sheet_face" in sys.modules:
+        return sys.modules["sheet_face"]
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("sheet_face", rp.HARNESS / "checks" / "sheet_face.py")
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules["sheet_face"] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+SF = _load_sheet_face()
+# record words the check does not name but a reader outside CPME cannot act on (who answers, the settings, a register)
+_WHO = re.compile(r"(?i)[;,]?\s*\banswers?:\s*[^;)]*")
+_RECORD_WORDS = re.compile(r"(?i)\b(?:in|from|per) the (?:component )?register\b|\bdata sheet settings\b|"
+                           r"\bthe filed model\b|\bthe tag lists?\b|\b(?:equipment|instrument|valve|line|motor-load)-list\b")
+_UNACTIONABLE = re.compile(r"(?i)^(?:no record gives it yet|open|unknown|tbd|not given|none)\.?$")
+
+
+def face_ok(text: str) -> bool:
+    return not SF.check_text(text or "")
+
+
+class _Fails:
+    """A 'regex' for _drop_parens: a bracketed group fails when the sheet-face check finds anything in it."""
+    @staticmethod
+    def search(s: str) -> bool:
+        return bool(SF.check_text(re.sub(r"(?i)\bunknown\b", TBD, s)))
+
+
+_LEAD_ID = re.compile(r"^\s*(?:HOLD\s+)?(?:Q|RFI|EC|DEC|PRR)-\d{2,4}\b[\s:,-]*|^\s*(?:HOLD\s+)?H\d{1,2}\b[\s:,-]*")
+# a reference hung on a clause by a comma or 'per / see / by / under': it goes alone, the clause stays
+_HUNG_REF = re.compile(r"(?:,\s*|\s+(?:per|see|by|under)\s+)(HOLD\s+H\d{1,2}|[A-Z][A-Za-z]*(?:-[A-Z0-9]+)+|H\d{1,2})"
+                       r"(?=[\s,;.)]|$)")
+_MODEL_TALK = re.compile(r"(?i)\bASSUMED\b|\bmodell?ed as\b")
+
+
+def scrub(text: str) -> str:
+    """A text with every internal reference the sheet-face check names taken out, by whole pieces so no sentence is
+    left broken: a bracketed group that carries one goes; an id that leads a clause goes; a clause that still
+    carries one (a name or a rule id inside the sentence) goes whole. 'unknown' becomes TBD; who answers and record
+    words go. May come back empty; callers gate with face_ok()."""
+    v = _WHO.sub("", text or "")
+    v = _RECORD_WORDS.sub("", v)
+    v = _drop_parens(v, _Fails)
+    out = []
+    for c in clauses(v):
+        c = _LEAD_ID.sub("", re.sub(r"(?i)\bunknown\b", TBD, c))
+        c = _HUNG_REF.sub(lambda m: "" if _Fails.search(m.group(1)) else m.group(0), c)
+        c = _tidy(re.sub(r"\(\s*(?:and|or|,|;|\s)*\)", "", c))
+        if c and not SF.check_text(c) and not _MODEL_TALK.search(c):
+            out.append(c)
+    return _tidy("; ".join(out))
+
+
+def plain_reason(text: str) -> str:
+    """A footnote's reason as it may print: scrubbed, and empty when nothing a reader outside CPME can act on is
+    left (orchestrator, 2026-11-16: 'if it has none, the cell is just TBD')."""
+    v = scrub(text)
+    v = re.sub(r"(?i)^(?:open:\s*)", "Open: ", v).strip(" :;,")
+    if not v or _UNACTIONABLE.match(v) or not face_ok(v) or not re.search(r"[A-Za-z]{3}", v):
+        return ""
+    return v[:1].upper() + v[1:]
 
 
 # ------------------------------------------------------------------------------------------------ records
@@ -485,26 +577,50 @@ class Sheet:
         self.notes: list[str] = []
         self.open = 0
         self.sources: list[str] = [f"{listname} row {tag}"]
+        self.basis: list[dict] = []        # one row per printed cell and footnote (basis CSV)
+        self._pending: list[dict] = []     # cells made since the last add(): labelled there
 
-    def note(self, text: str) -> int:
-        """Number for a footnote; a reason that names the same question / HOLD as an earlier note reuses it."""
-        text = text.strip() or "No record gives it yet"
+    def note(self, text: str, record: str = "") -> int | None:
+        """Number for a footnote, or None when the reason has nothing a reader outside CPME can act on (the cell is
+        then just TBD). The printed words are scrubbed to the sheet-face rule; the full reason, ids included, goes to
+        the basis CSV. A reason that names the same question / HOLD as an earlier note reuses its number."""
+        full = (text or "").strip()
+        text = plain_reason(full)
+        if not text:
+            return None
+        ids = set(self.NOTE_IDS.findall(full))
+        words = lambda s: set(re.findall(r"[a-z0-9]{3,}", s.lower())) - {"tbd", "the", "and", "open"}
+        n = None
         if text in self.notes:
-            return self.notes.index(text) + 1
-        ids = set(self.NOTE_IDS.findall(text))
-        words = lambda s: set(re.findall(r"[a-z0-9]{3,}", s.lower().split("answers:")[0])) - {"unknown", "the", "and"}
-        for i, n in enumerate(self.notes):
-            if ids and ids & set(self.NOTE_IDS.findall(n)):
-                return i + 1
-            a, b = words(text), words(n)       # the same reason in other words: one note
-            if a and b and len(a & b) / len(a | b) >= 0.5:
-                return i + 1
-        self.notes.append(text)
-        return len(self.notes)
+            n = self.notes.index(text) + 1
+        else:
+            for i, old in enumerate(self.notes):
+                b = next((r for r in self.basis if r["field"] == f"note {i + 1}"), {})
+                if ids and ids & set(self.NOTE_IDS.findall(b.get("reason", ""))):
+                    n = i + 1
+                    break
+                a, c = words(text), words(old)       # the same reason in other words: one note
+                if a and c and len(a & c) / len(a | c) >= 0.5:
+                    n = i + 1
+                    break
+        if n is None:
+            self.notes.append(text)
+            n = len(self.notes)
+            self.basis.append({"section": "Notes", "field": f"note {n}", "printed": text, "reason": full,
+                               "record": record})
+        return n
+
+    def _keep(self, printed: str, raw: str = "", where: tuple | None = None, reason: str = "", note=None,
+              who: str = "", status: str = "") -> None:
+        self._pending.append({"printed": re.sub(r"<[^>]+>", "", printed), "raw": (raw or "")[:400],
+                              "record": " | ".join(where) if where else "", "reason": reason, "note": note or "",
+                              "who_can_answer": who, "status": status})
 
     def cell(self, raw, where: tuple | None = None, unit: str = "", override=None) -> str:
         """raw record text -> cell html. where = (record file, row id, column) for the who-answers lookup.
-        override: a clean wording from the overrides file, {value, reason?, source}; printed as written."""
+        override: a clean wording from the overrides file, {value, reason?, source}; printed as written.
+        A value no record gives prints TBD; a value that fails the sheet-face check after scrubbing prints TBD and
+        its basis row says why (status 'scrubbed to TBD')."""
         why = None
         if override is not None:
             if isinstance(override, dict):
@@ -520,36 +636,56 @@ class Sheet:
             raw = "" if raw is None else str(raw)
             f = None
         w = self.rec.who.get(where) if where else None
-        short_who = re.split(r"[;(]", w[1])[0].strip() if (w and w[1]) else ""
-        if not re.match(r"(?i)(bob|vendor|customer|controls|engineering|process|cad|mechanical|electrical|project)",
-                        short_who) or len(short_who) > 40:
-            short_who = ""                     # only a who, never a sentence
-        who = f"; answers: {short_who}" if short_who else ""
+        who = (w[1] or "").strip() if w else ""          # who can answer: the basis CSV only, never the sheet
+        rec_name = " | ".join(where) if where else ""
+        sup = lambda n: f"<sup>{n}</sup>" if n else ""
         if is_unknown(raw) or not raw.strip():
             self.open += 1
-            r = why or reason(raw) or "No record gives it yet"
-            r = r + who if who and "answers:" not in r else r
-            return f'<span class="unk">unknown</span><sup>{self.note(r)}</sup>'
+            r = why or reason(raw) or ""
+            n = self.note(r, rec_name)
+            self._keep(TBD, raw, where, r, n, who, "TBD")
+            return f'<span class="unk">{TBD}</span>{sup(n)}'
         f = f if f is not None else fact(raw)
         if unit and re.fullmatch(r"-?[\d.,]+", f):
             f = f"{f} {unit}"
+        f_clean = scrub(f)
+        if not f_clean or not face_ok(f_clean) or _UNACTIONABLE.match(f_clean):
+            self.open += 1                 # nothing printable is left: TBD, the record's words kept in the basis
+            n = self.note(why or reason(raw) or "", rec_name)
+            self._keep(TBD, raw, where, why or "", n, who, "scrubbed to TBD")
+            return f'<span class="unk">{TBD}</span>{sup(n)}'
+        status = "scrubbed" if f_clean != f else ""
+        f = f_clean
         if OPEN_RX.search(f):
             self.open += 1
             if why:
                 r = why
             else:
-                clause = next(c for c in re.split(r";\s+", f) if OPEN_RX.search(c))
+                clause = next((c for c in re.split(r";\s+", f) if OPEN_RX.search(c)), f)
                 ids = sorted(set(R.IDS_RX.findall(raw.split("||")[0])))
                 r = f"Open: {clause}" + (f" ({', '.join(ids)})" if ids else "")
-            r = r + who if who and "answers:" not in r else r
-            return f'<span class="part">{html.escape(f)}</span><sup>{self.note(r)}</sup>'
+            n = self.note(r, rec_name)
+            self._keep(f, raw, where, r, n, who, status or "open")
+            return f'<span class="part">{html.escape(f)}</span>{sup(n)}'
+        self._keep(f, raw, where, "", None, who, status)
         return html.escape(f)
 
     def plain(self, text: str) -> str:
-        return html.escape(text)
+        """A text the script composes itself (labels, positions): scrubbed like a record value."""
+        t = scrub(text)
+        t = t if face_ok(t) else TBD
+        self._keep(t, text, None, "", None, "", "scrubbed" if t != text else "")
+        return html.escape(t)
 
     def add(self, title: str, rows: list[tuple[str, str]]) -> None:
-        self.sections.append((title, [r for r in rows if r is not None]))
+        rows = [r for r in rows if r is not None]
+        self.sections.append((title, rows))
+        # the cells made for these rows, in order, take the rows' labels (one cell() or plain() per row)
+        made, self._pending = self._pending, []
+        if len(made) >= len(rows):
+            made = made[len(made) - len(rows):]
+        for (label, _v), m in zip(rows, made):
+            self.basis.append({"section": title, "field": label, **m})
 
 
 def ov(rec: Records, key: str, label: str, comp_id: str = ""):
@@ -577,7 +713,7 @@ def install_practice(raw: str) -> str:
     v = (raw or "").split("||")[0]
     keep = [c for c in clauses(v) if not MODELLING_TALK.search(c)]
     if not keep or is_unknown(v):
-        return "unknown (no maker installation practice on file; the register holds only how the part is modelled)"
+        return "unknown (the maker's installation practice is not on file)"
     return "; ".join(keep)
 
 
@@ -615,8 +751,7 @@ def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model
             ("Manufacturer", sh.cell(inst["manufacturer"], IW("manufacturer"), override=ov(rec, iid, "Manufacturer"))),
             ("Model", sh.cell(inst["model"], IW("model"), override=ov(rec, iid, "Model"))),
             ("Part number", sh.cell(inst["part_number"], IW("part_number"), override=ov(rec, iid, "Part number"))),
-            ("Supplied as", sh.plain(f"CPME instrument spool {cid} Rev {comp['revision']}, "
-                                     f"{fact(comp['size'])}")),
+            ("Supplied as", sh.plain(f"CPME instrument spool, {fact(comp['size'])}")),   # no component number
         ]
     else:
         head = [
@@ -641,10 +776,10 @@ def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model
 def on_skid(sh: Sheet, lines: list[str]) -> list:
     rec = sh.rec
     if not rec.model:
-        return [("On the model", sh.cell(f"unknown ({rec.model_reason})"))]
+        return [("Location", sh.cell(f"unknown ({rec.model_reason})"))]
     it = rec.items.get(sh.tag)
     if not it or not it.get("bbox_in"):
-        return [("On the model", sh.cell("unknown (not placed in the filed model)"))]
+        return [("Location", sh.cell("unknown (location on the skid not yet set)"))]
     (x0, y0, z0), (x1, y1, z1) = it["bbox_in"]
     rows = [("Line", sh.plain(", ".join(lines) or "none (equipment)")),
             ("Next to", sh.plain(", ".join(rec.neighbours(sh.tag))))]
@@ -655,7 +790,7 @@ def on_skid(sh: Sheet, lines: list[str]) -> list:
         sh.sources.append(f"datums A, B, C per {rec.datum_doc}")
     else:
         rows.append(("From datums", sh.cell(f"unknown ({rec.datum_reason})")))
-    rows.append(("Size as placed", sh.plain(f"{x1 - x0:.1f} long × {y1 - y0:.1f} deep × {z1 - z0:.1f} high in")))
+    rows.append(("Size on the skid", sh.plain(f"{x1 - x0:.1f} long × {y1 - y0:.1f} deep × {z1 - z0:.1f} high in")))
     return rows
 
 
@@ -707,7 +842,7 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
     sh.add("Duty", [
         ("Service", sh.cell(r["description"], override=ovk("Service"))),
         ("Size / rating", sh.cell(r["size_rating"], W("size_rating"), override=ovk("Size / rating"))),
-        ("Supply", sh.plain("off the skid; not on the frame, not in the skid model" if loose else "on the skid")),
+        ("Supply", sh.plain("supplied loose, off the skid; not on the frame" if loose else "on the skid")),
         ("Lines", sh.plain(", ".join(lines_for(rec, tag)) or "none")),
         ("P&ID sheet", sh.cell(r["pid_sheet"])),
     ])
@@ -854,9 +989,10 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          'wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
 
 
-def render(sh: Sheet, doc_id: str, rev: str, today: str) -> str:
-    """The sheet's self-contained HTML (logo inline) as revision `rev` dated `today`."""
-    rec = sh.rec
+def render(sh: Sheet, doc_id: str, rev: str, today: str, fast: str = "") -> str:
+    """The sheet's self-contained HTML (logo inline) as revision `rev` dated `today`; `fast` ('FAST-001') marks a fast
+    drawing: the revision cell then reads '<rev> FAST-001 - NOT ISSUED'. Prints nothing internal (DRF-FACE-001): the
+    model, the sources and who answers are in the basis CSV, not on the sheet."""
     logo = re.sub(r"<\?xml[^>]*\?>", "", LOGO.read_text(encoding="utf-8"))
     weight = lambda rows: sum(1 + len(re.sub(r"<[^>]+>", "", v)) / 48 for _, v in rows) + 2
     sizes = [weight(r) for _, r in sh.sections]
@@ -873,16 +1009,13 @@ def render(sh: Sheet, doc_id: str, rev: str, today: str) -> str:
         return f"<section><h2>{html.escape(title)}</h2><table class='spec'>{body}</table></section>"
     left = "".join(sec_html(t, r) for t, r in sh.sections[:split])
     right = "".join(sec_html(t, r) for t, r in sh.sections[split:])
-    model = f"model {rec.model_label}" + (f" (same design as {rec.same_design})" if rec.same_design else "")
-    sources = [model] + list(dict.fromkeys(sh.sources))
     foot = ""
     if sh.notes:
         foot += "<ol>" + "".join(f"<li>{html.escape(n)}</li>" for n in sh.notes) + "</ol>"
-    foot += (f'<p class="src"><b>Sources:</b> {html.escape("; ".join(sources))}. Generated {today}. '
-             "A value shown as unknown is not given by any record yet; nothing on this sheet is estimated. "
-             "DRAFT for review: not for purchase or fabrication until approved.</p>")
-    sub = (f"{html.escape(rec.cfg.subtitle)} &nbsp;·&nbsp; " if rec.cfg.subtitle else "") + \
-        f"model {html.escape(rec.model_label)}"
+    foot += (f'<p class="src">Generated {today}. A value shown as TBD is not yet decided; nothing on this sheet is '
+             "estimated. DRAFT: not for purchase or fabrication until approved.</p>")
+    sub = html.escape(rec_subtitle(sh.rec))
+    rev_cell = rev if not fast else f'{rev} &nbsp;<span class="status">{fast} - NOT ISSUED</span>'
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><title>{html.escape(doc_id)} Rev {rev}</title>{FONTS}
 <style>{CSS}</style></head><body><div class="page">
@@ -893,16 +1026,60 @@ def render(sh: Sheet, doc_id: str, rev: str, today: str) -> str:
     <div class="sub">{sub}</div></div>
   <table class="docinfo">
     <tr><td>Doc No.</td><td><b>{html.escape(doc_id)}</b></td></tr>
-    <tr><td>Revision</td><td>{rev}</td></tr>
+    <tr><td>Revision</td><td>{rev_cell}</td></tr>
     <tr><td>Date</td><td>{today}</td></tr>
-    <tr><td>Open values</td><td>{sh.open}</td></tr>
+    <tr><td>TBD values</td><td>{sh.open}</td></tr>
     <tr><td>Status</td><td class="status">DRAFT</td></tr>
   </table>
 </header>
 <div class="cols"><div>{left}</div><div>{right}</div></div>
 <div class="foot"><h2>Notes</h2>{foot}</div>
-<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(doc_id)} Rev {rev} · Page 1 of 1</div></footer>
+<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(doc_id)} Rev {rev}{(' ' + fast) if fast else ''} · Page 1 of 1</div></footer>
 </div></body></html>"""
+
+
+def rec_subtitle(rec: Records) -> str:
+    """The line under the title: the settings' subtitle only (no model number on the sheet)."""
+    return rec.cfg.subtitle or ""
+
+
+def page_text(page_html: str) -> list[str]:
+    """The visible text of a sheet, one string per text run, for the sheet-face check."""
+    body = re.sub(r"(?is)<(style|script|title|svg)\b.*?</\1>", " ", page_html)
+    body = re.sub(r"(?s)<head>.*?</head>", " ", body)
+    return [html.unescape(" ".join(t.split())) for t in re.split(r"<[^>]+>", body) if t.strip()]
+
+
+def face_findings(page_html: str) -> list[tuple[str, list[str]]]:
+    """(text, reasons) for every visible text run that fails the sheet-face check."""
+    return [(t, r) for t in page_text(page_html) if (r := SF.check_text(t))]
+
+
+BASIS_COLS = ["document_id", "tag", "section", "field", "printed", "status", "note", "record", "raw", "reason",
+              "who_can_answer"]
+
+
+def basis_rows(sh: Sheet, doc_id: str) -> list[dict]:
+    """The sheet's basis rows: every printed cell and footnote, then its model and sources (never printed)."""
+    rows = [{"document_id": doc_id, "tag": sh.tag, **r} for r in sh.basis]
+    m = sh.rec
+    model = f"model {m.model_label}" + (f" (same design as {m.same_design})" if m.same_design else "")
+    rows.append({"document_id": doc_id, "tag": sh.tag, "section": "Sources", "field": "sources", "printed": "",
+                 "raw": "; ".join([model] + list(dict.fromkeys(sh.sources)))})
+    return rows
+
+
+def write_basis(cfg: Settings, rows: list[dict], docs: set[str]) -> Path:
+    """Replace the rows of `docs` in the basis CSV with `rows` (other documents' rows are kept)."""
+    p = cfg.basis_csv
+    keep = [r for r in read_csv(p) if r.get("document_id") not in docs] if p.is_file() else []
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with open(p, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=BASIS_COLS)
+        w.writeheader()
+        for r in sorted(keep + rows, key=lambda r: r.get("document_id", "")):
+            w.writerow({k: r.get(k, "") for k in BASIS_COLS})
+    return p
 
 
 def count_pages(pdf: Path) -> int:
@@ -1051,6 +1228,68 @@ def file_sheets(cfg: Settings, sheets: list[Sheet], root: Path, stage_root: Path
     return out
 
 
+# ------------------------------------------------------------------------------------------------ fast drawings
+def fast_root(cfg: Settings) -> Path:
+    """<level>/03_Working_Design/Exports/Fast_Drawings: the typicals' folder for file_to job, else the project's;
+    CPME_FAST_ROOT (a test's scratch folder) overrides."""
+    if os.environ.get("CPME_FAST_ROOT"):
+        return Path(os.environ["CPME_FAST_ROOT"])
+    level = rp.TYPICAL if cfg.file_to == "job" or not rp.HAS_PROJECT else rp.PROJECT
+    return level / "03_Working_Design" / "Exports" / "Fast_Drawings"
+
+
+def fast_name(froot: Path, doc_id: str, last: str | None) -> tuple[str, int]:
+    """(<DOC>-<base>-fast-<nnn>, nnn): base rev<X> for the last filed letter, else first; nnn one more than any used."""
+    base = f"rev{last}" if last else "first"
+    d = froot / doc_id
+    used = [int(m.group(1)) for p in (d.iterdir() if d.exists() else []) if (m := re.search(r"-fast-(\d{3})$", p.name))]
+    nnn = max(used, default=0) + 1
+    return f"{doc_id}-{base}-fast-{nnn:03d}", nnn
+
+
+def log_fast(froot: Path, stem: str, build: str, request: str, layout_n: int, face_n: int, folder: Path) -> None:
+    """One row in the fast drawings' fast-log.md (the plan set's log; same columns)."""
+    log = froot / "fast-log.md"
+    if not log.exists():
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text("# Fast drawings (not issued)\n\nEvery plan set fast drawing, newest at the bottom. Written by "
+                       "plan_set_lib; never edited by hand.\n\n| Drawing | Date time | Model build | Request | Layout "
+                       "problems | Sheet face | Folder |\n|---|---|---|---|---|---|---|\n", encoding="utf-8")
+    try:
+        rel = rp.rel(folder)
+    except ValueError:
+        rel = str(folder)
+    req = " ".join(request.split()).replace("|", "/")[:160]
+    with log.open("a", encoding="utf-8") as f:
+        f.write(f"| {stem} | {dt.datetime.now():%Y-%m-%d %H:%M} | {build} | {req} | {layout_n} | "
+                f"{'PASS' if not face_n else f'FAIL {face_n}'} | {rel} |\n")
+
+
+def write_fast(cfg: Settings, rec: Records, sheets: list[Sheet], root: Path, request: str, today: str,
+               pdf: bool = True, pdf_maker=to_pdf) -> list[tuple[str, Path, int, int]]:
+    """A numbered fast drawing of each sheet (never overwritten, not filed). Returns (stem, folder, pages, sheet-face
+    findings) per sheet."""
+    if not (request or "").strip():
+        raise Refused("--fast needs --request (the words it answers)")
+    froot, out = fast_root(cfg), []
+    for sh in sheets:
+        doc_id = cfg.doc_prefix + sh.tag
+        last, _ = last_filed(root, doc_id)
+        stem, nnn = fast_name(froot, doc_id, last)
+        folder = froot / doc_id / stem
+        if folder.exists():
+            raise Refused(f"{folder} exists: a fast drawing is never overwritten")
+        folder.mkdir(parents=True)
+        page = render(sh, doc_id, last or "A", today, fast=f"FAST-{nnn:03d}")
+        htm = folder / f"{stem}.html"
+        htm.write_text(page, encoding="utf-8")
+        pages = pdf_maker(htm, folder / f"{stem}.pdf") if pdf else 1
+        face = face_findings(page)
+        log_fast(froot, stem, rec.model_label, request, 0 if pages == 1 else 1, len(face), folder)
+        out.append((stem, folder, pages, len(face)))
+    return out
+
+
 # ------------------------------------------------------------------------------------------------ main
 def run(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
@@ -1063,7 +1302,12 @@ def run(argv: list[str] | None = None) -> int:
     ap.add_argument("--file", action="store_true", help="file the --tags named as their next revision")
     ap.add_argument("--note", default="", help="revision note, 32 characters at most (with --file)")
     ap.add_argument("--description", default="", help="what changed, in full (with --file)")
+    ap.add_argument("--fast", action="store_true", help="numbered fast drawings of the sheets named (all when no "
+                                                         "--tags); not filed")
+    ap.add_argument("--request", default="", help="with --fast: the words the fast drawings answer")
     a = ap.parse_args(argv)
+    if a.fast and a.file:
+        raise Refused("--fast and --file are two different things; give one")
     cfg = load_settings(a.settings)
     configure(cfg.text_rules)
     rec = Records(cfg)
@@ -1076,6 +1320,22 @@ def run(argv: list[str] | None = None) -> int:
             raise Refused(f"not in the tag lists: {', '.join(unknown_tags)}")
         sheets = [sh for sh in sheets if sh.tag in a.tags]
     today = dt.date.today().isoformat()
+    # what each printed cell came from (the cells were made as the sheets were built): rewritten for the sheets of
+    # this run, every run; never printed
+    bpath = write_basis(cfg, [r for sh in sheets for r in basis_rows(sh, cfg.doc_prefix + sh.tag)],
+                        {cfg.doc_prefix + sh.tag for sh in sheets})
+
+    if a.fast:
+        made = write_fast(cfg, rec, sheets, root, a.request, today, pdf=not a.html_only)
+        bad = 0
+        for stem, folder, pages, face in made:
+            ok = pages in (1,) and not face
+            bad += not ok
+            print(f"{stem:<38} pages {pages}  sheet face {'PASS' if not face else f'FAIL {face}'}"
+                  f"{'' if ok else '  <-- NOT CLEAN'}")
+        print(f"data_sheets: {len(made)} fast drawings in {fast_root(cfg)}; {bad} not clean; basis {bpath.name}. "
+              "Nothing filed.")
+        return 1 if bad else 0
 
     if a.file:
         if not a.tags:
