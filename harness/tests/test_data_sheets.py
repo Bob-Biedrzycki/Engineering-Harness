@@ -159,6 +159,40 @@ class DataSheets(unittest.TestCase):
         self.assertEqual(DS.plain_reason("No record gives it yet"), "")
         self.assertEqual(DS.plain_reason("whether it takes the lowest rating is Bob's decision"), "")
 
+    # ---- the orchestrator's three scrub rules after the second review (round 2, DS-round1)
+    def test_rule_a_none_is_a_value_and_prints_none(self):
+        _, rec, sheets = self.records()
+        sh = sheets["EQ-1"]
+        self.assertEqual(sh.cell("none"), "none")
+        self.assertEqual(sh.cell("none (PRR-11)"), "none")
+        self.assertIn(">TBD<", sh.cell("unknown"))
+
+    def test_rule_b_a_scrub_never_leaves_a_fragment(self):
+        self.assertEqual(DS.scrub("No weight on the brochure; Q-0068 for the vendor drawing"),
+                         "No weight on the brochure; waits for the vendor drawing")
+        self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight TBD")
+        # only the failing comma piece goes, the rest of the clause stays
+        self.assertEqual(DS.scrub("1 in clamp ends, joint J033 to SAN-UTIL-002 spool, 316L wetted body"),
+                         "1 in clamp ends, 316L wetted body")
+        # nothing printable left: empty, so the cell prints TBD (never a blank cell)
+        self.assertEqual(DS.scrub("PIPE-SVC-001 air"), "")
+        _, rec, sheets = self.records()
+        self.assertIn(">TBD<", sheets["EQ-1"].cell("PIPE-SVC-001 air"))
+
+    def test_rule_c_a_commodity_loses_its_number_a_selected_item_keeps_its_own(self):
+        reg = {"COMP-0001": [{"component_id": "COMP-0001", "selection": "commodity", "model": "S7SWWK-2-PL",
+                              "part_number": "S7SWWK-2-PL"}],
+               "COMP-0002": [{"component_id": "COMP-0002", "selection": "commodity", "model": "4322K153",
+                              "part_number": "4322K153"}],
+               "COMP-0003": [{"component_id": "COMP-0003", "selection": "selected", "model": "PI1704",
+                              "part_number": "PI1704"}]}
+        self.addCleanup(DS.set_commodity_numbers, {})
+        DS.set_commodity_numbers(reg)
+        self.assertEqual(DS.scrub("PI1704 flush on the S7SWWK-2 short-outlet tee"), "PI1704 flush on the short-outlet tee")
+        self.assertEqual(DS.scrub("McMaster 4322K153 clamp and the PI1704 sensor"), "clamp and the PI1704 sensor")
+        self.assertTrue(DS.face_ok("PI1704"))
+        self.assertFalse(DS.face_ok("S7SWWK-2-PL"))
+
     # ---- fast drawings (plan set round 2, brief D2)
     def test_fast_drawings_are_numbered_never_overwritten_and_logged(self):
         # a real-form document prefix: the sheet-face check knows CPME document numbers, and the fast file name in

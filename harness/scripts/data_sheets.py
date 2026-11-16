@@ -269,7 +269,8 @@ _EXTRA = re.compile(r"\b(?:Q|RFI)-\d{1,4}\b|\bHOLD\s+H-?\d{1,2}\b|\bH-\d{1,2}\b|
                     r"\bweight_basis\b|\bper (?:the )?register\b|\bregister description\b|\bunregistered\b|"
                     r"\bdoes not build\b", re.I)
 # plain words for model working words (DS-19)
-_PLAIN = [(re.compile(r"(?i)\binferred from the model\b"), "as drawn"),
+_PLAIN = [(re.compile(r"(?i)\ban unregistered product page\b"), "the maker's product page"),
+          (re.compile(r"(?i)\binferred from the model\b"), "as drawn"),
           (re.compile(r"(?i)\bmodel envelope\b"), "overall envelope"),
           (re.compile(r"(?i)\s+in weight_basis\b"), "")]
 # catalogue numbers of commodities (register selection = commodity), set by Records: they never print (D3 item 4)
@@ -320,10 +321,22 @@ def scrub(text: str) -> str:
     v = _drop_parens(v, _Fails)
     out = []
     for c in clauses(v):
-        c = _LEAD_ID.sub("", re.sub(r"(?i)\bunknown\b", TBD, c))
+        c = re.sub(r"(?i)\bunknown\b", TBD, c)
+        led = _LEAD_ID.match(c)
+        c = _LEAD_ID.sub("", c)
+        if led and c.strip():
+            # the id was the clause's subject: never leave a fragment (orchestrator ruling (b), DS-16, DS-17)
+            if re.match(r"(?i)for\b", c.strip()):
+                c = "waits " + c.strip()                          # "Q-0068 for the vendor drawing"
+            elif len(c.split()) <= 3 and TBD not in c:
+                c = c.strip() + " " + TBD                         # "Q-0067 panel weight"
         c = _HUNG_REF.sub(lambda m: "" if _Fails.search(m.group(1)) else m.group(0), c)
         c = _tidy(re.sub(r"\(\s*(?:and|or|,|;|\s)*\)", "", c))
-        if c and not face_fails(c) and not _MODEL_TALK.search(c):
+        if c and (face_fails(c) or _MODEL_TALK.search(c)):
+            # only the failing comma-pieces go; the rest of the clause stays when it still says something
+            keep = [p for p in re.split(r",\s+", c) if p.strip() and not face_fails(p) and not _MODEL_TALK.search(p)]
+            c = ", ".join(keep) if keep and len(" ".join(keep).split()) >= 3 else ""
+        if c:
             out.append(c)
     return _tidy("; ".join(out))
 
@@ -715,7 +728,11 @@ class Sheet:
                 clause = next((c for c in re.split(r";\s+", f) if OPEN_RX.search(c)), f)
                 ids = sorted(set(R.IDS_RX.findall(raw.split("||")[0])))
                 r = f"Open: {clause}" + (f" ({', '.join(ids)})" if ids else "")
-            n = self.note(r, rec_name)
+            # a note that only repeats the cell (its ids are not printed) says nothing: no note (second review DS-25)
+            n = None if (not why and plain_reason(r).lower().removeprefix("open: ") in f.lower()) else self.note(r, rec_name)
+            if n is None and not why:
+                self.basis.append({"section": "Notes", "field": "(no note)", "printed": "", "reason": r,
+                                   "record": rec_name})
             self._keep(f, raw, where, r, n, who, status or "open")
             return f'<span class="part">{html.escape(f)}</span>{sup(n)}'
         self._keep(f, raw, where, "", None, who, status)
@@ -1093,7 +1110,7 @@ def render(sh: Sheet, doc_id: str, rev: str, today: str, fast: str = "", file_na
 </header>
 <div class="cols"><div>{left}</div><div>{right}</div></div>
 <div class="foot"><h2>Notes</h2>{foot}</div>
-<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(file_name or generated_name(doc_id, rev, ".pdf"))} &nbsp;|&nbsp; Page 1 of 1</div></footer>
+<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(file_name or generated_name(doc_id, rev, ""))} &nbsp;|&nbsp; Page 1 of 1</div></footer>
 </div></body></html>"""
 
 
@@ -1351,7 +1368,7 @@ def write_fast(cfg: Settings, rec: Records, sheets: list[Sheet], root: Path, req
         if folder.exists():
             raise Refused(f"{folder} exists: a fast drawing is never overwritten")
         folder.mkdir(parents=True)
-        page = render(sh, doc_id, last or "A", today, fast=f"FAST-{nnn:03d}", file_name=f"{stem}.pdf")
+        page = render(sh, doc_id, last or "A", today, fast=f"FAST-{nnn:03d}", file_name=stem)   # DS-21: the file name exactly
         htm = folder / f"{stem}.html"
         htm.write_text(page, encoding="utf-8")
         pages = pdf_maker(htm, folder / f"{stem}.pdf") if pdf else 1
