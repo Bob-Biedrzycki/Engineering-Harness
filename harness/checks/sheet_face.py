@@ -1,0 +1,224 @@
+"""sheet_face - what may print on a drawing sheet (DRF-FACE-001, harness/design-rules/drafting.yaml).
+
+A sheet is read by a fabricator, estimator or customer who has never seen this repo (Bob, chat, 2026-11-16: "I can't
+send out a drawing for quoting spools that has a TR reference on it"). This check reads every piece of text in a DXF
+(TEXT, MTEXT, ATTRIB, ATTDEF defaults and DIMENSION text overrides, in model space, every layout and every block)
+and reports any of the internal references the rule names:
+
+- Todd's requirement numbers (TR-nn);
+- design rule ids (two or more letter groups and a three-digit number: SAN-RA-001, GDT-PIPE-001, LINE-NUM-001),
+  but not a drawing number (CIP-TYP-FRM-001, Project-1072-01-FRM-001) and not a tag (PI-101, FM-001);
+- decision, question, RFI, equipment-concern and hold numbers (DEC-nnnn, Q-nnnn, RFI-nnnn, EC-nn, Hn);
+- component register numbers (COMP-nnnn, CMP-nnnn);
+- repo paths and the file names of scripts, YAML, CSV, JSON and Markdown;
+- software names and versions (cadgen, ezdxf, build123d, text-to-cad, OCCT, python, uvx, Blender);
+- the words brief, helper, orchestrator, harness, takeoff, manifest, ASSUMPTION and unknown;
+- people's names (Bob, Todd).
+
+Public standards (AWS D18.1, ASME BPE, ASME IX, PFI ES-3, ASME Y14.5) are not internal references and pass.
+The one repo path allowed is the sheet's own footer: the drawing file's path (a .dxf or .dwg under a drawings,
+fast drawing or preview folder), which the rule asks for.
+
+Usage:
+    sheet_face.py [<dxf or folder> ...] [--json]
+A folder is searched for *.dxf. With no paths (as CI runs it) the newest fast drawing of every document in the
+job's Fast_Drawings folders is checked; there are none on the check server (Exports/ is gitignored), which passes. Exit-code contract (harness/checks/README.md): 0 = PASS, 1 = FAIL (findings),
+3 = ERROR. First line = summary. Filed revisions are a record and are not rechecked (First Principle 4); the check
+runs on every fast drawing (plan_set_lib) and on any DXF named on the command line.
+
+Importable: check_text(s) -> list[str] (reasons, empty when clean); check_dxf(path) -> list[Finding].
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from typing import NamedTuple
+from pathlib import Path
+
+RULE_ID = "DRF-FACE-001"
+
+# drawing numbers are not rule ids: CIP-TYP-FRM-001, CIP-TYP-DS-TCV-101, Project-1072-01-FRM-001
+_DOC_ID = re.compile(r"\b(?:CIP-TYP(?:-[A-Z0-9]+)+|Project-\d{4}-\d{2}(?:-[A-Z0-9]+)+)\b", re.I)
+
+# (name, pattern) - case-insensitive unless the pattern says otherwise
+PATTERNS: list[tuple[str, re.Pattern]] = [
+    ("Todd's requirement number", re.compile(r"\bTR-\d{1,2}\b", re.I)),
+    ("design rule id", re.compile(r"\b[A-Z]{2,6}(?:-[A-Z]{2,8})+-\d{3}[A-Z]?\b", re.I)),
+    ("decision number", re.compile(r"\bDEC-\d{3,4}\b", re.I)),
+    ("question number", re.compile(r"\b(?:Q|RFI)-\d{3,4}\b", re.I)),
+    ("equipment concern number", re.compile(r"\bEC-\d{2,3}\b", re.I)),
+    ("hold number", re.compile(r"(?<![\w.-])H\d{1,2}(?![\w.-])")),
+    ("component register number", re.compile(r"\bC(?:O)?MP-\d{4}\b", re.I)),
+    ("repo file name", re.compile(r"[\w-]\.(?:py|ya?ml|csv|json|md)\b", re.I)),
+    ("repo path", re.compile(r"(?:^|[\s(\"'])(?:harness|job|\.claude|_work)[/\\]|[A-Z]:\\", re.I)),
+    ("software name", re.compile(r"\b(?:cadgen|ezdxf|build123d|text-to-cad|OCCT|python|uvx|blender)\b", re.I)),
+    ("internal word", re.compile(r"\b(?:brief|helpers?|orchestrator|harness|take-?offs?|manifest)\b", re.I)),
+    ("ASSUMPTION", re.compile(r"\bASSUMPTIONS?\b", re.I)),
+    ("the word unknown", re.compile(r"\bunknown\b", re.I)),
+    ("a person's name", re.compile(r"\b(?:Bob|Bob's|Todd|Todd's)\b", re.I)),
+]
+
+# the sheet's own footer: the drawing file's repo path (a .dxf or .dwg in a drawings, fast or preview folder)
+_FOOTER = re.compile(r"^job/[\w./ -]+/(?:Fast_Drawings|Drawings|preview)/[\w./ -]+\.(?:dxf|dwg)$", re.I)
+
+
+class Finding(NamedTuple):
+    file: str
+    sheet: str
+    text: str
+    reason: str
+
+
+def check_text(s: str) -> list[str]:
+    """The reasons a piece of sheet text breaks the rule (empty when it may print)."""
+    t = " ".join((s or "").split())
+    if not t or _FOOTER.match(t):
+        return []
+    masked = _DOC_ID.sub(lambda m: "#" * len(m.group(0)), t)
+    out = []
+    for name, pat in PATTERNS:
+        m = pat.search(masked)
+        if m:
+            out.append(f"{name} ({t[m.start():m.end()].strip()})")
+    return out
+
+
+def _texts(doc):
+    """(entity, text) for every piece of text in the document."""
+    for e in doc.entitydb.values():
+        if not e.is_alive:
+            continue
+        kind = e.dxftype()
+        try:
+            if kind in ("TEXT", "ATTRIB"):
+                yield e, e.dxf.get("text", "")
+            elif kind == "ATTDEF":
+                yield e, e.dxf.get("text", "")
+            elif kind == "MTEXT":
+                yield e, e.plain_text()
+            elif kind == "DIMENSION":
+                t = e.dxf.get("text", "")
+                if t and t not in ("<>", " "):
+                    yield e, t.replace("<>", "")
+        except Exception:      # an unreadable entity is not a sheet-face finding
+            continue
+
+
+def _sheet_map(doc):
+    """[(x0, x1, layout name)] from each layout's viewport onto model space (the plan set and P&ID layouts)."""
+    spans = []
+    for lay in doc.layouts:
+        if lay.name == "Model":
+            continue
+        for vp in lay.query("VIEWPORT"):
+            if vp.dxf.get("id", 0) == 1:
+                continue
+            c = vp.dxf.get("view_center_point")
+            h = vp.dxf.get("view_height", 0.0)
+            w, ph = vp.dxf.get("width", 0.0), vp.dxf.get("height", 0.0)
+            if c is None or not h or not ph:
+                continue
+            half = h * (w / ph) / 2.0
+            spans.append((c[0] - half, c[0] + half, lay.name))
+    return spans
+
+
+def _where(e, spans) -> str:
+    try:
+        owner = e.dxf.owner
+        doc = e.doc
+        blk = doc.entitydb.get(owner) if owner else None
+        if blk is not None and blk.dxftype() == "BLOCK_RECORD":
+            name = blk.dxf.name
+            if name.lower() != "*model_space":
+                return name if not name.startswith("*") else "paper space" if name.lower().startswith("*paper") else name
+        p = e.dxf.get("insert") or e.dxf.get("defpoint")
+        if p is not None:
+            for x0, x1, name in spans:
+                if x0 <= p[0] <= x1:
+                    return name
+    except Exception:
+        pass
+    return "model space"
+
+
+def check_dxf(path) -> list[Finding]:
+    import ezdxf
+    path = Path(path)
+    doc = ezdxf.readfile(path)
+    spans = _sheet_map(doc)
+    out = []
+    seen = set()
+    for e, t in _texts(doc):
+        for reason in check_text(t):
+            key = (e.dxf.handle, reason)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(Finding(str(path), _where(e, spans), " ".join(t.split())[:160], reason))
+    return out
+
+
+def latest_fast_drawings() -> list[Path]:
+    """With no paths: the newest fast drawing of every document under each Fast_Drawings folder of the job (the
+    typicals and every project). Exports/ is gitignored, so on the check server this finds none."""
+    root = next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists())
+    out = []
+    for fd in sorted((root / "job").glob("*/03_Working_Design/Exports/Fast_Drawings")):
+        for doc in sorted(p for p in fd.iterdir() if p.is_dir()):
+            runs = sorted((p for p in doc.iterdir() if p.is_dir() and re.search(r"-fast-\d{3}$", p.name)),
+                          key=lambda p: int(p.name.rsplit("-", 1)[-1]))
+            if runs:
+                out += sorted(runs[-1].glob("*.dxf"))
+    return out
+
+
+def _files(args) -> list[Path]:
+    if not args:
+        return latest_fast_drawings()
+    out = []
+    for a in args:
+        p = Path(a)
+        if p.is_dir():
+            out += sorted(p.rglob("*.dxf"))
+        elif p.exists():
+            out.append(p)
+        else:
+            raise FileNotFoundError(a)
+    return out
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("paths", nargs="*", help="DXF files or folders (none: the newest fast drawing of each document)")
+    ap.add_argument("--json", action="store_true", help="print the findings as JSON after the summary")
+    a = ap.parse_args(argv)
+    try:
+        files = _files(a.paths)
+        if not files:
+            if a.paths:
+                print("sheet_face: ERROR no DXF found")
+                return 3
+            print("sheet_face: PASS - no fast drawings in this checkout (filed revisions are a record, not rechecked)")
+            return 0
+        findings = [f for p in files for f in check_dxf(p)]
+    except Exception as exc:  # noqa: BLE001
+        print(f"sheet_face: ERROR {exc}")
+        return 3
+    if findings:
+        print(f"sheet_face: FAIL {len(findings)} internal reference(s) on {len({f.file for f in findings})} of "
+              f"{len(files)} drawing(s) ({RULE_ID})")
+    else:
+        print(f"sheet_face: PASS {len(files)} drawing(s), no internal reference ({RULE_ID})")
+    if a.json:
+        print(json.dumps([f._asdict() for f in findings], indent=1))
+    else:
+        for f in findings:
+            print(f"  {Path(f.file).name} | {f.sheet} | {f.reason} | {f.text!r}")
+    return 1 if findings else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
