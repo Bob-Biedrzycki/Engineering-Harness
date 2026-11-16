@@ -149,6 +149,11 @@ class CheckTextTests(unittest.TestCase):
                   "CIP-TYP-SPL-001-revA-fast-001/CIP-TYP-SPL-001-revA-fast-001.dxf")
         self.good("job/Project-1072-01-CIP-001/06_Issued_Revisions/Drawings/Project-1072-01-SPL-001/"
                   "Project-1072-01-SPL-001-revA/Project-1072-01-SPL-001-revA.dwg")
+        # the file name only (toolkit FOOTER_FORM = "name")
+        self.good("CIP-TYP-FRM-001-revA-fast-009.dxf")
+        self.good("Project-1072-01-PSP-001-first-fast-007.dxf")
+        self.good("Project-1072-01-SPL-001-revA.dwg")
+        self.bad("spool_drawing.py", "repo file name")
         # but not a script path dressed as a footer
         self.bad("job/Typical-CIP-TYP/03_Working_Design/CAD/06_Drawings/Generators/piping/spool_drawing.py",
                  "repo")

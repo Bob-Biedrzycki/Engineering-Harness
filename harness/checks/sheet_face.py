@@ -110,7 +110,10 @@ _MCMASTER_PN = re.compile(r"\bMcMaster(?:-Carr)?\s+[0-9]{2,}[A-Z][0-9A-Z]*(?:\s+
                           r"caps?|reducers?)\b", re.I)
 
 # the sheet's own footer: the drawing file's repo path (a .dxf or .dwg in a drawings, fast or preview folder)
-_FOOTER = re.compile(r"^job/[\w./ -]+/(?:Fast_Drawings|Drawings|preview)/[\w./ -]+\.(?:dxf|dwg)$", re.I)
+_FOOTER = re.compile(r"^job/[\w./ -]+/(?:Fast_Drawings|Drawings|preview)/[\w./ -]+\.(?:dxf|dwg)$|"
+                     # or the file name only (the toolkit's FOOTER_FORM = "name"): a drawing number's own file
+                     r"^(?:CIP-TYP|Project-\d{4}-\d{2})(?:-[A-Z0-9]+)+-(?:rev[A-Z]{1,2}|first|preview)"
+                     r"(?:-fast-\d{3})?(?:-preview)?\.(?:dxf|dwg)$", re.I)
 
 
 class Finding(NamedTuple):

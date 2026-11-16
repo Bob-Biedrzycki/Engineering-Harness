@@ -194,6 +194,14 @@ sheet_face:
     sheet, each one sentence a fabricator can act on; an affected sheet says "SEE OPEN ITEM
     OI-n". General notes are said once and not repeated in a sheet's own notes. The footer shows
     the drawing file's own name and location, nothing else.
+    Learned on the plan set, round 2 (2026-11-16): Model axis letters (-X, +Y) print as the
+    drawing's direction words: the end named by its tank (TK-101 END), FRONT, REAR, TOP, BOTTOM.
+    A fabrication sheet carries no pass / fail verdict and no check table; checks report to the
+    agent, not to the shop. A generator never drops a note by itself to get past this rule: it
+    stops, and the note is reworded by hand or marked as basis only (a note that only gives the
+    source of a value). Lettering engraved in a vendor model (a maker's name or part number) is
+    removed from the projected views. Text is checked whole: a table cell or note that wraps onto
+    several lines is read as one piece, so a reference split across lines is still found.
   references_go_to: >-
     A basis file beside each generator (<SET>.basis.yaml) records the rule ids, TR rows,
     DEC / Q / H numbers and files behind every printed note and open item, and every assumption
@@ -208,4 +216,6 @@ sheet_face:
     "Clamp/Gasket Notes - Should be: TBD Commodity; manufacturer not selected". Designation:
     harness, Bob, chat, 2026-11-16: "All other decisions that are mine have sound reccomondations
     that you made and can follow" (the recommendation put to him: harness, since it holds for any
-    job).
+    job). The round 2 sentences come from that round's review records (job/Typical-CIP-TYP/_work/
+    plan-set/round2/review/ in the CIP Skids job: FRM1-R2-06, PSP-R2-01, DET-01, DS-22, DS-27 and the
+    orchestrator's final sweep of axis letters), under the same words of Bob's.
