@@ -1033,7 +1033,8 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
             ("Operating weight", wcell("operating_weight_lb", "Operating weight")),
             ("Operating weight, max", wcell("operating_weight_max_lb", "Operating weight, max")),
             ("Supports", sh.cell(r["support_count"], W("support_count"))),
-            ("Load per support, max", sh.cell(r["load_per_support_max_lb"], W("load_per_support_max_lb"), "lb")),
+            ("Load per support, max", sh.cell(r["load_per_support_max_lb"], W("load_per_support_max_lb"), "lb",
+                                              override=ov(rec, tag, "Load per support, max"))),
         ])
     motor = next((m for m in rec.motors if m["driven_equipment"] == tag), None)
     if motor:
