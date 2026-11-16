@@ -375,7 +375,15 @@ _VERB = re.compile(r"(?i)\b(?:is|are|was|were|be|been|being|has|have|had|gives?|
                    r"remains?|stays?|opens?|closes?|seats?|sits?|cover(?:s|ed)?)\b")
 _DANGLING = re.compile(r"(?i)(?:\b(?:for|to|the|a|an|of|with|and|or|on|in|at|by|from|per|as|is|are|its|their)|[:,;(/-])\s*\.?$")
 # the generator's own short forms, said as sentences
-_SENTENCE = [(re.compile(r"(?i)^(.{2,60}?) TBD$"), r"\1 is not yet known"),
+def _be(subject: str) -> str:
+    """'is' or 'are' for a subject ('fitting, connection and materials' -> are; 'panel weight' -> is)."""
+    s = subject.strip().lower()
+    return "are" if (" and " in s or "," in s or re.search(r"[^s]s$", s)) else "is"
+
+
+_SENTENCE = [(re.compile(r"(?i)^(.{2,60}?) TBD$"), lambda m: f"{m.group(1)} {_be(m.group(1))} not yet known"),
+             (re.compile(r"(?i)^(.{2,60}?) not (resolved|set|decided|assigned|chosen|known)$"),
+              lambda m: f"{m.group(1)} {_be(m.group(1))} not yet {m.group(2)}"),
              (re.compile(r"(?i)^waits for (.+)$"), r"the value is to be taken from \1"),
              (re.compile(r"(?i)^no (.+)$"), r"there is no \1"),
              (re.compile(r"(?i)^not (on|in|at|by|from) (.+)$"), r"the value is not given \1 \2"),
@@ -383,12 +391,17 @@ _SENTENCE = [(re.compile(r"(?i)^(.{2,60}?) TBD$"), r"\1 is not yet known"),
              (re.compile(r"(?i)^(.+?) pending\b(.*)$"), r"\1 is pending\2")]
 
 
+_LABELLED = re.compile(r"^[A-Z][\w /,()-]{1,40}:\s+\S")   # "Weight basis: empty 375 lb; water SG 1.0; ..."
+
+
 def note_ok(text: str) -> bool:
-    """A note may print: every clause has a verb, and it ends on no dangling word."""
+    """A note may print: it ends on no dangling word, and it is either a labelled data note ('Weight basis: ...',
+    whose clauses are values) or says something with a verb. A note is reworded before this test (as_sentence),
+    never dropped for want of a verb when it carries a value (second review DS-29, DS-30)."""
     t = (text or "").strip()
-    if not t or _DANGLING.search(t):
+    if not t or _DANGLING.search(t) or len(re.findall(r"[A-Za-z]{2,}", t)) < 3:
         return False
-    return all(_VERB.search(c) for c in re.split(r";\s+", t.rstrip(".")) if c.strip())
+    return bool(_LABELLED.match(t) or _VERB.search(t))
 
 
 def as_sentence(text: str) -> str:
@@ -400,13 +413,18 @@ def as_sentence(text: str) -> str:
         if not c:
             continue
         if re.match(r"(?i)waits for ", c):                       # a short form even though "waits" is a verb
-            c = _SENTENCE[1][0].sub(_SENTENCE[1][1], c)
+            c = re.sub(r"(?i)^waits for (.+)$", r"the value is to be taken from \1", c)
         elif not _VERB.search(c):
             for rx, to in _SENTENCE:
                 if rx.search(c):
                     c = rx.sub(to, c)
                     break
         out.append(c)
+    # a note with no verb at all that names what is pending ("Plant air conditions at BL-08") says it is not yet
+    # known, rather than being dropped (second review DS-30); a labelled data note stays as it is
+    if out and not any(_VERB.search(c) for c in out) and not _LABELLED.match("; ".join(out)) \
+            and len(out) == 1 and len(re.findall(r"[A-Za-z]{2,}", out[0])) >= 3:
+        out[0] = f"{out[0]} {_be(re.split(r' (?:at|on|in|for|of) ', out[0])[0])} not yet known"
     s = "; ".join(out)
     return (s[:1].upper() + s[1:] + ".") if s else ""
 
@@ -779,7 +797,8 @@ class Sheet:
                 ids = sorted(set(R.IDS_RX.findall(raw.split("||")[0])))
                 r = f"Open: {clause}" + (f" ({', '.join(ids)})" if ids else "")
             # a note that only repeats the cell (its ids are not printed) says nothing: no note (second review DS-25)
-            n = None if (not why and plain_reason(r).lower().rstrip(".") in f.lower()) else self.note(r, rec_name)
+            rep = scrub(re.sub(r"(?i)^open:\s*", "", r)).lower().strip(" .")   # before any rewording
+            n = None if (not why and (not rep or rep in f.lower())) else self.note(r, rec_name)
             if n is None and not why:
                 self.basis.append({"section": "Notes", "field": "(no note)", "printed": "", "reason": r,
                                    "record": rec_name})

@@ -190,7 +190,13 @@ class DataSheets(unittest.TestCase):
         self.assertTrue(DS.note_ok("Panel weight is not yet known."))
         self.assertEqual(DS.plain_reason("Q-0067 panel weight"), "Panel weight is not yet known.")
         self.assertEqual(DS.plain_reason("Not on brochure"), "The value is not given on brochure.")
-        self.assertEqual(DS.plain_reason("Customer utility spec"), "")       # nothing to act on: no note
+        # a verbless note that names what is pending says it is not yet known (second review DS-30), never dropped
+        self.assertEqual(DS.plain_reason("Customer utility spec"), "Customer utility spec is not yet known.")
+        self.assertEqual(DS.plain_reason("Plant air conditions at BL-08"), "Plant air conditions at BL-08 are not yet known.")
+        self.assertEqual(DS.plain_reason("6P739 manufacturer and model not resolved"),
+                         "6P739 manufacturer and model are not yet resolved.")
+        # a labelled data note keeps its values (DS-29: the tank weight basis)
+        self.assertTrue(DS.note_ok("Weight basis: empty 375 lb; water SG 1.0; 4 legs."))
         _, rec, sheets = self.records()
         for sh in sheets.values():
             for n in sh.notes:
