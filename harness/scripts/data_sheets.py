@@ -917,22 +917,22 @@ def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model
         ]
     else:
         head = [
-            ("Manufacturer", sh.cell(comp["manufacturer"], W("manufacturer"), override=ov(rec, cid, "Manufacturer"))),
-            ("Model", sh.cell(comp["model"], W("model"), override=ov(rec, cid, "Model"))),
-            ("Part number", sh.cell(comp["part_number"], W("part_number"), override=ov(rec, cid, "Part number"))),
-            ("Size", sh.cell(comp["size"], W("size"), override=ov(rec, cid, "Size"))),
+            ("Manufacturer", sh.cell(comp["manufacturer"], W("manufacturer"), override=ov(rec, sh.tag, "Manufacturer", cid))),
+            ("Model", sh.cell(comp["model"], W("model"), override=ov(rec, sh.tag, "Model", cid))),
+            ("Part number", sh.cell(comp["part_number"], W("part_number"), override=ov(rec, sh.tag, "Part number", cid))),
+            ("Size", sh.cell(comp["size"], W("size"), override=ov(rec, sh.tag, "Size", cid))),
         ]
     return head + [
-        ("Connections", sh.cell(comp["end_connections"], W("end_connections"), override=ov(rec, cid, "Connections"))),
-        ("Material", sh.cell(comp["material"], W("material"), override=ov(rec, cid, "Material"))),
-        ("Pressure rating", sh.cell(comp["pressure_rating"], W("pressure_rating"), override=ov(rec, cid, "Pressure rating"))),
+        ("Connections", sh.cell(comp["end_connections"], W("end_connections"), override=ov(rec, sh.tag, "Connections", cid))),
+        ("Material", sh.cell(comp["material"], W("material"), override=ov(rec, sh.tag, "Material", cid))),
+        ("Pressure rating", sh.cell(comp["pressure_rating"], W("pressure_rating"), override=ov(rec, sh.tag, "Pressure rating", cid))),
         ("Temperature rating", sh.cell(comp["temperature_rating"], W("temperature_rating"),
-                                       override=ov(rec, cid, "Temperature rating"))),
-        ("Weight", sh.cell(comp["weight_lb"], W("weight_lb"), "lb", override=ov(rec, cid, "Weight"))),
+                                       override=ov(rec, sh.tag, "Temperature rating", cid))),
+        ("Weight", sh.cell(comp["weight_lb"], W("weight_lb"), "lb", override=ov(rec, sh.tag, "Weight", cid))),
         ("Install practice", sh.cell(install_practice(comp["install_practice"]), W("install_practice"),
-                                     override=ov(rec, cid, "Install practice"))),
-        ("Literature", sh.cell(lit, W("cut_sheet_file"), override=ov(rec, cid, "Literature")) if lit
-         else sh.cell("unknown (no cut sheet on file)", override=ov(rec, cid, "Literature"))),
+                                     override=ov(rec, sh.tag, "Install practice", cid))),
+        ("Literature", sh.cell(lit, W("cut_sheet_file"), override=ov(rec, sh.tag, "Literature", cid)) if lit
+         else sh.cell("unknown (no cut sheet on file)", override=ov(rec, sh.tag, "Literature", cid))),
     ]                                  # no 3D model row: it means nothing to a reader of a data sheet
 
 
