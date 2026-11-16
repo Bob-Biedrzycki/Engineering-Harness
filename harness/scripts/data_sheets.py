@@ -262,17 +262,40 @@ _WHO = re.compile(r"(?i)[;,]?\s*\banswers?:\s*[^;)]*")
 _RECORD_WORDS = re.compile(r"(?i)\b(?:in|from|per) the (?:component )?register\b|\bdata sheet settings\b|"
                            r"\bthe filed model\b|\bthe tag lists?\b|\b(?:equipment|instrument|valve|line|motor-load)-list\b")
 _UNACTIONABLE = re.compile(r"(?i)^(?:no record gives it yet|open|unknown|tbd|not given|none)\.?$")
+# Record wording the sheet-face check does not name but a reader outside CPME cannot use (second review, round 2,
+# DS-01..DS-08): a question or hold in any digit count, P&ID revision requests, calculation item ids, list column
+# names, the register, and model-revision talk.
+_EXTRA = re.compile(r"\b(?:Q|RFI)-\d{1,4}\b|\bHOLD\s+H-?\d{1,2}\b|\bH-\d{1,2}\b|\bPRR-\d+\b|\bW-\d{2}\b|"
+                    r"\bweight_basis\b|\bper (?:the )?register\b|\bregister description\b|\bunregistered\b|"
+                    r"\bdoes not build\b", re.I)
+# plain words for model working words (DS-19)
+_PLAIN = [(re.compile(r"(?i)\binferred from the model\b"), "as drawn"),
+          (re.compile(r"(?i)\bmodel envelope\b"), "overall envelope"),
+          (re.compile(r"(?i)\s+in weight_basis\b"), "")]
+# catalogue numbers of commodities (register selection = commodity), set by Records: they never print (D3 item 4)
+_COMMODITY_RX: re.Pattern | None = None
+
+
+def face_fails(text: str) -> list[str]:
+    """The sheet-face check's reasons, plus this script's own record words (_EXTRA)."""
+    out = list(SF.check_text(text or ""))
+    m = _EXTRA.search(text or "")
+    if m:
+        out.append(f"record wording ({m.group(0)})")
+    if _COMMODITY_RX is not None and (m := _COMMODITY_RX.search(text or "")):
+        out.append(f"commodity catalogue number ({m.group(0)})")
+    return out
 
 
 def face_ok(text: str) -> bool:
-    return not SF.check_text(text or "")
+    return not face_fails(text)
 
 
 class _Fails:
     """A 'regex' for _drop_parens: a bracketed group fails when the sheet-face check finds anything in it."""
     @staticmethod
     def search(s: str) -> bool:
-        return bool(SF.check_text(re.sub(r"(?i)\bunknown\b", TBD, s)))
+        return bool(face_fails(re.sub(r"(?i)\bunknown\b", TBD, s)))
 
 
 _LEAD_ID = re.compile(r"^\s*(?:HOLD\s+)?(?:Q|RFI|EC|DEC|PRR)-\d{2,4}\b[\s:,-]*|^\s*(?:HOLD\s+)?H\d{1,2}\b[\s:,-]*")
@@ -289,15 +312,42 @@ def scrub(text: str) -> str:
     words go. May come back empty; callers gate with face_ok()."""
     v = _WHO.sub("", text or "")
     v = _RECORD_WORDS.sub("", v)
+    for rx, to in _PLAIN:
+        v = rx.sub(to, v)
+    v = re.sub(r"(?i)\bpending\s+(?:HOLD\s+)?(?:H-?\d{1,2}|Q-\d{1,4}|RFI-\d{1,4}|PRR-\d+)\b", TBD, v)   # DS-02
+    if _COMMODITY_RX is not None:              # a commodity's catalogue number goes; the words around it stay
+        v = _COMMODITY_RX.sub("", v)
     v = _drop_parens(v, _Fails)
     out = []
     for c in clauses(v):
         c = _LEAD_ID.sub("", re.sub(r"(?i)\bunknown\b", TBD, c))
         c = _HUNG_REF.sub(lambda m: "" if _Fails.search(m.group(1)) else m.group(0), c)
         c = _tidy(re.sub(r"\(\s*(?:and|or|,|;|\s)*\)", "", c))
-        if c and not SF.check_text(c) and not _MODEL_TALK.search(c):
+        if c and not face_fails(c) and not _MODEL_TALK.search(c):
             out.append(c)
     return _tidy("; ".join(out))
+
+
+def set_commodity_numbers(register: dict) -> None:
+    """Build _COMMODITY_RX from the register rows marked selection = commodity: their model and part number, and the
+    model without its last dash suffix ('S7SWWK-2-PL' and 'S7SWWK-2'), with any maker word before them."""
+    global _COMMODITY_RX
+    toks = set()
+    for rows in register.values():
+        r = rows[-1]
+        if (r.get("selection") or "").strip().lower() != "commodity":
+            continue
+        for v in (r.get("model", ""), r.get("part_number", "")):
+            t = re.split(r"[\s;(]", (v or "").strip())[0]
+            if len(t) >= 5 and re.search(r"\d", t) and re.search(r"[A-Za-z]", t):
+                toks.add(t)
+                if t.count("-") >= 2:
+                    toks.add(t.rsplit("-", 1)[0])
+    if not toks:
+        _COMMODITY_RX = None
+        return
+    alt = "|".join(re.escape(t) for t in sorted(toks, key=len, reverse=True))
+    _COMMODITY_RX = re.compile(rf"(?:\s*\bwith\b)?(?:\s*\b(?:McMaster(?:-Carr)?|Steel & O'Brien)\b)?\s*\b(?:{alt})\b(?![-\w])")
 
 
 def plain_reason(text: str) -> str:
@@ -409,6 +459,7 @@ class Records:
             if reg.is_file():
                 for r in read_csv(reg):
                     self.register.setdefault(r["component_id"], []).append(r)
+        set_commodity_numbers(self.register)   # commodity catalogue numbers never print (D3 item 4)
         self.model, self.model_reason = find_model(cfg.model)
         self.items: dict = {}
         self.tagged: list = []
@@ -649,7 +700,7 @@ class Sheet:
         if unit and re.fullmatch(r"-?[\d.,]+", f):
             f = f"{f} {unit}"
         f_clean = scrub(f)
-        if not f_clean or not face_ok(f_clean) or _UNACTIONABLE.match(f_clean):
+        if not f_clean or not face_ok(f_clean):   # "none" is a value and prints (second review DS-04, DS-09)
             self.open += 1                 # nothing printable is left: TBD, the record's words kept in the basis
             n = self.note(why or reason(raw) or "", rec_name)
             self._keep(TBD, raw, where, why or "", n, who, "scrubbed to TBD")
@@ -769,7 +820,8 @@ def purchased(sh: Sheet, comp: dict | None, raw_cid: str, maker: str = "", model
         ("Weight", sh.cell(comp["weight_lb"], W("weight_lb"), "lb")),
         ("Install practice", sh.cell(install_practice(comp["install_practice"]), W("install_practice"),
                                      override=ov(rec, cid, "Install practice"))),
-        ("Literature", sh.plain(lit) if lit else sh.cell("unknown (no cut sheet on file)")),
+        ("Literature", sh.cell(lit, W("cut_sheet_file"), override=ov(rec, cid, "Literature")) if lit
+         else sh.cell("unknown (no cut sheet on file)", override=ov(rec, cid, "Literature"))),
     ]                                  # no 3D model row: it means nothing to a reader of a data sheet
 
 
@@ -813,14 +865,20 @@ def service(sh: Sheet, line_no: str) -> list:
     W = lambda col: ("line-list.csv", ln["line_no"], col)
     return [
         ("Line", sh.plain(f"{ln['line_no']}, {fact(ln['service'])}")),
-        ("Service class", sh.cell(ln["service_class"], W("service_class"))),
+        ("Service class", sh.cell(ln["service_class"], W("service_class"), override=ov(sh.rec, sh.tag, "Service class"))),
         ("Tube", sh.cell(f"{ln['size_od_in']} in OD × {fact(ln['gauge'])}" if not is_unknown(ln["size_od_in"]) else "unknown")),
         ("Material", sh.cell(f"{ln['material']}, {fact(ln['spec'])}" if not is_unknown(ln["material"]) else ln["material"],
                              W("material"))),
         ("Design pressure", sh.cell(ln["design_press_psig"], W("design_press_psig"), "psig")),
         ("Design temperature", sh.cell(ln["design_temp_f"], W("design_temp_f"), "°F")),
-        ("Internal finish", sh.cell(ln["finish_ra"], W("finish_ra"))),
+        ("Internal finish", sh.cell(ln["finish_ra"], W("finish_ra"), override=ov(sh.rec, sh.tag, "Internal finish"))),
     ]
+
+
+def supplied_loose(r: dict) -> bool:
+    """A record says the item ships loose (not every off-skid item does: second review DS-18)."""
+    t = " ".join(r.get(k, "") for k in ("description", "weight_basis", "notes", "step_model_ref")).lower()
+    return "supplied loose" in t or "ships loose" in t
 
 
 def off_skid(r: dict) -> bool:
@@ -842,7 +900,8 @@ def sheet_equipment(rec: Records, r: dict) -> Sheet:
     sh.add("Duty", [
         ("Service", sh.cell(r["description"], override=ovk("Service"))),
         ("Size / rating", sh.cell(r["size_rating"], W("size_rating"), override=ovk("Size / rating"))),
-        ("Supply", sh.plain("supplied loose, off the skid; not on the frame" if loose else "on the skid")),
+        ("Supply", sh.plain(("supplied loose, off the skid; not on the frame" if supplied_loose(r) else
+                             "off the skid; not on the frame") if loose else "on the skid")),   # DS-18: loose only where a record says it
         ("Lines", sh.plain(", ".join(lines_for(rec, tag)) or "none")),
         ("P&ID sheet", sh.cell(r["pid_sheet"])),
     ])
@@ -989,7 +1048,7 @@ FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          'wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">')
 
 
-def render(sh: Sheet, doc_id: str, rev: str, today: str, fast: str = "") -> str:
+def render(sh: Sheet, doc_id: str, rev: str, today: str, fast: str = "", file_name: str = "") -> str:
     """The sheet's self-contained HTML (logo inline) as revision `rev` dated `today`; `fast` ('FAST-001') marks a fast
     drawing: the revision cell then reads '<rev> FAST-001 - NOT ISSUED'. Prints nothing internal (DRF-FACE-001): the
     model, the sources and who answers are in the basis CSV, not on the sheet."""
@@ -1034,7 +1093,7 @@ def render(sh: Sheet, doc_id: str, rev: str, today: str, fast: str = "") -> str:
 </header>
 <div class="cols"><div>{left}</div><div>{right}</div></div>
 <div class="foot"><h2>Notes</h2>{foot}</div>
-<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(doc_id)} Rev {rev}{(' ' + fast) if fast else ''} · Page 1 of 1</div></footer>
+<footer><div>{html.escape(brand_one_line())}</div><div>{html.escape(file_name or generated_name(doc_id, rev, ".pdf"))} &nbsp;|&nbsp; Page 1 of 1</div></footer>
 </div></body></html>"""
 
 
@@ -1052,7 +1111,7 @@ def page_text(page_html: str) -> list[str]:
 
 def face_findings(page_html: str) -> list[tuple[str, list[str]]]:
     """(text, reasons) for every visible text run that fails the sheet-face check."""
-    return [(t, r) for t in page_text(page_html) if (r := SF.check_text(t))]
+    return [(t, r) for t in page_text(page_html) if (r := face_fails(t))]
 
 
 BASIS_COLS = ["document_id", "tag", "section", "field", "printed", "status", "note", "record", "raw", "reason",
@@ -1292,7 +1351,7 @@ def write_fast(cfg: Settings, rec: Records, sheets: list[Sheet], root: Path, req
         if folder.exists():
             raise Refused(f"{folder} exists: a fast drawing is never overwritten")
         folder.mkdir(parents=True)
-        page = render(sh, doc_id, last or "A", today, fast=f"FAST-{nnn:03d}")
+        page = render(sh, doc_id, last or "A", today, fast=f"FAST-{nnn:03d}", file_name=f"{stem}.pdf")
         htm = folder / f"{stem}.html"
         htm.write_text(page, encoding="utf-8")
         pages = pdf_maker(htm, folder / f"{stem}.pdf") if pdf else 1

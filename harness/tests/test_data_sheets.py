@@ -161,6 +161,10 @@ class DataSheets(unittest.TestCase):
 
     # ---- fast drawings (plan set round 2, brief D2)
     def test_fast_drawings_are_numbered_never_overwritten_and_logged(self):
+        # a real-form document prefix: the sheet-face check knows CPME document numbers, and the fast file name in
+        # the footer must pass it (a made-up prefix such as TST-DS- reads as a rule id)
+        self.settings.write_text(self.settings.read_text(encoding="utf-8").replace("TST-DS-", "CIP-TYP-DS-"),
+                                 encoding="utf-8")
         cfg, rec, sheets = self.records()
         fast = self.tmp / "Fast_Drawings"
         os.environ["CPME_FAST_ROOT"] = str(fast)
@@ -172,17 +176,17 @@ class DataSheets(unittest.TestCase):
         one = DS.write_fast(cfg, rec, list(sheets.values()), self.root, "clean sheets", "2026-01-02",
                             pdf_maker=fake_pdf)
         two = DS.write_fast(cfg, rec, [sheets["EQ-1"]], self.root, "again", "2026-01-02", pdf_maker=fake_pdf)
-        self.assertEqual([s for s, *_ in one], ["TST-DS-EQ-1-revA-fast-001", "TST-DS-EQ-2-first-fast-001"])
-        self.assertEqual(two[0][0], "TST-DS-EQ-1-revA-fast-002")
+        self.assertEqual([s for s, *_ in one], ["CIP-TYP-DS-EQ-1-revA-fast-001", "CIP-TYP-DS-EQ-2-first-fast-001"])
+        self.assertEqual(two[0][0], "CIP-TYP-DS-EQ-1-revA-fast-002")
         self.assertTrue(all(pages == 1 and face == 0 for _, _, pages, face in one + two))
-        page = (fast / "TST-DS-EQ-1" / "TST-DS-EQ-1-revA-fast-002" / "TST-DS-EQ-1-revA-fast-002.html").read_text(
+        page = (fast / "CIP-TYP-DS-EQ-1" / "CIP-TYP-DS-EQ-1-revA-fast-002" / "CIP-TYP-DS-EQ-1-revA-fast-002.html").read_text(
             encoding="utf-8")
         self.assertIn("FAST-002 - NOT ISSUED", page)
         log = (fast / "fast-log.md").read_text(encoding="utf-8")
-        self.assertEqual(log.count("| TST-DS-EQ-"), 3)
+        self.assertEqual(log.count("| CIP-TYP-DS-EQ-"), 3)
         self.assertIn("| clean sheets |", log)
-        self.assertEqual(sorted(p.name for p in (self.root / "TST-DS-EQ-1").iterdir()),
-                         ["TST-DS-EQ-1-revA", "revisions.csv"], "a fast drawing never touches the filed revisions")
+        self.assertEqual(sorted(p.name for p in (self.root / "CIP-TYP-DS-EQ-1").iterdir()),
+                         ["CIP-TYP-DS-EQ-1-revA", "revisions.csv"], "a fast drawing never touches the filed revisions")
 
     # ---- the CPME-Generated label
     def test_generated_name_carries_the_label_after_the_revision(self):
