@@ -75,6 +75,35 @@ class CheckTextTests(unittest.TestCase):
         self.good("THE MEMBER TABLE IS THE CUT LIST")
         self.good("WELD AND HOLD FOR INSPECTION")
 
+    # --- second reviewer, DS-22 (2026-11-16) ---
+    def test_ds22_question_and_hold_numbers(self):
+        self.bad("OPEN QUESTION Q-10", "question")
+        self.bad("SEE Q-0003", "question")
+        self.bad("CUSTOMER SPEC H-19", "hold")
+        self.good("W6X12 H-BEAM")
+        self.good("H-BEAM BASE")
+
+    def test_ds22_prr_and_calc_items(self):
+        self.bad("PER PRR-04", "revision request")
+        self.bad("WEIGHT FROM W-12", "calculation item")
+        for s in ("W6X12 BEAM", "WELD W01", "L-100-SP03-W01", "FW-068", "W 6 X 12"):
+            self.good(s)
+
+    def test_ds22_columns_and_register(self):
+        self.bad("WEIGHT: weight_basis", "column")
+        self.bad("SIZE_IN 0.065", "column")
+        self.bad("WEIGHT PER REGISTER", "register")
+        self.bad("REGISTER DESCRIPTION", "register")
+        self.bad("UNREGISTERED PART", "register")
+        self.good("REGISTERED TRADEMARK")       # not "unregistered"
+
+    def test_ds22_model_revision(self):
+        self.bad("DRAWN FROM THE MODEL REV B", "model revision")
+        self.bad("REV C MODEL", "model revision")
+        self.bad("FROM BUILD revB-full-007", "model revision")
+        for s in ("REV A", "REVISION", "A", "REV  DESCRIPTION  DATE", "FAST-001 - NOT ISSUED", "REV A, FIRST ISSUE"):
+            self.good(s)
+
     def test_internal_words(self):
         for w in ("PER THE TAKEOFF", "FROM THE MANIFEST", "HELPER 3", "ORCHESTRATOR", "HARNESS RULE"):
             self.bad(w, "internal word")

@@ -51,9 +51,25 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("Todd's requirement number", re.compile(r"\bTR-\d{1,2}\b", re.I)),
     ("design rule id", re.compile(r"\b[A-Z]{2,6}(?:-[A-Z]{2,8})+-\d{3}[A-Z]?\b", re.I)),
     ("decision number", re.compile(r"\bDEC-\d{3,4}\b", re.I)),
-    ("question number", re.compile(r"\b(?:Q|RFI)-\d{3,4}\b", re.I)),
+    # any digit count (Q-10 as well as Q-0003; second reviewer DS-22)
+    ("question number", re.compile(r"\b(?:Q|RFI)-\d{1,4}\b", re.I)),
     ("equipment concern number", re.compile(r"\bEC-\d{2,3}\b", re.I)),
     ("hold number", re.compile(r"(?<![\w.-])H\d{1,2}(?![\w.-])")),
+    # H-19 with a hyphen (DS-22); digits only, so H-BEAM passes
+    ("hold number", re.compile(r"(?<![\w.-])H-\d{1,2}(?![\w.-])")),
+    ("P&ID revision request number", re.compile(r"\bPRR-\d{1,4}\b", re.I)),
+    # calc item ids (W-12, DS-22): W, a hyphen and digits, standing alone. W6X12 (no hyphen), weld numbers W01 and
+    # L-100-SP03-W01 (W follows a hyphen with no hyphen after it), FW-068 (W inside a word) pass
+    ("calculation item id", re.compile(r"(?<![\w-])W-\d{1,3}(?![\w-])", re.I)),
+    # a list or register column name in snake_case (weight_basis, size_in; DS-22): letters, an underscore, letters
+    ("list column name", re.compile(r"\b[A-Za-z]{2,}(?:_[A-Za-z0-9]+)+\b")),
+    ("register wording", re.compile(r"\bper\s+(?:the\s+)?register\b|\bregister\s+description\b|\bunregistered\b",
+                                    re.I)),
+    # the model's revision (DS-22): "REV B" only next to the word MODEL, so the drawing's own revision box and a bare
+    # "REV A" pass; and a model build name (revB-full-007). The sheet's own footer path is exempt as a whole.
+    ("model revision", re.compile(
+        r"\bMODEL\b[^.;]{0,30}?\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\b|\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\s+(?:OF\s+THE\s+)?MODEL\b|"
+        r"\brev[A-Z]{1,2}-(?:fast|full)-\d{3}\b", re.I)),
     ("component register number", re.compile(r"\bC(?:O)?MP-\d{4}\b", re.I)),
     # the model's own record codes: assumption numbers (A-19), general-note keys (GN-LASER), install and
     # support-install items (SI-02, SH-06)
