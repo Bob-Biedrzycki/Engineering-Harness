@@ -1090,8 +1090,20 @@ def to_pdf(src: Path, pdf: Path) -> int:
     """Print the HTML to PDF with Edge headless; the page count (0 when no PDF came out)."""
     if not EDGE.is_file():
         raise Refused(f"Edge is not at {EDGE} (set CPME_EDGE to its path); no PDF made")
-    subprocess.run([str(EDGE), "--headless", "--disable-gpu", "--no-pdf-header-footer", "--virtual-time-budget=4000",
-                    f"--print-to-pdf={pdf}", src.as_uri()], capture_output=True, timeout=120)
+    import tempfile
+    # its own throw-away profile each time: a headless Edge sharing the user's open profile can hang (seen
+    # 2026-11-16, third sheet of a 44-sheet run). One retry on a timeout; then 0 pages, reported by the caller.
+    for _attempt in range(2):
+        with tempfile.TemporaryDirectory(prefix="ds-edge-") as prof:
+            try:
+                subprocess.run([str(EDGE), "--headless", "--disable-gpu", "--no-pdf-header-footer",
+                                "--no-first-run", "--disable-extensions", f"--user-data-dir={prof}",
+                                "--virtual-time-budget=4000", f"--print-to-pdf={pdf}", src.as_uri()],
+                               capture_output=True, timeout=120)
+            except subprocess.TimeoutExpired:
+                continue
+        if pdf.exists():
+            return count_pages(pdf)
     return count_pages(pdf) if pdf.exists() else 0
 
 
