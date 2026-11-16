@@ -174,6 +174,9 @@ class DataSheets(unittest.TestCase):
         # only the failing comma piece goes, the rest of the clause stays
         self.assertEqual(DS.scrub("1 in clamp ends, joint J033 to SAN-UTIL-002 spool, 316L wetted body"),
                          "1 in clamp ends, 316L wetted body")
+        # a kept comma piece is never model working talk (second review DS-27)
+        self.assertEqual(DS.scrub("1 in clamp branch, branch design open for the next model revision"),
+                         "1 in clamp branch")
         # nothing printable left: empty, so the cell prints TBD (never a blank cell)
         self.assertEqual(DS.scrub("PIPE-SVC-001 air"), "")
         _, rec, sheets = self.records()

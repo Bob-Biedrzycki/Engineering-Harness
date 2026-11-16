@@ -303,7 +303,7 @@ _LEAD_ID = re.compile(r"^\s*(?:HOLD\s+)?(?:Q|RFI|EC|DEC|PRR)-\d{2,4}\b[\s:,-]*|^
 # a reference hung on a clause by a comma or 'per / see / by / under': it goes alone, the clause stays
 _HUNG_REF = re.compile(r"(?:,\s*|\s+(?:per|see|by|under)\s+)(HOLD\s+H\d{1,2}|[A-Z][A-Za-z]*(?:-[A-Z0-9]+)+|H\d{1,2})"
                        r"(?=[\s,;.)]|$)")
-_MODEL_TALK = re.compile(r"(?i)\bASSUMED\b|\bmodell?ed as\b")
+_MODEL_TALK = re.compile(r"(?i)\bASSUMED\b|\bmodell?ed as\b|\bmodel revision\b|\bsanitary review\b")   # DS-27
 
 
 def scrub(text: str) -> str:
