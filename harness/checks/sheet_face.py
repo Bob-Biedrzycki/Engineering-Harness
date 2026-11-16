@@ -9,11 +9,15 @@ and reports any of the internal references the rule names:
 - design rule ids (two or more letter groups and a three-digit number: SAN-RA-001, GDT-PIPE-001, LINE-NUM-001),
   but not a drawing number (CIP-TYP-FRM-001, Project-1072-01-FRM-001) and not a tag (PI-101, FM-001);
 - decision, question, RFI, equipment-concern and hold numbers (DEC-nnnn, Q-nnnn, RFI-nnnn, EC-nn, Hn);
-- component register numbers (COMP-nnnn, CMP-nnnn);
+- component register numbers (COMP-nnnn, CMP-nnnn), and the model's record codes (A-19, GN-LASER, SI-02, SH-06);
 - repo paths and the file names of scripts, YAML, CSV, JSON and Markdown;
 - software names and versions (cadgen, ezdxf, build123d, text-to-cad, OCCT, python, uvx, Blender);
 - the words brief, helper, orchestrator, harness, takeoff, manifest, ASSUMPTION and unknown;
-- people's names (Bob, Todd).
+- people's names (Bob, Todd);
+- model numbers (CIP-TYP-MDL-001-B, Project-1072-01-MDL-001), the names of the model's own reports and lists
+  (routing report, layout note, component register, line list), "as modelled", assumption wording (placeholder,
+  first-pass, is assumed), hold, gate and review status, rule families and tracker names (SAN rule, CPM-41,
+  PartsLib), and a McMaster catalogue number beside a commodity word (Reviewer, round 2 request 01).
 
 Public standards (AWS D18.1, ASME BPE, ASME IX, PFI ES-3, ASME Y14.5) are not internal references and pass.
 The one repo path allowed is the sheet's own footer: the drawing file's path (a .dxf or .dwg under a drawings,
@@ -51,6 +55,9 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("equipment concern number", re.compile(r"\bEC-\d{2,3}\b", re.I)),
     ("hold number", re.compile(r"(?<![\w.-])H\d{1,2}(?![\w.-])")),
     ("component register number", re.compile(r"\bC(?:O)?MP-\d{4}\b", re.I)),
+    # the model's own record codes: assumption numbers (A-19), general-note keys (GN-LASER), install and
+    # support-install items (SI-02, SH-06)
+    ("internal record number", re.compile(r"\b(?:A|SI|SH)-\d{2,3}\b|\bGN-[A-Z0-9]+\b", re.I)),
     ("repo file name", re.compile(r"[\w-]\.(?:py|ya?ml|csv|json|md)\b", re.I)),
     ("repo path", re.compile(r"(?:^|[\s(\"'])(?:harness|job|\.claude|_work)[/\\]|[A-Z]:\\", re.I)),
     ("software name", re.compile(r"\b(?:cadgen|ezdxf|build123d|text-to-cad|OCCT|python|uvx|blender)\b", re.I)),
@@ -58,7 +65,25 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("ASSUMPTION", re.compile(r"\bASSUMPTIONS?\b", re.I)),
     ("the word unknown", re.compile(r"\bunknown\b", re.I)),
     ("a person's name", re.compile(r"\b(?:Bob|Bob's|Todd|Todd's)\b", re.I)),
+    # Reviewer, round 2 request 01 (2026-11-16): wording the first patterns let through on the filed Rev A sheets
+    ("the model's own reports and lists", re.compile(
+        r"\b(?:routing report|layout note|component register|line list|weld[- ]map position|model writes|"
+        r"filed model|retired model|placed whole|as modell?ed)\b", re.I)),
+    ("assumption wording", re.compile(r"\b(?:placeholders?|first-pass|is assumed|are assumed|stale)\b", re.I)),
+    ("hold, gate or review status", re.compile(
+        r"\bHOLD\s*\((?:NOT RECEIVED|H\d+)\)|\bGATE\s+\d\b|\bFOR\s+(?:THE\s+)?(?:ENGINEER'?S?\s+)?REVIEW\b|"
+        r"\bREV\s+\d+,\s+FOR\s+REVIEW\b|\bEARLIER JOB\b", re.I)),
+    ("rule family or tracker name", re.compile(
+        r"\b(?:SAN|GDT|PIPE|LAY|DRF|TAG|STR|INST|MAT|CHAIN)\s+RULES?\b|\bCPM-\d+\b|\bPARTSLIB\b", re.I)),
 ]
+
+# a model number is not a drawing of the set: checked before drawing numbers are masked
+_MODEL_ID = re.compile(r"\b(?:CIP-TYP|Project-\d{4}-\d{2})-MDL-\d{3}(?:-[A-Z0-9]+)?\b", re.I)
+# a commodity's maker and catalogue number (DRF-FACE-001 item 4): McMaster and a part number with a commodity word
+# within the next few words ("McMaster 4322K153 304 SS clamp"); specified equipment bought there keeps its maker
+_MCMASTER_PN = re.compile(r"\bMcMaster(?:-Carr)?\s+[0-9]{2,}[A-Z][0-9A-Z]*(?:\s+\S+){0,5}?\s+(?:clamps?|gaskets?|"
+                          r"ferrules?|hangers?|washers?|tub(?:e|ing)|fittings?|elbows?|tees?|nuts?|bolts?|studs?|"
+                          r"caps?|reducers?)\b", re.I)
 
 # the sheet's own footer: the drawing file's repo path (a .dxf or .dwg in a drawings, fast or preview folder)
 _FOOTER = re.compile(r"^job/[\w./ -]+/(?:Fast_Drawings|Drawings|preview)/[\w./ -]+\.(?:dxf|dwg)$", re.I)
@@ -76,8 +101,14 @@ def check_text(s: str) -> list[str]:
     t = " ".join((s or "").split())
     if not t or _FOOTER.match(t):
         return []
-    masked = _DOC_ID.sub(lambda m: "#" * len(m.group(0)), t)
     out = []
+    m = _MODEL_ID.search(t)
+    if m:
+        out.append(f"model number ({m.group(0)})")
+    m = _MCMASTER_PN.search(t)
+    if m:
+        out.append(f"commodity maker and catalogue number ({m.group(0)})")
+    masked = _DOC_ID.sub(lambda m: "#" * len(m.group(0)), _MODEL_ID.sub("", t))
     for name, pat in PATTERNS:
         m = pat.search(masked)
         if m:

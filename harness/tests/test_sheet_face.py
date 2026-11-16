@@ -48,6 +48,33 @@ class CheckTextTests(unittest.TestCase):
         self.bad("SEE EC-03", "equipment concern")
         self.bad("RFI-0149", "question")
 
+    def test_model_record_codes(self):
+        self.bad("FIRST-PASS SECTION (A-19, A-45)", "internal record")
+        self.bad("[GN-LASER, GN-A19]", "internal record")
+        self.bad("FLUSH WITH THE TOP (SI-02, SH-06)", "internal record")
+        self.good("SECTION A-A")
+        self.good("TANK MODIFICATION ITEM M-14")
+
+    def test_reviewer_request_01(self):
+        self.bad("DRAWN FROM CIP-TYP-MDL-001-B REV A", "model number")
+        self.bad("model Project-1072-01-MDL-001 Rev B", "model number")
+        self.bad("(A-127)", "internal record")
+        self.bad("McMaster 4322K153 304 SS clamp / McMaster 1100N15 EPDM gasket", "commodity maker")
+        self.good("HX-101 SHELL AND TUBE HEAT EXCHANGER McMaster-Carr 35185K48")   # specified equipment keeps its maker
+        for s in ("IN THE ROUTING REPORT", "PER THE LINE LIST", "THE LAYOUT NOTE", "COMPONENT REGISTER",
+                  "AT ITS WELD-MAP POSITION", "AS THE MODEL WRITES THEM", "WELD CENTRE AS MODELLED", "(FILED MODEL)",
+                  "CPME COMPONENTS PLACED WHOLE"):
+            self.bad(s, "reports and lists")
+        for s in ("PLACEHOLDER LEVELLING FOOT", "FIRST-PASS SECTIONS", "THE GAP IS ASSUMED", "STALE"):
+            self.bad(s, "assumption wording")
+        for s in ("HOLD (NOT RECEIVED)", "UNTIL GATE 3 IS APPROVED", "FOR ENGINEER'S REVIEW", "REV 1, FOR REVIEW",
+                  "CARRIED FROM AN EARLIER JOB"):
+            self.bad(s, "hold, gate")
+        for s in ("AIR CARRIES NO SAN RULE", "CPM-41", "PARTSLIB"):
+            self.bad(s, "rule family")
+        self.good("THE MEMBER TABLE IS THE CUT LIST")
+        self.good("WELD AND HOLD FOR INSPECTION")
+
     def test_internal_words(self):
         for w in ("PER THE TAKEOFF", "FROM THE MANIFEST", "HELPER 3", "ORCHESTRATOR", "HARNESS RULE"):
             self.bad(w, "internal word")
