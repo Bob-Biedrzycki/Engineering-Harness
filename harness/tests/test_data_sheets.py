@@ -224,6 +224,21 @@ class DataSheets(unittest.TestCase):
         self.assertEqual(sheets["EQ-1"].failed, [])
         self.assertIn("The plant air conditions at BL-08 are not yet known.", sheets["EQ-1"].notes)
 
+    def test_axis_letters_print_as_the_drawing_words(self):
+        # orchestrator, 2026-11-16: no model axis letters on a sheet; the same words as the plan set toolkit
+        DS.set_ends({"a": {"tag": "TK-101", "bbox_in": [[0, 0, 0], [30, 30, 40]]},
+                     "b": {"tag": "TK-103", "bbox_in": [[100, 0, 0], [130, 30, 40]]}})
+        self.addCleanup(DS.set_ends, {})
+        self.assertEqual(DS.axis_words("horizontal, flow -X, actuator up (+Z)"),
+                         "horizontal, flow toward the TK-101 END, actuator up")
+        self.assertEqual(DS.axis_words("on the +Y short outlet, actuator +Y (front)"),
+                         "on the FRONT short outlet, actuator toward the FRONT")
+        self.assertEqual(DS.axis_words("flow in at -X, out the +Y branch"),
+                         "flow in at the TK-101 END, out the FRONT branch")
+        self.assertEqual(DS.axis_words("sensor horizontal out of the tank wall (+Y)"),
+                         "sensor horizontal out of the tank wall (FRONT)")
+        self.assertTrue(DS.face_ok(DS.scrub("eccentric flat at the bottom (+Z up); flow +X")))
+
     def test_a_basis_only_clause_never_prints(self):
         # DS-20 / DS-27: model-revision talk stays in the basis CSV; a cell keeps only the connection itself
         _, rec, sheets = self.records()

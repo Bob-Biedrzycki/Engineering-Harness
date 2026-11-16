@@ -313,7 +313,8 @@ def scrub(text: str) -> str:
     left broken: a bracketed group that carries one goes; an id that leads a clause goes; a clause that still
     carries one (a name or a rule id inside the sentence) goes whole. 'unknown' becomes TBD; who answers and record
     words go. May come back empty; callers gate with face_ok()."""
-    v = _WHO.sub("", text or "")
+    v = axis_words(text or "")                 # axis letters said as the drawing's words before any scrubbing
+    v = _WHO.sub("", v)
     v = _RECORD_WORDS.sub("", v)
     for rx, to in _PLAIN:
         v = rx.sub(to, v)
@@ -341,6 +342,67 @@ def scrub(text: str) -> str:
         if c:
             out.append(c)
     return _tidy("; ".join(out))
+
+
+# ------------------------------------------------------------------------------------------------ axis words
+# A reader has no model axes (orchestrator, 2026-11-16): signed axis letters print as the drawing's direction words,
+# the same words the plan set toolkit prints (plan_set_lib ps.axis_words, Helper 1): -X / +X the skid's ends named by
+# the tank at each, from the filed model's manifest; +Y FRONT, -Y REAR; +Z TOP, -Z BOTTOM. The same rule, kept here
+# because harness code does not import a job's toolkit (First Principle 3); the ends come from the same manifest.
+_ENDS: dict[str, str] = {}
+_AXIS = re.compile(r"(?<![\w-])([+-])([XYZ])(?!\w)", re.I)
+_AXIS_NOUNS = (r"leg|legs|arm|arms|side|face|half|bay|corner|edge|post|rail|bearer|member|tine|stub|"
+               r"run|branch|outlet|short outlet|port|end|tee")
+
+
+def set_ends(items: dict) -> None:
+    """{'-X': 'TK-101 END', '+X': 'TK-103 END'} from the manifest's tanks (lowest and highest X centre)."""
+    global _ENDS
+    cx = {}
+    for it in items.values():
+        t = it.get("tag", "")
+        if re.fullmatch(r"TK-\d{3}", t) and it.get("bbox_in"):
+            (x0, _, _), (x1, _, _) = it["bbox_in"]
+            cx[t] = (x0 + x1) / 2
+    order = sorted(cx, key=cx.get)
+    _ENDS = {"-X": f"{order[0]} END", "+X": f"{order[-1]} END"} if len(order) >= 2 else {}
+
+
+def axis_words(text: str) -> str:
+    """Signed axis letters said in the drawing's words (see above). Without the ends (no model) the text is left
+    as it is, and the sheet-face check then stops it from printing."""
+    s = str(text or "")
+    if not _AXIS.search(s) or not _ENDS:
+        return s
+
+    def name(sign, ax):
+        ax = ax.upper()
+        return _ENDS[f"{sign}X"] if ax == "X" else {"Y": {"+": "FRONT", "-": "REAR"},
+                                                     "Z": {"+": "TOP", "-": "BOTTOM"}}[ax][sign]
+    s = re.sub(r"\(\s*\+Z\s+up\s*\)|\+Z\s+up\b", "up", s, flags=re.I)              # '(+Z up)': up says it
+    s = re.sub(r"\(\s*-Z\s+down\s*\)|-Z\s+down\b", "down", s, flags=re.I)
+    s = re.sub(r"\b(up|down)\s*\(\s*[+-]Z\s*\)", r"\1", s, flags=re.I)             # 'actuator up (+Z)'
+    s = re.sub(r"\(([+-])Y\)\s*\((front|rear)\)", lambda m: f"({m.group(2)})", s, flags=re.I)
+
+    def toward(m):
+        sign, ax = m.group(2), m.group(3)
+        if ax.upper() == "Z":
+            return f"{m.group(1)} {'up' if sign == '+' else 'down'}"
+        return f"{m.group(1)} toward the {name(sign, ax)}"
+    s = re.sub(r"\b(flow|actuator|display|probe|sensor axis)\s+([+-])([XYZ])\b", toward, s, flags=re.I)
+    s = re.sub(r"\b(at|from|toward|towards|to)\s+([+-])([XYZ])\b",
+               lambda m: f"{m.group(1)} the {name(m.group(2), m.group(3))}", s, flags=re.I)
+
+    def noun_sub(m):
+        sign, ax, noun = m.group(1), m.group(2), m.group(3)
+        return f"{noun} toward the {name(sign, ax)}" if ax.upper() == "X" else f"{name(sign, ax)} {noun}"
+    s = re.sub(rf"(?<![\w-])([+-])([XYZ])\s+((?:{_AXIS_NOUNS})(?:\s+(?:{_AXIS_NOUNS}))?)\b", noun_sub, s, flags=re.I)
+    s = re.sub(r"\b(up|down)\s*\(\s*[+-]Z\s*,\s*", r"\1 (", s, flags=re.I)        # 'up (+Z, empty-pipe ...)'
+    s = _AXIS.sub(lambda m: name(m.group(1), m.group(2)), s)                          # '(+Y)' -> '(FRONT)'
+    # a direction said twice ('toward the FRONT (front)', 'facing the front (FRONT)') is said once
+    s = re.sub(r"\b(FRONT|REAR)\s*\((?:front|rear)\)", r"\1", s)
+    s = re.sub(r"\b(the (?:front|rear))\s*\((?:FRONT|REAR)\)", r"\1", s, flags=re.I)
+    return re.sub(r"\s{2,}", " ", s)
 
 
 def set_commodity_numbers(register: dict) -> None:
@@ -555,6 +617,7 @@ class Records:
         if self.model:
             man = json.loads(self.model["manifest"].read_text(encoding="utf-8"))
             self.items = {it["key"]: it for it in man["items"]}
+            set_ends(self.items)                   # the skid's ends by the tank at each, for axis_words()
             self.tagged = [it for it in man["items"] if it["kind"] in ("equipment", "valve", "instrument")
                            and it.get("bbox_in") and it.get("tag")]
             self.model_label = f"{self.model['document_id']} Rev {self.model['revision']}"
