@@ -41,6 +41,9 @@ import sys
 from typing import NamedTuple
 from pathlib import Path
 
+sys.path.insert(0, str(next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists()) / "harness" / "lib"))
+import repo_paths as rp  # noqa: E402
+
 RULE_ID = "DRF-FACE-001"
 
 # drawing numbers are not rule ids: CIP-TYP-FRM-001, CIP-TYP-DS-TCV-101, Project-1072-01-FRM-001
@@ -259,6 +262,8 @@ def main(argv=None) -> int:
             if a.paths:
                 print("sheet_face: ERROR no DXF found")
                 return 3
+            if rp.skip_no_project("sheet_face"):   # a new job with no project yet (harness/tests/test_job_new.py)
+                return 0
             print("sheet_face: PASS - no fast drawings in this checkout (filed revisions are a record, not rechecked)")
             return 0
         findings = [f for p in files for f in check_dxf(p)]
