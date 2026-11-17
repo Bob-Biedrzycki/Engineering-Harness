@@ -119,9 +119,13 @@ agents decide the rest, do it and report in a line. That file gives the reasonin
    values for every project in the job in `job/design-rules/*.yaml`; its scope and
    project-only values in `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/*.yaml`), standard
    (`harness/knowledge/Design Standards.md`), or customer requirement behind
-   it. If no rule exists, say so and propose one.
+   it. If no rule exists, say so and propose one. On a drawing sheet the citation
+   goes in the set's basis file (`<SET>.basis.yaml` beside its generator), not on the sheet
+   (DRF-FACE-001, `harness/design-rules/drafting.yaml`).
 4. **Flag every assumption** in a visible `ASSUMPTION:` line in the deliverable
-   and in the PR body.
+   and in the PR body. On a drawing sheet it is an OPEN ITEMS entry (OI-n) a fabricator can
+   act on, and the assumption itself is recorded in the set's basis file (DRF-FACE-001); the
+   word ASSUMPTION never prints on a sheet.
 5. **Customer and plant requirements are HOLDs until received in writing.** Do
    not design to assumed customer content. HOLDs stay tracked but never block
    design work (TR-23).
@@ -181,6 +185,10 @@ agents decide the rest, do it and report in a line. That file gives the reasonin
 - **Everything CPME sends out follows `harness/style-guide/README.md`** (Bob, chat, 2026-11-10): proposals,
   quotes, data sheets, portals, slides and emails take the name, contact block, logo, colours and fonts from it
   (`brand.yaml`, `brand.css`), not from a copy kept in a job.
+- **Every drawing sheet that may leave CPME follows DRF-FACE-001** (`harness/design-rules/drafting.yaml`; Bob, chat,
+  2026-11-16): no internal references on the sheet (TR rows, rule ids, DEC / Q / H numbers, file names, internal
+  words), `TBD` for an unknown, `TBD COMMODITY; MANUFACTURER NOT SELECTED` for a commodity with no maker, one OPEN
+  ITEMS list, model axis letters as direction words, no pass / fail verdicts. `harness/checks/sheet_face.py` checks it.
 - **Every new drawing carries the CPME sheet format** (border, DRAFT stamp until approved, CPME title block
   with logo; no header text, no notes sheet, the drawing centred in the frame; Bob, chat, 2026-10-21, company-wide
   2026-11-11): use `harness/cad-lib/cpme_titleblock.py`. **Revision letters
@@ -211,7 +219,7 @@ harness/
                          Todd Requirements.md (TR-01..TR-26, binding on every agent),
                          Approval Ladder.md: what needs Bob's word, by rung and category,
                          First Principles.md: the seven principles the structure decides by
-  checks/                Automated verification scripts (P&ID-to-model, sanitary, interference)
+  checks/                Automated verification scripts (P&ID-to-model, sanitary, interference, sheet face)
   scripts/               model_iterate.py / model_accept.py (+ model_file.py) / closeout.py (the model tiers),
                          track.py (GitHub tracking), drive_store.py (Google Drive store),
                          label sync, lists workbook
@@ -318,6 +326,7 @@ Skills (`.claude/skills/`) hold the how; this file holds the rules. Also:
 `component-add` (any new part), `partslib-load` (its facts and PDFs into Todd's PartsLib), `design-rule-add` (before any rule YAML edit,
 hard rule 11), `pid-fast-edit` (P&ID working copies; drafting rules in
 `harness/design-rules/drafting.yaml` apply to a brand new P&ID only, CPME practice),
+`plan-set-fast` (plan set fast drawings for the typical or project target; DRF-FACE-001 check; nothing filed),
 `agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout`
 (optional full check run) and `github-tracking` (how this repo saves; see "Git" at the top). When a rule here changes,
 the skill that repeats it changes in the same edit.
@@ -342,6 +351,12 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   `fast-log.md`). Like `--preview`, it is not a filed revision. A fast edit's changes
   are held in that folder's `fast-changes.yaml` and no project file is edited until
   Bob says to convert it.
+- **Plan set fast drawings** (Bob, chat, 2026-11-16, approving a fast drawing lane for the plan set; skill
+  `plan-set-fast`): a plan set generator run with `--fast --target typical|project --request "<words>"` writes a
+  DXF + PDF working drawing `<DOC-ID>-<base>-fast-<nnn>` (`<base>` is `rev<X>` after a filed revision, else `first`)
+  into its own folder under `<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/` (gitignored, never
+  overwritten, logged in `Fast_Drawings/fast-log.md`), checked against DRF-FACE-001 on the way out. Like `--preview`
+  and a P&ID fast edit, it is not a filed revision; filing is `drawing-revise`, on Bob's word, explained first.
 - `--preview` writes to `<project>/03_Working_Design/Exports/preview/` (gitignored) for the agent's own
   check only. A preview is never shown, sent or described as a revision.
 - **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for

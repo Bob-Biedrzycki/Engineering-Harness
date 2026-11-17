@@ -109,7 +109,8 @@ class Reader(Scratch):
         if rp.HAS_PROJECT:
             self.assertEqual(C.libraries()[1].register, rp.COMPONENT_REGISTER)
         header, _ = C.read_register(rp.JOB_COMPONENT_REGISTER)
-        self.assertEqual(tuple(header), C.COLUMNS)                               # the register's header is the spec
+        self.assertEqual(tuple(header[:len(C.COLUMNS)]), C.COLUMNS)              # the register's header is the spec,
+        self.assertTrue(set(header[len(C.COLUMNS):]) <= set(C.OPTIONAL_COLUMNS), header)  # then optional columns only
 
 
 class Check(Scratch):
