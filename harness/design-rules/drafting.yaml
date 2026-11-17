@@ -202,6 +202,15 @@ sheet_face:
     source of a value). Lettering engraved in a vendor model (a maker's name or part number) is
     removed from the projected views. Text is checked whole: a table cell or note that wraps onto
     several lines is read as one piece, so a reference split across lines is still found.
+    The customer is private (2026-11-17): no sheet carries the customer's name, in any form of
+    it, unless the drawing is one made for that customer. The names are the project's
+    `customer` in project.yaml, the same name without its company ending, and any other names
+    listed in `customer_aliases`; a drawing made for the customer is listed by document number
+    in `customer_drawings`. A set made for estimating, quoting or fabrication names the project
+    by its number and purpose. The word "customer" itself may print.
+  customer_name_key: customer            # project.yaml keys the check reads
+  customer_aliases_key: customer_aliases
+  customer_drawings_key: customer_drawings
   references_go_to: >-
     A basis file beside each generator (<SET>.basis.yaml) records the rule ids, TR rows,
     DEC / Q / H numbers and files behind every printed note and open item, and every assumption
@@ -219,3 +228,7 @@ sheet_face:
     job). The round 2 sentences come from that round's review records (job/Typical-CIP-TYP/_work/
     plan-set/round2/review/ in the CIP Skids job: FRM1-R2-06, PSP-R2-01, DET-01 and the
     orchestrator's final sweep of axis letters), under the same words of Bob's.
+    The customer sentences: Bob, chat, 2026-11-17: "there can be no reference to anything about
+    the customer ... on any of the plan sets ... We need to keep our customer private on all
+    drawings unless we are specifically developing a set for them." Designation: harness, Bob,
+    chat, 2026-11-17: "Yes, company-wide".

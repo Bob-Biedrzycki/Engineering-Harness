@@ -163,6 +163,57 @@ class CheckTextTests(unittest.TestCase):
         self.good("H2O")                      # not a hold number
 
 
+class CustomerNameTests(unittest.TestCase):
+    """The customer is private on every sheet not made for them (Bob, chat, 2026-11-17). Invented names only."""
+
+    def setUp(self):
+        self._c, self._d = sf._CUSTOMERS, sf._CUSTOMER_DRAWINGS
+        sf._CUSTOMERS = sf.customer_patterns(["Example Beverage Co.", "EBC Plant 4", "unknown", ""])
+        sf._CUSTOMER_DRAWINGS = ["project-0000-00-pid-001"]
+
+    def tearDown(self):
+        sf._CUSTOMERS, sf._CUSTOMER_DRAWINGS = self._c, self._d
+
+    def bad(self, s):
+        self.assertTrue(any("customer's name" in x for x in sf.check_text(s)), s)
+
+    def good(self, s):
+        self.assertFalse(any("customer's name" in x for x in sf.check_text(s)), s)
+
+    def test_name_and_forms_fail(self):
+        for s in ("EXAMPLE BEVERAGE CO.", "Example Beverage Co", "PROJECT EXAMPLE BEVERAGE", "EXAMPLE  BEVERAGE, CO.",
+                  "EXAMPLE-BEVERAGE SKID", "SHIP TO EBC PLANT 4"):
+            self.bad(s)
+
+    def test_other_words_pass(self):
+        for s in ("CUSTOMER SPEC", "BEVERAGE GRADE EPDM", "EXAMPLES OF BEVERAGE LINES", "0000-00 ESTIMATING & QUOTING",
+                  "TYPICAL", "TBD", "UNKNOWNS"):
+            self.good(s)
+
+    def test_no_name_no_pattern(self):
+        self.assertEqual(sf.customer_patterns(["unknown", "", "TBD", "N/A", "AB"]), [])
+        self.assertEqual(len(sf.customer_patterns(["Example Beverage Co."])), 2)     # as given, and without "Co."
+        self.assertEqual(len(sf.customer_patterns(["Example Beverage"])), 1)
+
+    def test_made_for_the_customer(self):
+        self.assertEqual(sf.check_text("EXAMPLE BEVERAGE CO.", customer_ok=True), [])
+        self.assertTrue(sf.made_for_customer("x/Project-0000-00-PID-001-revB.dxf"))
+        self.assertTrue(sf.made_for_customer("Project-0000-00-PID-001-revB-fast-003.dxf"))
+        self.assertFalse(sf.made_for_customer("Project-0000-00-PID-0010-revA.dxf"))
+        self.assertFalse(sf.made_for_customer("Project-0000-00-FRM-001-first-fast-002.dxf"))
+
+    def test_dxf(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory() as td:
+            for name, want in (("Project-0000-00-FRM-001-first-fast-001.dxf", 1),
+                               ("Project-0000-00-PID-001-revA.dxf", 0)):
+                doc = ezdxf.new()
+                doc.modelspace().add_text("EXAMPLE BEVERAGE CO.", dxfattribs={"insert": (0, 0)})
+                p = Path(td) / name
+                doc.saveas(p)
+                self.assertEqual(len(sf.check_dxf(p)), want, name)
+
+
 class CheckDxfTests(unittest.TestCase):
     def test_dxf_round_trip(self):
         import ezdxf

@@ -17,7 +17,12 @@ and reports any of the internal references the rule names:
 - model numbers (CIP-TYP-MDL-001-B, Project-1072-01-MDL-001), the names of the model's own reports and lists
   (routing report, layout note, component register, line list), "as modelled", assumption wording (placeholder,
   first-pass, is assumed), hold, gate and review status, rule families and tracker names (SAN rule, CPM-41,
-  PartsLib), and a McMaster catalogue number beside a commodity word (Reviewer, round 2 request 01).
+  PartsLib), and a McMaster catalogue number beside a commodity word (Reviewer, round 2 request 01);
+- the customer's name (Bob, chat, 2026-11-17: "We need to keep our customer private on all drawings unless we are
+  specifically developing a set for them"): the `customer` of every project in the job (project.yaml), the same
+  name without its company ending (Co., Inc., LLC ...), and every name in `customer_aliases` (comma separated).
+  A drawing made for the customer is named in that project's `customer_drawings` (comma-separated document
+  numbers) and is the only drawing the name may print on. The word "customer" itself may print.
 
 Public standards (AWS D18.1, ASME BPE, ASME IX, PFI ES-3, ASME Y14.5) are not internal references and pass.
 The one repo path allowed is the sheet's own footer: the drawing file's path (a .dxf or .dwg under a drawings,
@@ -30,7 +35,8 @@ job's Fast_Drawings folders is checked; there are none on the check server (Expo
 3 = ERROR. First line = summary. Filed revisions are a record and are not rechecked (First Principle 4); the check
 runs on every fast drawing (plan_set_lib) and on any DXF named on the command line.
 
-Importable: check_text(s) -> list[str] (reasons, empty when clean); check_dxf(path) -> list[Finding].
+Importable: check_text(s, customer_ok=False) -> list[str] (reasons, empty when clean);
+check_dxf(path, customer_ok=None) -> list[Finding].
 """
 from __future__ import annotations
 
@@ -125,12 +131,88 @@ class Finding(NamedTuple):
     reason: str
 
 
-def check_text(s: str) -> list[str]:
-    """The reasons a piece of sheet text breaks the rule (empty when it may print)."""
+# ---- the customer's name (Bob, chat, 2026-11-17): private on every sheet not made for that customer
+_COMPANY_ENDING = re.compile(r"[\s,]+(?:co|company|corp|corporation|inc|incorporated|llc|ltd|limited|lp|llp|plc|"
+                             r"gmbh)\.?$", re.I)
+_NOT_A_NAME = {"", "unknown", "tbd", "n/a", "na", "none", "typical"}
+
+
+def name_pattern(name: str) -> re.Pattern | None:
+    """A pattern that finds a name however it is spaced or punctuated ("ACME BEVERAGE CO", "Acme-Beverage Co.")."""
+    words = re.findall(r"[A-Za-z0-9&']+", name or "")
+    if not words:
+        return None
+    return re.compile(r"(?<![A-Za-z0-9])" + r"[\W_]*".join(re.escape(w) for w in words) + r"(?![A-Za-z0-9])", re.I)
+
+
+def customer_patterns(names) -> list[re.Pattern]:
+    """Patterns for each name as given and, when a company ending (Co., Inc., LLC ...) is on it, without the ending
+    (a name of four letters or more, so a short stem does not match ordinary words)."""
+    seen, out = set(), []
+    for raw in names:
+        name = " ".join((raw or "").split())
+        for n in (name, _COMPANY_ENDING.sub("", name)):
+            key = n.lower()
+            if key in _NOT_A_NAME or key in seen or len(re.sub(r"[^A-Za-z0-9]", "", n)) < 4:
+                continue
+            seen.add(key)
+            pat = name_pattern(n)
+            if pat:
+                out.append(pat)
+    return out
+
+
+def _project_configs() -> list[dict]:
+    """project.yaml of every project in the job (a sheet of one project, or a typical, names no project's customer)."""
+    out = []
+    for p in sorted(rp.JOBS.glob("Project-*/project.yaml")):
+        try:
+            out.append(rp._read_flat(p))
+        except OSError:
+            continue
+    return out
+
+
+def _split(v: str) -> list[str]:
+    return [x.strip() for x in (v or "").split(",") if x.strip()]
+
+
+_CUSTOMERS: list[re.Pattern] | None = None      # read once; a test sets it with customer_patterns([...])
+_CUSTOMER_DRAWINGS: list[str] | None = None
+
+
+def _customers() -> list[re.Pattern]:
+    global _CUSTOMERS
+    if _CUSTOMERS is None:
+        names = []
+        for cfg in _project_configs():
+            names += [cfg.get("customer", "")] + _split(cfg.get("customer_aliases", ""))
+        _CUSTOMERS = customer_patterns(names)
+    return _CUSTOMERS
+
+
+def made_for_customer(path) -> bool:
+    """True when the drawing file's name starts with a document number a project lists in `customer_drawings`."""
+    global _CUSTOMER_DRAWINGS
+    if _CUSTOMER_DRAWINGS is None:
+        _CUSTOMER_DRAWINGS = [d.lower() for cfg in _project_configs() for d in _split(cfg.get("customer_drawings", ""))]
+    name = Path(path).name.lower()
+    return any(name == d or name.startswith(d + "-") or name.startswith(d + ".") for d in _CUSTOMER_DRAWINGS)
+
+
+def check_text(s: str, customer_ok: bool = False) -> list[str]:
+    """The reasons a piece of sheet text breaks the rule (empty when it may print). customer_ok: the sheet is one
+    made for the customer, so the customer's name may print."""
     t = " ".join((s or "").split())
     if not t or _FOOTER.match(t):
         return []
     out = []
+    if not customer_ok:
+        for pat in _customers():
+            m = pat.search(t)
+            if m:
+                out.append(f"the customer's name ({m.group(0)})")
+                break
     m = _MODEL_ID.search(t)
     if m:
         out.append(f"model number ({m.group(0)})")
@@ -204,15 +286,18 @@ def _where(e, spans) -> str:
     return "model space"
 
 
-def check_dxf(path) -> list[Finding]:
+def check_dxf(path, customer_ok: bool | None = None) -> list[Finding]:
+    """customer_ok None: decided from the file name (made_for_customer)."""
     import ezdxf
     path = Path(path)
     doc = ezdxf.readfile(path)
     spans = _sheet_map(doc)
+    if customer_ok is None:
+        customer_ok = made_for_customer(path)
     out = []
     seen = set()
     for e, t in _texts(doc):
-        for reason in check_text(t):
+        for reason in check_text(t, customer_ok):
             key = (e.dxf.handle, reason)
             if key in seen:
                 continue
