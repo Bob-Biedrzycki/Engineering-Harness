@@ -54,7 +54,7 @@ Internal record keeping at a skid shop usually splits into three layers: records
 11. General arrangement (GA) drawings
 12. Fabrication and spool drawings, isometrics
 13. Electrical schematics and panel layouts
-14. I/O list, instrument list, and instrument data sheets
+14. I/O list and instrument list
 15. Bill of Materials (BOM)
 16. Design review records and customer drawing approvals
 

@@ -1,6 +1,6 @@
 ---
 name: plan-set-fast
-description: Fast drawings of a plan set (fabrication drawings, general arrangement, details, tank modifications, spools, piping arrangement; never data sheets) for one target - the job's typical set or the active project's quoting set - drawn by the set's generator with --fast --target, DXF + PDF in <level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/<DOC>-<base>-fast-<nnn>/ with a fast-log.md row, checked against DRF-FACE-001 (sheet_face.py) on the way out. Nothing filed. Use when a plan set drawing is to be drawn, redrawn or shown for review without filing a revision.
+description: Fast drawings of a plan set (fabrication drawings, general arrangement, details, tank modifications, spools, piping arrangement) for one target - the job's typical set or the active project's quoting set - drawn by the set's generator with --fast --target, DXF + PDF in <level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/<DOC>-<base>-fast-<nnn>/ with a fast-log.md row, checked against DRF-FACE-001 (sheet_face.py) on the way out. Nothing filed. Use when a plan set drawing is to be drawn, redrawn or shown for review without filing a revision.
 ---
 
 # Plan set fast drawings (plan set round 2, 2026-11-16)
@@ -8,11 +8,6 @@ description: Fast drawings of a plan set (fabrication drawings, general arrangem
 Bob, chat, 2026-11-16: "I would like both a typical set of drawings, and a set for quoting that can be sent out for
 1072-01 to be completed as Fast drawings." A fast drawing is a numbered working drawing of one set for one target. It
 is not a revision and is never filed by this skill. Same idea as `pid-fast-edit` and the fast model loop.
-
-**No data sheets** (Bob, chat, 2026-11-17: "It is not necessary for our plan set to include self generated data
-sheets for equipment, valves, and instrumentation."). Fast drawings of the plan set never run
-`harness/scripts/data_sheets.py` and never make, redraw or review the equipment, valve and instrument data sheets;
-the combined PDF leaves them out. A data sheet is made only when Bob asks for one.
 
 ## The two targets
 
@@ -89,13 +84,29 @@ sheet. Placeholders: `{ref:SET}`, `{detail:D3}`, `{oi:key}`, `{note:key}`, `{tbd
 build `{range:name}`, `{count:name}`, `{countword:name}` (tag lists the generator computes). The loader refuses a text
 that would fail the check, or one with no basis.
 
+## One sheet at a time (Bob, chat, 2026-11-17)
+
+Bob: "I no longer trust edits on the entire plan set. We need to work with the individual plans, individually, then
+plan to merge the complete set with the latest revisions whenever that is needed or appropriate." Plan set work is
+done per sheet, and the set is joined only when that is needed.
+
+```
+uv run --no-project --with ezdxf --with pymupdf python "<Generators>\plan-set-reference\split_fast_sheets.py" --latest --target typical|project|both
+uv run --no-project --with ezdxf --with pymupdf python "<Generators>\plan-set-reference\split_fast_sheets.py" <fast folder>
+```
+
+breaks a fast drawing into `Sheets/<DOC>-<base>-fast-<nnn>-S<nn>-<LAYOUT>.pdf` and `.dxf` inside its own fast
+folder, with `Sheets/sheets.csv`: the PDF page unchanged, and the DXF holding that sheet's layout and only the
+model-space entities in its window (nothing moved or redrawn). It never overwrites an existing `Sheets/` folder and
+files nothing. Talk with Bob about a sheet by its number and layout name (`FRM-001 S08 SUPPORTS-1`).
+
 ## The combined PDF
 
 ```
 uv run --no-project --with pymupdf --with pyyaml python "<Generators>\plan-set-reference\combine_plan_set.py" --fast --target typical|project
 ```
 
-joins the latest fast drawing of every set of that target (no data sheets) into one PDF with a linked index, in the target's
+joins the latest fast drawing of every set of that target into one PDF with a linked index, in the target's
 `Fast_Drawings/combined/`. A convenience copy, not a document.
 
 ## Report

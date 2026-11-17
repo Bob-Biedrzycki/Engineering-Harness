@@ -75,8 +75,8 @@ class CheckTextTests(unittest.TestCase):
         self.good("THE MEMBER TABLE IS THE CUT LIST")
         self.good("WELD AND HOLD FOR INSPECTION")
 
-    # --- second reviewer, DS-22 (2026-11-16) ---
-    def test_ds22_question_and_hold_numbers(self):
+    # --- second reviewer (2026-11-16) ---
+    def test_question_and_hold_numbers(self):
         self.bad("OPEN QUESTION Q-10", "question")
         self.bad("SEE Q-0003", "question")
         self.bad("CUSTOMER SPEC H-19", "hold")
@@ -137,7 +137,7 @@ class CheckTextTests(unittest.TestCase):
 
     def test_drawing_numbers_pass(self):
         for s in ("SEE CIP-TYP-DET-001 DETAIL D3.", "CIP-TYP-FRM-001", "Project-1072-01-FRM-001",
-                  "CIP-TYP-DS-TCV-101", "SET ON THE SKID PER Project-1072-01-ISO-001."):
+                  "CIP-TYP-PSP-001", "SET ON THE SKID PER Project-1072-01-ISO-001."):
             self.good(s)
 
     def test_tbd_passes(self):

@@ -176,7 +176,7 @@ sheet_face:
   id: DRF-FACE-001
   applies_to: >-
     Every drawing sheet made from now on that may leave CPME: fabrication drawings, general
-    arrangements, details, data sheets and P&IDs, typical or project, fast drawing or filed. A
+    arrangements, details and P&IDs, typical or project, fast drawing or filed. A
     filed revision is a record and is not changed; it is corrected at its next revision.
   rule: >-
     A sheet is read by a fabricator, estimator or customer who has never seen the repo. It
@@ -217,5 +217,5 @@ sheet_face:
     harness, Bob, chat, 2026-11-16: "All other decisions that are mine have sound reccomondations
     that you made and can follow" (the recommendation put to him: harness, since it holds for any
     job). The round 2 sentences come from that round's review records (job/Typical-CIP-TYP/_work/
-    plan-set/round2/review/ in the CIP Skids job: FRM1-R2-06, PSP-R2-01, DET-01, DS-22, DS-27 and the
+    plan-set/round2/review/ in the CIP Skids job: FRM1-R2-06, PSP-R2-01, DET-01 and the
     orchestrator's final sweep of axis letters), under the same words of Bob's.
