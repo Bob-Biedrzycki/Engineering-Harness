@@ -1,6 +1,6 @@
 ---
 name: plan-set-fast
-description: Fast drawings of a plan set (fabrication drawings, general arrangement, details, tank modifications, spools, piping arrangement, data sheets) for one target - the job's typical set or the active project's quoting set - drawn by the set's generator with --fast --target, DXF + PDF in <level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/<DOC>-<base>-fast-<nnn>/ with a fast-log.md row, checked against DRF-FACE-001 (sheet_face.py) on the way out. Nothing filed. Use when a plan set drawing is to be drawn, redrawn or shown for review without filing a revision.
+description: Fast drawings of a plan set (fabrication drawings, general arrangement, details, tank modifications, spools, piping arrangement; never data sheets) for one target - the job's typical set or the active project's quoting set - drawn by the set's generator with --fast --target, DXF + PDF in <level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/<DOC>-<base>-fast-<nnn>/ with a fast-log.md row, checked against DRF-FACE-001 (sheet_face.py) on the way out. Nothing filed. Use when a plan set drawing is to be drawn, redrawn or shown for review without filing a revision.
 ---
 
 # Plan set fast drawings (plan set round 2, 2026-11-16)
@@ -8,6 +8,11 @@ description: Fast drawings of a plan set (fabrication drawings, general arrangem
 Bob, chat, 2026-11-16: "I would like both a typical set of drawings, and a set for quoting that can be sent out for
 1072-01 to be completed as Fast drawings." A fast drawing is a numbered working drawing of one set for one target. It
 is not a revision and is never filed by this skill. Same idea as `pid-fast-edit` and the fast model loop.
+
+**No data sheets** (Bob, chat, 2026-11-17: "It is not necessary for our plan set to include self generated data
+sheets for equipment, valves, and instrumentation."). Fast drawings of the plan set never run
+`harness/scripts/data_sheets.py` and never make, redraw or review the equipment, valve and instrument data sheets;
+the combined PDF leaves them out. A data sheet is made only when Bob asks for one.
 
 ## The two targets
 
@@ -90,7 +95,7 @@ that would fail the check, or one with no basis.
 uv run --no-project --with pymupdf --with pyyaml python "<Generators>\plan-set-reference\combine_plan_set.py" --fast --target typical|project
 ```
 
-joins the latest fast drawing of every set of that target into one PDF with a linked index, in the target's
+joins the latest fast drawing of every set of that target (no data sheets) into one PDF with a linked index, in the target's
 `Fast_Drawings/combined/`. A convenience copy, not a document.
 
 ## Report

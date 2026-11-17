@@ -20,7 +20,9 @@ file) with the record it came from, the record's own words, the reason with its 
 sources. A text that still fails the check after scrubbing prints TBD, and its row says so.
 
 Everything about one job is in its settings file, job/data-sheets.yaml (rp.DATA_SHEET_SETTINGS); this script holds no
-job's values. A job without that file makes no generated data sheets, and the script says so.
+job's values. A job without that file makes no generated data sheets, and the script says so. `file_to` picks the
+job's or the project's Drawings folder; an optional `file_folder` names a folder under it that holds the data sheet
+documents (e.g. "Data Sheets"), read and filed there.
 
 When to run it (Bob, 2026-11-16): when a piece of equipment, an instrument or a valve is new or has changed, not on
 every plan set run. The normal run compares each tag's freshly generated sheet with its last filed revision (the
@@ -98,6 +100,7 @@ class Settings:
     path: Path
     doc_prefix: str
     file_to: str                       # "job" (the typicals' drawings) or "project" (the active project's)
+    file_folder: str = ""              # a folder under that Drawings folder the sheets file in (blank: Drawings itself)
     subtitle: str = ""
     lists: Path | None = None
     model: ModelRef | None = None
@@ -144,13 +147,16 @@ def load_settings(path: Path | None = None) -> Settings:
         raise Refused(f"{path.name} lacks {', '.join(missing)}")
     if d["file_to"] not in ("job", "project"):
         raise Refused(f"{path.name} file_to is {d['file_to']!r}; it is job or project")
+    folder = str(d.get("file_folder") or "").strip().replace("\\", "/").strip("/")
+    if folder and (Path(folder).is_absolute() or ":" in folder or ".." in folder.split("/")):
+        raise Refused(f"{path.name} file_folder is {folder!r}; it is a folder name under the Drawings folder")
     m = d.get("model")
     model = None
     if isinstance(m, dict) and m.get("model_id") and m.get("document_id"):
         model = ModelRef(str(m["model_id"]), str(m["document_id"]), str(m.get("level", "job")),
                          str(m.get("revision") or ""), dict(m.get("same_design_as") or {}))
     answers = d.get("answers") or []
-    return Settings(path=path, doc_prefix=str(d["doc_prefix"]), file_to=d["file_to"],
+    return Settings(path=path, doc_prefix=str(d["doc_prefix"]), file_to=d["file_to"], file_folder=folder,
                     subtitle=str(d.get("subtitle") or ""), lists=_repo_path(d.get("lists")), model=model,
                     datum_record=_repo_path(d.get("datum_record")), overrides=_repo_path(d.get("overrides")),
                     answers=[_repo_path(a) for a in (answers if isinstance(answers, list) else [answers])],
@@ -161,14 +167,17 @@ def load_settings(path: Path | None = None) -> Settings:
 
 
 def drawings_root(cfg: Settings) -> Path:
-    """Where the sheets file: CPME_DRAWINGS_ROOT (a test's scratch folder), else the job's or the project's drawings."""
+    """Where the sheets file: CPME_DRAWINGS_ROOT (a test's scratch folder), else the job's or the project's drawings;
+    then the settings' file_folder under it, when one is named (e.g. "Data Sheets"; Bob, chat, 2026-11-17)."""
     if os.environ.get("CPME_DRAWINGS_ROOT"):
-        return Path(os.environ["CPME_DRAWINGS_ROOT"])
-    if cfg.file_to == "job":
-        return rp.JOB_DRAWINGS
-    if not rp.HAS_PROJECT:
+        base = Path(os.environ["CPME_DRAWINGS_ROOT"])
+    elif cfg.file_to == "job":
+        base = rp.JOB_DRAWINGS
+    elif not rp.HAS_PROJECT:
         raise Refused(f"{cfg.path.name} files data sheets at project level, and the job has no project yet")
-    return rp.DRAWINGS
+    else:
+        base = rp.DRAWINGS
+    return base / cfg.file_folder if cfg.file_folder else base
 
 
 def work_root(cfg: Settings) -> Path:

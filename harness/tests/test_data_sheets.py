@@ -93,6 +93,23 @@ class DataSheets(unittest.TestCase):
         self.assertIn("this job has no data sheet settings", err.getvalue())
         self.assertNotIn("Traceback", err.getvalue())
 
+    def test_file_folder_puts_the_sheets_in_a_folder_under_drawings(self):
+        self.addCleanup(os.environ.pop, "CPME_DRAWINGS_ROOT", None)
+        os.environ["CPME_DRAWINGS_ROOT"] = str(self.root)
+        self.assertEqual(DS.drawings_root(DS.load_settings(self.settings)), self.root)
+        self.settings.write_text(self.settings.read_text(encoding="utf-8") + "file_folder: Data Sheets\n",
+                                 encoding="utf-8")
+        cfg = DS.load_settings(self.settings)
+        self.assertEqual(cfg.file_folder, "Data Sheets")
+        self.assertEqual(DS.drawings_root(cfg), self.root / "Data Sheets")
+
+    def test_file_folder_outside_drawings_is_refused(self):
+        for bad in ("../elsewhere", "C:/elsewhere", "a/../../b"):
+            self.settings.write_text(self.settings.read_text(encoding="utf-8").split("file_folder")[0]
+                                     + f"file_folder: {bad}\n", encoding="utf-8")
+            with self.assertRaises(DS.Refused):
+                DS.load_settings(self.settings)
+
     def test_settings_lacking_a_key_are_refused(self):
         self.settings.write_text("file_to: job\n", encoding="utf-8")
         with self.assertRaises(DS.Refused) as c:
