@@ -326,7 +326,7 @@ Skills (`.claude/skills/`) hold the how; this file holds the rules. Also:
 `component-add` (any new part), `partslib-load` (its facts and PDFs into Todd's PartsLib), `design-rule-add` (before any rule YAML edit,
 hard rule 11), `pid-fast-edit` (P&ID working copies; drafting rules in
 `harness/design-rules/drafting.yaml` apply to a brand new P&ID only, CPME practice),
-`plan-set-fast` (plan set fast drawings for the typical or project target; DRF-FACE-001 check; nothing filed),
+`plan-set-fast` (plan set drawings one sheet at a time, then the set, then the plan set, for the typical or project target; DRF-FACE-001 check; nothing filed),
 `agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout`
 (optional full check run) and `github-tracking` (how this repo saves; see "Git" at the top). When a rule here changes,
 the skill that repeats it changes in the same edit.
@@ -351,12 +351,19 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   `fast-log.md`). Like `--preview`, it is not a filed revision. A fast edit's changes
   are held in that folder's `fast-changes.yaml` and no project file is edited until
   Bob says to convert it.
-- **Plan set fast drawings** (Bob, chat, 2026-11-16, approving a fast drawing lane for the plan set; skill
-  `plan-set-fast`): a plan set generator run with `--fast --target typical|project --request "<words>"` writes a
-  DXF + PDF working drawing `<DOC-ID>-<base>-fast-<nnn>` (`<base>` is `rev<X>` after a filed revision, else `first`)
-  into its own folder under `<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/` (gitignored, never
-  overwritten, logged in `Fast_Drawings/fast-log.md`), checked against DRF-FACE-001 on the way out. Like `--preview`
-  and a P&ID fast edit, it is not a filed revision; filing is `drawing-revise`, on Bob's word, explained first.
+- **Plan set drawings are worked one sheet at a time** (Bob, chat, 2026-11-17: "I no longer trust edits on the
+  entire plan set. We need to work with the individual plans, individually, then plan to merge the complete set ...
+  whenever that is needed or appropriate"; skill `plan-set-fast`). One command line, `plan_set.py` in the plan set
+  generators' `plan-set-reference/` folder, for the typical, the project or both: `sheet <SET> <KEY> --request
+  "<words>"` redraws one named sheet as its own numbered DXF + PDF
+  (`<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`, with its true
+  sheet number) and lists every other sheet the edit changed without writing it; `set <SET>` joins a drawing's latest
+  sheets and refuses a missing or out-of-date one; `combine` joins the seven drawings into the plan set PDF; `status`
+  shows where every sheet stands. An "also changed" sheet is Bob's to decide on, never redrawn unasked. The whole
+  drawing in one go is still there (a generator with `--fast --target typical|project --request "<words>"`, Bob,
+  chat, 2026-11-16, into `<DOC-ID>-<base>-fast-<nnn>/`, logged in `Fast_Drawings/fast-log.md`). All of it is
+  gitignored, never overwritten and checked against DRF-FACE-001 on the way out; like `--preview` and a P&ID fast
+  edit, none of it is a filed revision. Filing is the whole drawing, `drawing-revise`, on Bob's word, explained first.
 - `--preview` writes to `<project>/03_Working_Design/Exports/preview/` (gitignored) for the agent's own
   check only. A preview is never shown, sent or described as a revision.
 - **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for

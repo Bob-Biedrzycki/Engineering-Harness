@@ -33,7 +33,7 @@ COLUMNS = ("component_id", "revision", "status", "supersedes", "category", "desc
            "vendor_step_sha256", "cpme_step_file", "cpme_step_sha256", "install_practice", "licence", "obtained_by",
            "used_on", "notes")
 # columns a register may add after COLUMNS; a reader treats a missing one as blank. selection: "commodity" (no maker
-# chosen, sheets print TBD COMMODITY) or "selected" (harness/scripts/data_sheets.py, plan_set_lib)
+# chosen, sheets print TBD COMMODITY) or "selected" (plan_set_lib)
 OPTIONAL_COLUMNS = ("selection",)
 FILE_COLUMNS = (("cut_sheet_file", None), ("vendor_step_file", "vendor_step_sha256"),
                 ("cpme_step_file", "cpme_step_sha256"))

@@ -17,7 +17,12 @@ and reports any of the internal references the rule names:
 - model numbers (CIP-TYP-MDL-001-B, Project-1072-01-MDL-001), the names of the model's own reports and lists
   (routing report, layout note, component register, line list), "as modelled", assumption wording (placeholder,
   first-pass, is assumed), hold, gate and review status, rule families and tracker names (SAN rule, CPM-41,
-  PartsLib), and a McMaster catalogue number beside a commodity word (Reviewer, round 2 request 01).
+  PartsLib), and a McMaster catalogue number beside a commodity word (Reviewer, round 2 request 01);
+- the customer's name (Bob, chat, 2026-11-17: "We need to keep our customer private on all drawings unless we are
+  specifically developing a set for them"): the `customer` of every project in the job (project.yaml), the same
+  name without its company ending (Co., Inc., LLC ...), and every name in `customer_aliases` (comma separated).
+  A drawing made for the customer is named in that project's `customer_drawings` (comma-separated document
+  numbers) and is the only drawing the name may print on. The word "customer" itself may print.
 
 Public standards (AWS D18.1, ASME BPE, ASME IX, PFI ES-3, ASME Y14.5) are not internal references and pass.
 The one repo path allowed is the sheet's own footer: the drawing file's path (a .dxf or .dwg under a drawings,
@@ -30,7 +35,8 @@ job's Fast_Drawings folders is checked; there are none on the check server (Expo
 3 = ERROR. First line = summary. Filed revisions are a record and are not rechecked (First Principle 4); the check
 runs on every fast drawing (plan_set_lib) and on any DXF named on the command line.
 
-Importable: check_text(s) -> list[str] (reasons, empty when clean); check_dxf(path) -> list[Finding].
+Importable: check_text(s, customer_ok=False) -> list[str] (reasons, empty when clean);
+check_dxf(path, customer_ok=None) -> list[Finding].
 """
 from __future__ import annotations
 
@@ -46,7 +52,7 @@ import repo_paths as rp  # noqa: E402
 
 RULE_ID = "DRF-FACE-001"
 
-# drawing numbers are not rule ids: CIP-TYP-FRM-001, CIP-TYP-DS-TCV-101, Project-1072-01-FRM-001
+# drawing numbers are not rule ids: CIP-TYP-FRM-001, CIP-TYP-PSP-001, Project-1072-01-FRM-001
 _DOC_ID = re.compile(r"\b(?:CIP-TYP(?:-[A-Z0-9]+)+|Project-\d{4}-\d{2}(?:-[A-Z0-9]+)+)\b", re.I)
 
 # (name, pattern) - case-insensitive unless the pattern says otherwise
@@ -54,27 +60,26 @@ PATTERNS: list[tuple[str, re.Pattern]] = [
     ("Todd's requirement number", re.compile(r"\bTR-\d{1,2}\b", re.I)),
     ("design rule id", re.compile(r"\b[A-Z]{2,6}(?:-[A-Z]{2,8})+-\d{3}[A-Z]?\b", re.I)),
     ("decision number", re.compile(r"\bDEC-\d{3,4}\b", re.I)),
-    # any digit count (Q-10 as well as Q-0003; second reviewer DS-22)
+    # any digit count (Q-10 as well as Q-0003)
     ("question number", re.compile(r"\b(?:Q|RFI)-\d{1,4}\b", re.I)),
     ("equipment concern number", re.compile(r"\bEC-\d{2,3}\b", re.I)),
     ("hold number", re.compile(r"(?<![\w.-])H\d{1,2}(?![\w.-])")),
-    # H-19 with a hyphen (DS-22); digits only, so H-BEAM passes
+    # H-19 with a hyphen; digits only, so H-BEAM passes
     ("hold number", re.compile(r"(?<![\w.-])H-\d{1,2}(?![\w.-])")),
     ("P&ID revision request number", re.compile(r"\bPRR-\d{1,4}\b", re.I)),
-    # calc item ids (W-12, DS-22): W, a hyphen and digits, standing alone. W6X12 (no hyphen), weld numbers W01 and
+    # calc item ids (W-12): W, a hyphen and digits, standing alone. W6X12 (no hyphen), weld numbers W01 and
     # L-100-SP03-W01 (W follows a hyphen with no hyphen after it), FW-068 (W inside a word) pass
     ("calculation item id", re.compile(r"(?<![\w-])W-\d{1,3}(?![\w-])", re.I)),
-    # a list or register column name in snake_case (weight_basis, size_in; DS-22): letters, an underscore, letters
+    # a list or register column name in snake_case (weight_basis, size_in): letters, an underscore, letters
     ("list column name", re.compile(r"\b[A-Za-z]{2,}(?:_[A-Za-z0-9]+)+\b")),
     ("register wording", re.compile(r"\bper\s+(?:the\s+)?register\b|\bregister\s+description\b|\bunregistered\b",
                                     re.I)),
-    # the model's revision (DS-22): "REV B" only next to the word MODEL, so the drawing's own revision box and a bare
+    # the model's revision: "REV B" only next to the word MODEL, so the drawing's own revision box and a bare
     # "REV A" pass; and a model build name (revB-full-007). The sheet's own footer path is exempt as a whole.
     ("model revision", re.compile(
         r"\bMODEL\b[^.;]{0,30}?\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\b|\bREV(?:ISION)?\.?\s+[A-Z]{1,2}\s+(?:OF\s+THE\s+)?MODEL\b|"
         r"\brev[A-Z]{1,2}-(?:fast|full)-\d{3}\b|"
-        # the model's revision named in words (DS-27: "OPEN FOR THE NEXT MODEL REVISION" on two data sheets): the
-        # design process, not the drawing. The drawing's own REVISION box and "REV A" have no MODEL / NEXT in them
+        # the model's revision named in words ("OPEN FOR THE NEXT MODEL REVISION"): the design process, not the drawing. The drawing's own REVISION box and "REV A" have no MODEL / NEXT in them
         r"\bmodel\s+revisions?\b|\bnext\s+(?:model\s+)?revisions?\b|\brevision\s+of\s+the\s+model\b", re.I)),
     ("component register number", re.compile(r"\bC(?:O)?MP-\d{4}\b", re.I)),
     # the model's own record codes: assumption numbers (A-19), general-note keys (GN-LASER), install and
@@ -126,12 +131,88 @@ class Finding(NamedTuple):
     reason: str
 
 
-def check_text(s: str) -> list[str]:
-    """The reasons a piece of sheet text breaks the rule (empty when it may print)."""
+# ---- the customer's name (Bob, chat, 2026-11-17): private on every sheet not made for that customer
+_COMPANY_ENDING = re.compile(r"[\s,]+(?:co|company|corp|corporation|inc|incorporated|llc|ltd|limited|lp|llp|plc|"
+                             r"gmbh)\.?$", re.I)
+_NOT_A_NAME = {"", "unknown", "tbd", "n/a", "na", "none", "typical"}
+
+
+def name_pattern(name: str) -> re.Pattern | None:
+    """A pattern that finds a name however it is spaced or punctuated ("ACME BEVERAGE CO", "Acme-Beverage Co.")."""
+    words = re.findall(r"[A-Za-z0-9&']+", name or "")
+    if not words:
+        return None
+    return re.compile(r"(?<![A-Za-z0-9])" + r"[\W_]*".join(re.escape(w) for w in words) + r"(?![A-Za-z0-9])", re.I)
+
+
+def customer_patterns(names) -> list[re.Pattern]:
+    """Patterns for each name as given and, when a company ending (Co., Inc., LLC ...) is on it, without the ending
+    (a name of four letters or more, so a short stem does not match ordinary words)."""
+    seen, out = set(), []
+    for raw in names:
+        name = " ".join((raw or "").split())
+        for n in (name, _COMPANY_ENDING.sub("", name)):
+            key = n.lower()
+            if key in _NOT_A_NAME or key in seen or len(re.sub(r"[^A-Za-z0-9]", "", n)) < 4:
+                continue
+            seen.add(key)
+            pat = name_pattern(n)
+            if pat:
+                out.append(pat)
+    return out
+
+
+def _project_configs() -> list[dict]:
+    """project.yaml of every project in the job (a sheet of one project, or a typical, names no project's customer)."""
+    out = []
+    for p in sorted(rp.JOBS.glob("Project-*/project.yaml")):
+        try:
+            out.append(rp._read_flat(p))
+        except OSError:
+            continue
+    return out
+
+
+def _split(v: str) -> list[str]:
+    return [x.strip() for x in (v or "").split(",") if x.strip()]
+
+
+_CUSTOMERS: list[re.Pattern] | None = None      # read once; a test sets it with customer_patterns([...])
+_CUSTOMER_DRAWINGS: list[str] | None = None
+
+
+def _customers() -> list[re.Pattern]:
+    global _CUSTOMERS
+    if _CUSTOMERS is None:
+        names = []
+        for cfg in _project_configs():
+            names += [cfg.get("customer", "")] + _split(cfg.get("customer_aliases", ""))
+        _CUSTOMERS = customer_patterns(names)
+    return _CUSTOMERS
+
+
+def made_for_customer(path) -> bool:
+    """True when the drawing file's name starts with a document number a project lists in `customer_drawings`."""
+    global _CUSTOMER_DRAWINGS
+    if _CUSTOMER_DRAWINGS is None:
+        _CUSTOMER_DRAWINGS = [d.lower() for cfg in _project_configs() for d in _split(cfg.get("customer_drawings", ""))]
+    name = Path(path).name.lower()
+    return any(name == d or name.startswith(d + "-") or name.startswith(d + ".") for d in _CUSTOMER_DRAWINGS)
+
+
+def check_text(s: str, customer_ok: bool = False) -> list[str]:
+    """The reasons a piece of sheet text breaks the rule (empty when it may print). customer_ok: the sheet is one
+    made for the customer, so the customer's name may print."""
     t = " ".join((s or "").split())
     if not t or _FOOTER.match(t):
         return []
     out = []
+    if not customer_ok:
+        for pat in _customers():
+            m = pat.search(t)
+            if m:
+                out.append(f"the customer's name ({m.group(0)})")
+                break
     m = _MODEL_ID.search(t)
     if m:
         out.append(f"model number ({m.group(0)})")
@@ -205,15 +286,18 @@ def _where(e, spans) -> str:
     return "model space"
 
 
-def check_dxf(path) -> list[Finding]:
+def check_dxf(path, customer_ok: bool | None = None) -> list[Finding]:
+    """customer_ok None: decided from the file name (made_for_customer)."""
     import ezdxf
     path = Path(path)
     doc = ezdxf.readfile(path)
     spans = _sheet_map(doc)
+    if customer_ok is None:
+        customer_ok = made_for_customer(path)
     out = []
     seen = set()
     for e, t in _texts(doc):
-        for reason in check_text(t):
+        for reason in check_text(t, customer_ok):
             key = (e.dxf.handle, reason)
             if key in seen:
                 continue

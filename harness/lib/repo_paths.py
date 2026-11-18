@@ -133,9 +133,6 @@ ACTIVE_PROJECT_FILE = JOBS / "active-project.txt"   # names the project when job
 DRIVE_STORE_CONFIG = JOBS / "drive-store.yaml"   # one Drive store for the whole job (Bob, chat, 2026-10-26); drive_store.py
 DRIVE_ROOT_FILE = JOBS / "_work" / "drive-root.txt"  # machine-specific local path of the Drive folder (Google Drive for Desktop)
 CARRYOVER_TERMS = JOBS / "carryover-terms.txt"   # earlier jobs' terms, reversed (harness/tests/test_no_carryover.py)
-# The job's data sheet settings (harness/scripts/data_sheets.py): document prefix, where the sheets file, the model and
-# datum record they cite, the override wording. A job without the file makes no generated data sheets.
-DATA_SHEET_SETTINGS = JOBS / "data-sheets.yaml"
 NO_PROJECT_HINT = "no project yet: job/ has no Project-* folder (make one with harness/scripts/project_new.py)"
 
 

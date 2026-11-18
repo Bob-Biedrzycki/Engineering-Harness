@@ -75,8 +75,8 @@ class CheckTextTests(unittest.TestCase):
         self.good("THE MEMBER TABLE IS THE CUT LIST")
         self.good("WELD AND HOLD FOR INSPECTION")
 
-    # --- second reviewer, DS-22 (2026-11-16) ---
-    def test_ds22_question_and_hold_numbers(self):
+    # --- second reviewer (2026-11-16) ---
+    def test_question_and_hold_numbers(self):
         self.bad("OPEN QUESTION Q-10", "question")
         self.bad("SEE Q-0003", "question")
         self.bad("CUSTOMER SPEC H-19", "hold")
@@ -137,7 +137,7 @@ class CheckTextTests(unittest.TestCase):
 
     def test_drawing_numbers_pass(self):
         for s in ("SEE CIP-TYP-DET-001 DETAIL D3.", "CIP-TYP-FRM-001", "Project-1072-01-FRM-001",
-                  "CIP-TYP-DS-TCV-101", "SET ON THE SKID PER Project-1072-01-ISO-001."):
+                  "CIP-TYP-PSP-001", "SET ON THE SKID PER Project-1072-01-ISO-001."):
             self.good(s)
 
     def test_tbd_passes(self):
@@ -161,6 +161,57 @@ class CheckTextTests(unittest.TestCase):
     def test_words_inside_others_pass(self):
         self.good("BRIEFLY HOLD TACKS")       # not the word "brief"
         self.good("H2O")                      # not a hold number
+
+
+class CustomerNameTests(unittest.TestCase):
+    """The customer is private on every sheet not made for them (Bob, chat, 2026-11-17). Invented names only."""
+
+    def setUp(self):
+        self._c, self._d = sf._CUSTOMERS, sf._CUSTOMER_DRAWINGS
+        sf._CUSTOMERS = sf.customer_patterns(["Example Beverage Co.", "EBC Plant 4", "unknown", ""])
+        sf._CUSTOMER_DRAWINGS = ["project-0000-00-pid-001"]
+
+    def tearDown(self):
+        sf._CUSTOMERS, sf._CUSTOMER_DRAWINGS = self._c, self._d
+
+    def bad(self, s):
+        self.assertTrue(any("customer's name" in x for x in sf.check_text(s)), s)
+
+    def good(self, s):
+        self.assertFalse(any("customer's name" in x for x in sf.check_text(s)), s)
+
+    def test_name_and_forms_fail(self):
+        for s in ("EXAMPLE BEVERAGE CO.", "Example Beverage Co", "PROJECT EXAMPLE BEVERAGE", "EXAMPLE  BEVERAGE, CO.",
+                  "EXAMPLE-BEVERAGE SKID", "SHIP TO EBC PLANT 4"):
+            self.bad(s)
+
+    def test_other_words_pass(self):
+        for s in ("CUSTOMER SPEC", "BEVERAGE GRADE EPDM", "EXAMPLES OF BEVERAGE LINES", "0000-00 ESTIMATING & QUOTING",
+                  "TYPICAL", "TBD", "UNKNOWNS"):
+            self.good(s)
+
+    def test_no_name_no_pattern(self):
+        self.assertEqual(sf.customer_patterns(["unknown", "", "TBD", "N/A", "AB"]), [])
+        self.assertEqual(len(sf.customer_patterns(["Example Beverage Co."])), 2)     # as given, and without "Co."
+        self.assertEqual(len(sf.customer_patterns(["Example Beverage"])), 1)
+
+    def test_made_for_the_customer(self):
+        self.assertEqual(sf.check_text("EXAMPLE BEVERAGE CO.", customer_ok=True), [])
+        self.assertTrue(sf.made_for_customer("x/Project-0000-00-PID-001-revB.dxf"))
+        self.assertTrue(sf.made_for_customer("Project-0000-00-PID-001-revB-fast-003.dxf"))
+        self.assertFalse(sf.made_for_customer("Project-0000-00-PID-0010-revA.dxf"))
+        self.assertFalse(sf.made_for_customer("Project-0000-00-FRM-001-first-fast-002.dxf"))
+
+    def test_dxf(self):
+        import ezdxf
+        with tempfile.TemporaryDirectory() as td:
+            for name, want in (("Project-0000-00-FRM-001-first-fast-001.dxf", 1),
+                               ("Project-0000-00-PID-001-revA.dxf", 0)):
+                doc = ezdxf.new()
+                doc.modelspace().add_text("EXAMPLE BEVERAGE CO.", dxfattribs={"insert": (0, 0)})
+                p = Path(td) / name
+                doc.saveas(p)
+                self.assertEqual(len(sf.check_dxf(p)), want, name)
 
 
 class CheckDxfTests(unittest.TestCase):

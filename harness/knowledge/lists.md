@@ -14,7 +14,6 @@ In each table, **"Lives in"** is where the schedule normally sits in the documen
 |---|---|---|
 | Equipment list | Tag, description, size, rating, vendor, model | Standalone register; referenced on P&IDs and in the FDS |
 | Pump schedule | Flow, head, motor HP, seal type, inlet/outlet size | Pump data sheets and the equipment list |
-| Equipment data sheet (per major item) | Duty, design conditions, connections, internals and type | Equipment data sheets and sizing calcs |
 | Tank / vessel schedule (if any) | Volume, dimensions, insulation, level instruments, code stamp (ASME VIII or exempt) | Tank or vessel drawings and the equipment list |
 | Nozzle schedule (per tank or vessel) | Nozzle ID, size, connection type, orientation, service | Fabrication drawing, as a table on the sheet |
 | Product-specific schedules | The schedules the job's product adds to this list | The job's review addendum and design framework in `job/knowledge/` |
@@ -63,7 +62,6 @@ In each table, **"Lives in"** is where the schedule normally sits in the documen
 | Schedule / List | Contents | Lives In |
 |---|---|---|
 | Instrument index | Tag, type, range, process connection, signal, vendor | Standalone register; tags on P&IDs |
-| Instrument data sheets | Full spec per instrument | Controls package and turnover |
 | I/O list | Every point with tag, type (DI/DO/AI/AO), PLC address, description | Controls design package; ties to the schematics |
 | Motor / load list | HP, FLA, starter or VFD, circuit | Electrical package |
 | Cable schedule | Cable ID, from/to, type, conductor count, length | Electrical drawings |
