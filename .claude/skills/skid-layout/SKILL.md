@@ -85,7 +85,7 @@ equipment list and the P&ID name.
 ## Then
 
 `model-iterate` (envelope and interference checks), `model-file` before Bob
-looks, give him the filed GLB path and a `cad_show` link. No renders unless
+looks, give him the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`). No renders unless
 he asks.
 
 ## Hand-off

@@ -33,10 +33,13 @@ Claude Code reads its instructions from `CLAUDE.md` at the repository root. Keep
 |Skill|What it does|Use on a skid project|
 |-|-|-|
 |CAD|Writes build123d Python source and generates STEP parts and assemblies. Supports named mating datums and joints. Includes inspection (measure, align, diff) and mandatory snapshot review.|Frame, baseplates, supports, piping assembly, full skid assembly|
-|CAD Viewer|Local browser preview of STEP and related files|Design reviews and 3D walkthroughs|
-|step.parts|Finds off-the-shelf STEP parts (screws, bearings, motors, connectors)|General hardware only; it has no sanitary fitting, flange or process valve library|
-|DXF|Creates 2D profiles, gaskets, and cut layouts|Laser-cut parts: gussets, baseplates, drip pans, kickplates|
+|CAD Viewer|Local browser preview of STEP and related files (`cad viewer --json <file>` prints the link)|Design reviews and 3D walkthroughs|
+|CAD, 2D profiles and DXF (part of the CAD skill since 0.11; the separate DXF skill is retired)|Creates 2D profiles, gaskets, and cut layouts|Laser-cut parts: gussets, baseplates, drip pans, kickplates|
+|CAD, manufacturing checks (part of the CAD skill since 0.11; the separate dfm skills are retired)|Checks whether a part can be machined, cut and bent, molded or printed|Optional review of fabricated parts; general practice, no shop's limits|
+|Engineering drawing|Projects dimensioned views of a part to a PDF sheet|The view engine behind the plan set drawings|
 |SendCutSend|Checks DXF and STEP files before upload to that service|Optional, if that fabrication service is used|
+
+The step.parts skill (off-the-shelf STEP parts) was retired upstream in 0.11; step.parts remains a website of its own. Skill list as of text-to-cad 0.11.12 (2026-11-18): cad, engineering-drawing, fea, pcb, print3d, render, robot-simulation, sendcutsend.
 
 **Limits to plan around:**
 

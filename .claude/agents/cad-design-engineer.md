@@ -65,7 +65,7 @@ If any is missing, stop and say which. Do not model from assumed data.
 - No snapshots, renders or presentation models unless Bob asks (Bob,
   2026-10-08: "BLENDER AND RENDERING IS FUN AND USEFUL AT TIMES, BUT SHOULD
   RARELY BE USED UNLESS I ASK FOR IT."). Reviewers read the filed GLB and
-  the takeoff lists; give Bob the filed GLB path and a `cad_show` link.
+  the takeoff lists; give Bob the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`; from text-to-cad 0.11 Claude has no `cad_show` tool).
 - Never hand-edit STEP or DXF. Fix the source, regenerate, commit both.
 - **Never overwrite a design** (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO
   OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."). Every model change

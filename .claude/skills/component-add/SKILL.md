@@ -161,7 +161,7 @@ component details."
   the part can carry it. New rule values go through `design-rule-add`.
 - Copy a job-library part into a project folder; reference its COMP id instead.
 - Reopen spools a project DEC has settled, or vendor CAD licence questions (Bob, 2026-10-09: "this is an in house model").
-- Render pictures; give Bob the STEP path and a `cad_show` link.
+- Render pictures; give Bob the STEP path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`).
 
 ## Hand-off
 
