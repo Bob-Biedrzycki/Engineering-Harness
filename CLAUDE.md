@@ -268,7 +268,7 @@ job/
                          CAD/Builds/ (every model build, numbered, gitignored); PID/02_Tag_Lists/ (the six
                          P&ID lists, CSV);
                          PID/Fast_Edits/ (gitignored, pid-fast-edit); BOM/; Electrical_Controls/
-                         (placeholder for the other teams); Exports/ (gitignored drawing previews)
+                         (placeholder for the other teams); Fast_Edits/ (gitignored drawing fast edits and previews)
     04_Vendor_Data/      Supplier documents and CAD, <category>/<tag>/ (Drive store)
     05_Reviews_Changes/  Internal, customer and vendor reviews, change requests, approvals
     06_Issued_Revisions/ Drawings/<DOC-ID>/ and Models/<MODEL-ID>/, one <ID>-rev<X>/ folder per handed-off revision,
@@ -357,7 +357,7 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   we've done for other drawings"; skill `plan-set-fast`; this replaces the 2026-11-17 loop of loose single sheets
   merged later). One command, `plan_set.py` in the plan set generators' `plan-set-reference/` folder:
   `edit <typical|project> <SET> [<SET> ...] --request "<words>"` (or `--all`) redraws every sheet the edit changed
-  as its next sheet version (`<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`,
+  as its next sheet version (`<level>/03_Working_Design/Fast_Edits/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`,
   still built from the whole drawing in memory), with a revision cloud round what changed since that sheet's previous
   version and the version's FAST number in the delta, joins each rebuilt drawing's set, and writes
   `<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf` with the changed sheets listed on its index page and a row
@@ -367,7 +367,7 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   chat, 2026-11-16, into `<DOC-ID>-<base>-fast-<nnn>/`, logged in `Fast_Drawings/fast-log.md`). All of it is
   gitignored, never overwritten and checked against DRF-FACE-001 on the way out; like `--preview` and a P&ID fast
   edit, none of it is a filed revision. Filing is the whole drawing, `drawing-revise`, on Bob's word, explained first.
-- `--preview` writes to `<project>/03_Working_Design/Exports/preview/` (gitignored) for the agent's own
+- `--preview` writes to `<project>/03_Working_Design/Fast_Edits/preview/` (gitignored) for the agent's own
   check only. A preview is never shown, sent or described as a revision.
 - **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for
   them should be in a folder for each rev."). A document folder under
@@ -618,7 +618,8 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 `01_Master_Assembly/`, and every build of it, fast or full, in `Builds/rev<X>/` as a new numbered folder
 (`rev<X>-fast-<nnn>`, `rev<X>-full-<nnn>`; `<X>` the last filed revision, one counter per letter for both kinds).
 No build overwrites another, and each has a row in `Builds/build-log.md` naming the checks that ran. A revision is
-filed from a full build, and its `revisions.csv` rows name that build. `Exports/` holds only drawing previews.
+filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edits/` (named `Exports/` before 2026-11-18; Bob, chat,
+2026-11-18) holds only drawing fast edits and previews.
 
 1. Read this file, `harness/knowledge/Todd Requirements.md`, and the sources the task
    names.

@@ -60,7 +60,7 @@ hygienic lines, the job's product rules (`job/design-rules/`) on the classes the
 | PID/Fast_Edits | P&ID fast edits; working copies, gitignored, never filed |
 | Electrical_Controls | Placeholder; the electrical and controls teams fill it in their own structure |
 | BOM/01 … 05 | Master BOM, equipment list, piping/valves/fittings, electrical and instruments, spares |
-| Exports | Drawing previews and other throwaway output; gitignored. Model builds are in CAD/Builds |
+| Fast_Edits | Drawing fast edits (`Fast_Drawings/`: plan set sheets, sets and the full plan set) and drawing previews (`preview/`); gitignored working copies, named `Exports` before 2026-11-18 (Bob, chat, 2026-11-18). Model builds are in CAD/Builds |
 | **04_Vendor_Data** | Supplier documents and manufacturer CAD, unchanged. One folder per tag, for example `02_Pumps/P-101_Maker_Model/` holding `01_Datasheets/ 02_CAD_Originals/ 03_Drawings_Submittals/ 04_Manuals/ 05_Certificates/ 06_Technical_Correspondence/` |
 | **05_Reviews_Changes** | Internal, customer and vendor reviews, change requests, approved changes, approvals, closed records. One folder per review (`REVW-001_…`) or change (`CR-001_…`) holding `Request/ Markups/ Responses/ Closure/` |
 | **06_Issued_Revisions** | Everything handed off, read-only (TR-08) |

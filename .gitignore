@@ -1,5 +1,6 @@
-# Project folders (Bob, 2026-10-26): each job/Project-*/ keeps working copies in _work/ and build output in Exports/.
+# Project folders (Bob, 2026-10-26): each job/Project-*/ keeps working copies in _work/ and build output in Fast_Edits/ (named Exports/ before 2026-11-18).
 job/*/_work/
+job/*/03_Working_Design/Fast_Edits/
 job/*/03_Working_Design/Exports/
 # Job-level working copies (the Drive folder's local path, drive-root.txt; Bob, 2026-10-26).
 job/_work/

@@ -1,6 +1,6 @@
 ---
 name: plan-set-fast
-description: Plan set fast edits (general arrangement, frame weldment, pipe supports, tank modifications, spools, piping arrangement, standard details), for the job's typical plan set or the active project's quoting plan set - plan_set.py edit takes one plan set and the drawings an edit touches, redraws every sheet the edit changed with a revision cloud round what changed, joins the sets and writes the complete plan set PDF, so no sheet is left loose; the single-sheet commands (sheet, changed, set, combine, status) are kept. Working copies under <level>/03_Working_Design/Exports/Fast_Drawings, checked against DRF-FACE-001 on the way out. Nothing filed. Use when a plan set sheet is to be edited, redrawn, checked or shown without filing a revision.
+description: Plan set fast edits (general arrangement, frame weldment, pipe supports, tank modifications, spools, piping arrangement, standard details), for the job's typical plan set or the active project's quoting plan set - plan_set.py edit takes one plan set and the drawings an edit touches, redraws every sheet the edit changed with a revision cloud round what changed, joins the sets and writes the complete plan set PDF, so no sheet is left loose; the single-sheet commands (sheet, changed, set, combine, status) are kept. Working copies under <level>/03_Working_Design/Fast_Edits/Fast_Drawings, checked against DRF-FACE-001 on the way out. Nothing filed. Use when a plan set sheet is to be edited, redrawn, checked or shown without filing a revision.
 ---
 
 # Plan set fast edits: one plan set in, the complete plan set out
@@ -113,7 +113,7 @@ the first one, the general arrangement's cover counts every drawing's sheets. So
 number, the right table page and the right references. Then only that sheet is written:
 
 ```
-<level>/03_Working_Design/Exports/Fast_Drawings/<DOC>/
+<level>/03_Working_Design/Fast_Edits/Fast_Drawings/<DOC>/
   Sheets/<KEY>/<DOC>-<KEY>-fast-<nnn>.dxf  and .pdf   one counter per sheet, never overwritten
   Sheets/sheets-state.json                            per sheet: latest version, what the last build held
   Sheets/sheet-log.md                                 one row per sheet drawing

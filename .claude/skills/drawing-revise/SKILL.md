@@ -24,7 +24,7 @@ characters), `--description` (full change, for `revisions.csv`) and `--preview`.
 .\harness\tools\venv\Scripts\python.exe <project>\03_Working_Design\CAD\06_Drawings\Generators\<generator>.py --preview --note "<note>"
 ```
 
-`--preview` writes to `<project>/03_Working_Design/Exports/preview/` for your own check only; never show,
+`--preview` writes to `<project>/03_Working_Design/Fast_Edits/preview/` for your own check only; never show,
 send or describe a preview as a revision. Then file:
 
 ```
