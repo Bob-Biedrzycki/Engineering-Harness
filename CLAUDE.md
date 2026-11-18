@@ -326,7 +326,7 @@ Skills (`.claude/skills/`) hold the how; this file holds the rules. Also:
 `component-add` (any new part), `partslib-load` (its facts and PDFs into Todd's PartsLib), `design-rule-add` (before any rule YAML edit,
 hard rule 11), `pid-fast-edit` (P&ID working copies; drafting rules in
 `harness/design-rules/drafting.yaml` apply to a brand new P&ID only, CPME practice),
-`plan-set-fast` (plan set drawings one sheet at a time, then the set, then the plan set, for the typical or project target; DRF-FACE-001 check; nothing filed),
+`plan-set-fast` (a plan set fast edit: one plan set, typical or project, in; the complete plan set PDF with edit clouds out; DRF-FACE-001 check; nothing filed),
 `agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout`
 (optional full check run) and `github-tracking` (how this repo saves; see "Git" at the top). When a rule here changes,
 the skill that repeats it changes in the same edit.
@@ -351,15 +351,18 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   `fast-log.md`). Like `--preview`, it is not a filed revision. A fast edit's changes
   are held in that folder's `fast-changes.yaml` and no project file is edited until
   Bob says to convert it.
-- **Plan set drawings are worked one sheet at a time** (Bob, chat, 2026-11-17: "I no longer trust edits on the
-  entire plan set. We need to work with the individual plans, individually, then plan to merge the complete set ...
-  whenever that is needed or appropriate"; skill `plan-set-fast`). One command line, `plan_set.py` in the plan set
-  generators' `plan-set-reference/` folder, for the typical, the project or both: `sheet <SET> <KEY> --request
-  "<words>"` redraws one named sheet as its own numbered DXF + PDF
-  (`<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`, with its true
-  sheet number) and lists every other sheet the edit changed without writing it; `set <SET>` joins a drawing's latest
-  sheets and refuses a missing or out-of-date one; `combine` joins the seven drawings into the plan set PDF; `status`
-  shows where every sheet stands. An "also changed" sheet is Bob's to decide on, never redrawn unasked. The whole
+- **A plan set fast edit is aimed at one plan set and ends in the complete plan set, with edit clouds** (Bob, chat,
+  2026-11-18: "let's change our fast edits so that we are not left with several sheets in different stages. We'll
+  target fast edits to a specific plan set, and the output should be the completed planset with edit clouds like
+  we've done for other drawings"; skill `plan-set-fast`; this replaces the 2026-11-17 loop of loose single sheets
+  merged later). One command, `plan_set.py` in the plan set generators' `plan-set-reference/` folder:
+  `edit <typical|project> <SET> [<SET> ...] --request "<words>"` (or `--all`) redraws every sheet the edit changed
+  as its next sheet version (`<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`,
+  still built from the whole drawing in memory), with a revision cloud round what changed since that sheet's previous
+  version and the version's FAST number in the delta, joins each rebuilt drawing's set, and writes
+  `<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf` with the changed sheets listed on its index page and a row
+  in that folder's `edit-log.md`. It writes the plan set or says `PLAN SET NOT WRITTEN`; nothing is left part-way.
+  The single-sheet commands (`sheet`, `changed`, `set`, `combine`, `status`) are kept for a look at one piece. The whole
   drawing in one go is still there (a generator with `--fast --target typical|project --request "<words>"`, Bob,
   chat, 2026-11-16, into `<DOC-ID>-<base>-fast-<nnn>/`, logged in `Fast_Drawings/fast-log.md`). All of it is
   gitignored, never overwritten and checked against DRF-FACE-001 on the way out; like `--preview` and a P&ID fast

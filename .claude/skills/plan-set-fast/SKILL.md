@@ -1,16 +1,61 @@
 ---
 name: plan-set-fast
-description: Plan set drawings (general arrangement, frame weldment, pipe supports, tank modifications, spools, piping arrangement, standard details) worked one sheet at a time, for the job's typical set and the active project's quoting set - plan_set.py sheet redraws ONE named sheet as its own numbered DXF + PDF and lists every other sheet the edit changed; plan_set.py set joins a drawing's latest sheets; plan_set.py combine joins the seven drawings into the plan set PDF. Working copies under <level>/03_Working_Design/Exports/Fast_Drawings, checked against DRF-FACE-001 on the way out. Nothing filed. Use when a plan set sheet is to be edited, redrawn, checked or shown without filing a revision.
+description: Plan set fast edits (general arrangement, frame weldment, pipe supports, tank modifications, spools, piping arrangement, standard details), for the job's typical plan set or the active project's quoting plan set - plan_set.py edit takes one plan set and the drawings an edit touches, redraws every sheet the edit changed with a revision cloud round what changed, joins the sets and writes the complete plan set PDF, so no sheet is left loose; the single-sheet commands (sheet, changed, set, combine, status) are kept. Working copies under <level>/03_Working_Design/Exports/Fast_Drawings, checked against DRF-FACE-001 on the way out. Nothing filed. Use when a plan set sheet is to be edited, redrawn, checked or shown without filing a revision.
 ---
 
-# Plan set: one sheet, then the set, then the plan set
+# Plan set fast edits: one plan set in, the complete plan set out
+
+The 2026-11-17 words below set up the single-sheet tools; Bob's 2026-11-18 words (next section) changed the loop
+that uses them.
 
 Bob, chat, 2026-11-17: "I no longer trust edits on the entire plan set. We need to work with the individual plans,
 individually, then plan to merge the complete set ... whenever that is needed or appropriate", and "we need to work
 through the process in reverse for making a small edit on a single sheet, to adding it to a drawing set, then
 ultimately combining the full set ... I would like predefined scripts and processes."
 
-So plan set work goes smallest first, and each level has one command:
+## A fast edit: one plan set in, the complete plan set out (Bob, chat, 2026-11-18)
+
+Bob: "let's change our fast edits so that we are not left with several sheets in different stages. We'll target fast
+edits to a specific plan set, and the output should be the completed planset with edit clouds like we've done for
+other drawings."
+
+So a fast edit is one command, for one plan set (`typical` or `project`), and it ends in one PDF:
+
+```
+plan_set.py edit typical FRM1 PSP --request "<Bob's words>"      the drawings the edit touches
+plan_set.py edit project --all --request "<Bob's words>"         all seven rebuilt (about 5 minutes more)
+```
+
+What it does, in order, and it stops with `PLAN SET NOT WRITTEN` rather than leave anything part-way:
+
+1. Builds each named drawing whole in memory and redraws **every** sheet whose content changed (the asked one and
+   any other the edit reached), each as its next sheet version. Nothing is listed as "also changed" and left.
+2. Draws a **revision cloud** round everything added, changed or removed on each redrawn sheet, compared with that
+   sheet's previous version, with the new version's FAST number in the delta (the same cloud a filed revision gets,
+   `revfile.add_box_clouds`). A sheet redrawn later loses its earlier clouds; a sheet not redrawn keeps the clouds
+   and number of the edit that last changed it.
+3. Rebuilds the general arrangement too when a drawing's sheet count changed (its cover lists the counts).
+4. Joins each rebuilt drawing's set, and any other set that is older than its sheets.
+5. Writes the complete plan set: `Fast_Drawings/<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf`, with the
+   changed sheets listed on the index page (each a link) and under a "Changed in fast edit <nnn>" bookmark, a
+   `.json` record beside it, and a row in that folder's `edit-log.md`.
+
+Measured 2026-11-18 (sandbox trial, typical, one pipe support sheet): 14 s from command to plan set PDF. A drawing
+costs its build time below; the join and the plan set add about 5 s.
+
+Report to Bob: the plan set PDF path, the `FAST EDIT <nnn> DONE` line (sheets changed, clouds, CLEAN or NOT CLEAN),
+the PDF page of each changed sheet, and the drawings that were not rebuilt. The other plan set is not touched: an
+edit meant for both is run once for each. A drawing that was not named is taken as it stood, so name every drawing
+whose basis, notes or generator was edited, or use `--all` after a change to something shared (the toolkit, the
+model pin). `NOTHING CHANGED` means the edit reached no sheet of the named drawings.
+
+The clouds need a record of each sheet's previous content (`<sheet version>.content.json`, written with every sheet
+version and, for versions drawn before 2026-11-18, by the next build that finds them current). A sheet with none
+prints `NO CLOUDS` once and is clouded from then on.
+
+## The single-sheet tools (kept, no longer the standing loop)
+
+The levels below still exist for a look at one sheet or to see where things stand, and `edit` is built from them:
 
 | Level | Command | What comes out |
 |---|---|---|
@@ -52,14 +97,13 @@ carry no running number). Talk with Bob about a sheet as `<set> <key>`.
 
 ## The standing loop
 
-1. Bob names a sheet and an edit.
-2. Make the edit where that sheet's content comes from: the set's basis file (`<SET>.basis.yaml`), its sheets or
-   notes yaml, or the generator.
-3. `plan_set.py sheet <SET> <KEY> --request "<Bob's words>"`.
-4. Report, per target: the PDF path, the `CLEAN` / `NOT CLEAN` line, and the `ALSO CHANGED` list.
-5. Bob decides on the other sheets. An `ALSO CHANGED` sheet is never redrawn on its own initiative: either the edit
-   was meant to reach it (then `plan_set.py changed <SET> --request ...`), or it was not (then fix the edit).
-6. `set` and `combine` only when Bob asks for the drawing or the plan set.
+1. Bob names the plan set (typical or project) and an edit.
+2. Make the edit where the content comes from: the set's basis file (`<SET>.basis.yaml`), its sheets or notes yaml,
+   or the generator.
+3. `plan_set.py edit <typical|project> <SET> [<SET> ...] --request "<Bob's words>"`.
+4. Report the plan set PDF, the DONE line and the changed sheets with their PDF pages. A changed sheet Bob did not
+   expect is clouded in front of him; if the edit was not meant to reach it, fix the edit and run it again.
+5. `sheet`, `changed`, `set` and `combine` on their own only when Bob asks for that piece.
 
 ## What `sheet` does, and why it can be trusted
 
@@ -155,7 +199,8 @@ with no basis.
 
 ## Report
 
-Per target: the sheet's PDF path, the CLEAN line, the FAST number and the ALSO CHANGED list. No renders unless asked.
+For a fast edit: as under "A fast edit" above. For a single-sheet command, per target: the sheet's PDF path, the
+CLEAN line, the FAST number and the ALSO CHANGED list. No renders unless asked.
 
 ## Not a filed revision
 
