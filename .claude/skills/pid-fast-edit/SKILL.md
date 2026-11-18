@@ -45,7 +45,7 @@ fast model loop (`model-iterate`, `--fast`).
   `<X>` is the last filed P&ID revision the edit starts from. `<nnn>` counts up for that letter and starts again
   at 001 after the next filed revision. The revision box shows `<X>`, and the revision-block row says
   `FAST-<nnn> - NOT ISSUED`.
-- The PDF is rendered from the DXF by `harness/cad-lib/dxf_pdf_fast.py` in the cadgen venv (matplotlib, no AutoCAD).
+- The PDF is rendered from the DXF by `harness/cad-lib/dxf_pdf_fast.py` in the cad venv, `harness/tools/venv-cad` (matplotlib, no AutoCAD).
   `--no-pdf` writes only the DXF.
 - The script appends the `fast-log.md` row itself (edit, time, source, request, change IDs, result) and copies
   the change set beside the edit as `<edit>-changes.yaml`, so every edit shows exactly what it was drawn with.

@@ -234,8 +234,8 @@ harness/
                          writing, and the layout of proposals, data sheets, portals, slides and signatures;
                          brand.yaml / brand.css hold the values for scripts and HTML
   lib/repo_paths.py      Every repo location, by name
-  requirements*.txt      Pinned Python dependencies (repo venv; cadgen venv)
-  tools/                 venv/ and venv-cadgen/ (gitignored, rebuilt from requirements)
+  requirements*.txt      Pinned Python dependencies (repo venv; cad venv)
+  tools/                 venv/ and venv-cad/ (gitignored, rebuilt from requirements)
 job/
   JOB.md                 This job and its current project (loaded by CLAUDE.md)
   knowledge/             Job-wide: the product's research and design framework, review addendum,
@@ -700,8 +700,8 @@ filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edi
   in `<project>/00_Project_Admin/07_Project_Controls/tooling.md`**. Its CAD skill is for geometry, not FEA or
   certification.
 - Python dependencies pinned in `harness/requirements.txt` (repo venv,
-  `harness/tools/venv/`) and `harness/requirements-cadgen.txt` (cadgen venv,
-  `harness/tools/venv-cadgen/`).
+  `harness/tools/venv/`) and `harness/requirements-cad.txt` (cad venv,
+  `harness/tools/venv-cad/`: `cad[build123d]`, the text-to-cad library, with ezdxf and matplotlib).
 - No vendor STEP model may be committed without its source, revision and
   license recorded in `job/components/component-register.csv`.
 - **Permission rules in `.claude/settings.json`** (Bob, 2026-10-07, verbatim:

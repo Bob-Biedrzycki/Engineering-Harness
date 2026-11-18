@@ -21,7 +21,7 @@ A finished build's files are read-only. Run the model's export scripts only thro
 by hand writes into the latest full build and is refused by the file system, as it should be.
 Acceptance (`model-accept`) runs its own full build; don't run one by hand before it.
 
-**The one command** (repo root, repo venv; it calls the cadgen venv for the
+**The one command** (repo root, repo venv; it calls the cad venv, `harness/tools/venv-cad`, for the
 STEP itself):
 
 ```
