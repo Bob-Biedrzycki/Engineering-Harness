@@ -357,9 +357,11 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   we've done for other drawings"; skill `plan-set-fast`; this replaces the 2026-11-17 loop of loose single sheets
   merged later). One command, `plan_set.py` in the plan set generators' `plan-set-reference/` folder:
   `edit <typical|project> <SET> [<SET> ...] --request "<words>"` (or `--all`) redraws every sheet the edit changed
-  as its next sheet version (`<level>/03_Working_Design/Fast_Edits/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`,
-  still built from the whole drawing in memory), with a revision cloud round what changed since that sheet's previous
-  version and the version's FAST number in the delta, joins each rebuilt drawing's set, and writes
+  as its next sheet version (still built from the whole drawing in memory), with a revision cloud round what changed
+  since that sheet's previous version and the version's FAST number in the delta, puts those pages into the drawing's
+  set so that `Fast_Drawings/<DOC-ID>/` holds only its latest set PDF (no sheet is kept as a file; the sheet records
+  are out of sight in `<level>/_work/plan-set-sheets/`; Bob, chat, 2026-11-18: "just the latest version of each
+  individual plan set in the fast drawings folder"), and writes
   `<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf` with the changed sheets listed on its index page and a row
   in that folder's `edit-log.md`. It writes the plan set or says `PLAN SET NOT WRITTEN`; nothing is left part-way.
   The single-sheet commands (`sheet`, `changed`, `set`, `combine`, `status`) are kept for a look at one piece. The whole

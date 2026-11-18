@@ -35,7 +35,10 @@ What it does, in order, and it stops with `PLAN SET NOT WRITTEN` rather than lea
    `revfile.add_box_clouds`). A sheet redrawn later loses its earlier clouds; a sheet not redrawn keeps the clouds
    and number of the edit that last changed it.
 3. Rebuilds the general arrangement too when a drawing's sheet count changed (its cover lists the counts).
-4. Joins each rebuilt drawing's set, and any other set that is older than its sheets.
+4. Makes each rebuilt drawing's new set by putting the redrawn pages into its set PDF and carrying every other
+   page over as it was. The drawing's folder then holds only that latest set PDF; the older set and the sheet
+   files just drawn are deleted (Bob, chat, 2026-11-18: "The end result I'm looking for is just the latest version
+   of each individual plan set in the fast drawings folder").
 5. Writes the complete plan set: `Fast_Drawings/<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf`, with the
    changed sheets listed on the index page (each a link) and under a "Changed in fast edit <nnn>" bookmark, a
    `.json` record beside it, and a row in that folder's `edit-log.md`.
@@ -50,8 +53,20 @@ whose basis, notes or generator was edited, or use `--all` after a change to som
 model pin). `NOTHING CHANGED` means the edit reached no sheet of the named drawings.
 
 The clouds need a record of each sheet's previous content (`<sheet version>.content.json`, written with every sheet
-version and, for versions drawn before 2026-11-18, by the next build that finds them current). A sheet with none
-prints `NO CLOUDS` once and is clouded from then on.
+version). A sheet with none prints `NO CLOUDS` once and is clouded from then on.
+
+**What is kept, and where.** No sheet is kept as a file. What you see:
+
+```
+<level>/03_Working_Design/Fast_Edits/Fast_Drawings/
+  <DOC>/<DOC>-<base>-set-<nnn>.pdf              the drawing's latest set, and nothing else
+  <prefix>-Full Planset/                        every full plan set PDF, its .json record, edit-log.md
+```
+
+What the tool keeps out of sight, `<level>/_work/plan-set-sheets/<DOC>/` (`sheets_state.sheets_dir`): the sheet
+record `sheets-state.json`, `sheet-log.md`, `set-record.json` (which version of each sheet is on which page of the
+set) and each sheet's latest content record. A sheet's DXF and PDF exist there only between being drawn and going
+into the set. If that folder is lost, `plan_set.py baseline` draws every sheet again (about 20 minutes a plan set).
 
 ## The single-sheet tools (kept, no longer the standing loop)
 
@@ -113,13 +128,16 @@ the first one, the general arrangement's cover counts every drawing's sheets. So
 number, the right table page and the right references. Then only that sheet is written:
 
 ```
-<level>/03_Working_Design/Fast_Edits/Fast_Drawings/<DOC>/
-  Sheets/<KEY>/<DOC>-<KEY>-fast-<nnn>.dxf  and .pdf   one counter per sheet, never overwritten
-  Sheets/sheets-state.json                            per sheet: latest version, what the last build held
-  Sheets/sheet-log.md                                 one row per sheet drawing
-  Set/<DOC>-<base>-set-<nnn>.pdf  and .json           an assembled set and the sheet versions in it
-  <DOC>-<base>-fast-<nnn>/                            whole-drawing fast drawings, as before
+<level>/_work/plan-set-sheets/<DOC>/
+  <KEY>/<DOC>-<KEY>-fast-<nnn>.dxf  and .pdf    one counter per sheet; deleted once the sheet is in a set
+  <KEY>/<DOC>-<KEY>-fast-<nnn>.content.json     the sheet's content, for the next edit's clouds (latest kept)
+  sheets-state.json                             per sheet: latest version, what the last build held
+  sheet-log.md                                  one row per sheet drawing
+  set-record.json                               the latest set: which sheet version is on which page
 ```
+
+A single sheet drawn this way is a look at one piece; it is in nobody's set until `set` (or the next `edit`) puts it
+there.
 
 Every other sheet is compared with its latest version by a hash of its own content (linework, text, dimensions,
 title; not the footer, date, FAST number or sheet number) and reported:
@@ -131,7 +149,7 @@ title; not the footer, date, FAST number or sheet number) and reported:
 - `NEVER DRAWN: <keys>`: no sheet version yet (`baseline` draws them).
 
 The sheet's revision box shows the letter (A for a never-filed document) with `FAST-<nnn>` under it and the row
-`FAST-<nnn> - NOT ISSUED`; the footer is the sheet file's own name and location.
+`FAST-<nnn> - NOT ISSUED`; the footer is the sheet version's name (`<DOC>-<KEY>-fast-<nnn>`).
 
 Measured 2026-11-17, one sheet, one target, PDF included: pipe supports 10 s, frame 13 s, tank modifications 13 s,
 standard details 16 s, general arrangement 49 s, spools 56 s, piping arrangement 89 s. `--target both` (the default)
@@ -157,10 +175,12 @@ the generator; it is reworded in the basis file, or marked basis only, never dro
 ## Level 2: the set
 
 `plan_set.py set <SET>` first builds the drawing in memory again (so it is compared with the files as they are now,
-not as remembered; `--no-verify` skips that), then joins the latest PDF of every sheet in order into
-`Set/<DOC>-<base>-set-<nnn>.pdf` (`<base>` is `rev<X>` after a filed revision, else `first`). It refuses, naming each
-sheet, when a sheet was never drawn, changed since its latest version, prints an old `SHEET n OF N`, or has no PDF.
-The `.json` beside the PDF records which sheet versions are in it. With no `<SET>` it assembles all seven.
+not as remembered; `--no-verify` skips that), then writes `Fast_Drawings/<DOC>/<DOC>-<base>-set-<nnn>.pdf` (`<base>`
+is `rev<X>` after a filed revision, else `first`): a sheet drawn since the last set comes from its own PDF, every
+other page is carried over from the last set. The last set and the sheet files are then deleted. It refuses, naming
+each sheet, when a sheet was never drawn, changed since its latest version, prints an old `SHEET n OF N`, or is
+neither freshly drawn nor in the last set. `set-record.json` (with the sheet records) says which sheet versions are in
+it. With no `<SET>` it does all seven.
 
 ## Level 3: the plan set
 
