@@ -6,8 +6,8 @@ from its DWG by dwg-to-pdf.ps1 (TR-06); this script never writes into <project>/
 The sheets sit side by side in model space, sheet k spanning x = k*pitch .. k*pitch + width (inches), as
 model-to-pid.py draws them. One PDF page per sheet.
 
-Runs in the cadgen venv (it has matplotlib; the repo venv harness/tools/venv does not):
-    .\\harness\\tools\\venv-cadgen\\Scripts\\python.exe harness\\cad-lib\\dxf_pdf_fast.py <in.dxf> <out.pdf> --sheets 3
+Runs in the cad venv (it has matplotlib; the repo venv harness/tools/venv does not):
+    .\\harness\\tools\\venv-cad\\Scripts\\python.exe harness\\cad-lib\\dxf_pdf_fast.py <in.dxf> <out.pdf> --sheets 3
 """
 from __future__ import annotations
 

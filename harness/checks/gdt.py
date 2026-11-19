@@ -44,7 +44,7 @@ RUNOUT = {"circular_runout", "total_runout"}
 NOT_USED = {"concentricity": "removed from ASME Y14.5-2018; use position or profile (GDT-FCF-001)",
             "symmetry": "removed from ASME Y14.5-2018; use position or profile (GDT-FCF-001)"}
 CONTROLS = FORM | ORIENT | LOCATE | PROFILE | RUNOUT
-SKIP_PARTS = {"_work", "Exports", "tools", ".git", "__pycache__", "node_modules"}
+SKIP_PARTS = {"_work", "Fast_Edits", "Exports", "tools", ".git", "__pycache__", "node_modules"}
 
 
 def _yaml(p: Path) -> dict:

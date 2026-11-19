@@ -21,7 +21,7 @@ A finished build's files are read-only. Run the model's export scripts only thro
 by hand writes into the latest full build and is refused by the file system, as it should be.
 Acceptance (`model-accept`) runs its own full build; don't run one by hand before it.
 
-**The one command** (repo root, repo venv; it calls the cadgen venv for the
+**The one command** (repo root, repo venv; it calls the cad venv, `harness/tools/venv-cad`, for the
 STEP itself):
 
 ```
@@ -60,7 +60,7 @@ it exists. The folder holds
 `iterate-summary.json`, and overwrites or removes nothing else (Bob,
 2026-10-10: "The fast build should still create a new file, and not overwrite
 an existing."). Give Bob the fast GLB's path; do not start the CAD viewer or
-make a `cad_show` link for a fast build (Bob, 2026-10-10: "remove launching the viewer server from the fast skill.
+make a CAD Viewer link (`cad viewer`) for a fast build (Bob, 2026-10-10: "remove launching the viewer server from the fast skill.
 It is unnecesarry."). A fast build is a viewing copy with a coarser
 mesh, not a revision, never filed, committed or pushed. `model_file.py` never
 files a fast build: run once without `--fast` before filing. **When Bob's prompt says "fast build"**,

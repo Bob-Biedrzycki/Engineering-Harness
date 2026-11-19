@@ -31,7 +31,7 @@ fast drawing or preview folder), which the rule asks for.
 Usage:
     sheet_face.py [<dxf or folder> ...] [--json]
 A folder is searched for *.dxf. With no paths (as CI runs it) the newest fast drawing of every document in the
-job's Fast_Drawings folders is checked; there are none on the check server (Exports/ is gitignored), which passes. Exit-code contract (harness/checks/README.md): 0 = PASS, 1 = FAIL (findings),
+job's Fast_Drawings folders is checked; there are none on the check server (Fast_Edits/ is gitignored), which passes. Exit-code contract (harness/checks/README.md): 0 = PASS, 1 = FAIL (findings),
 3 = ERROR. First line = summary. Filed revisions are a record and are not rechecked (First Principle 4); the check
 runs on every fast drawing (plan_set_lib) and on any DXF named on the command line.
 
@@ -308,10 +308,10 @@ def check_dxf(path, customer_ok: bool | None = None) -> list[Finding]:
 
 def latest_fast_drawings() -> list[Path]:
     """With no paths: the newest fast drawing of every document under each Fast_Drawings folder of the job (the
-    typicals and every project). Exports/ is gitignored, so on the check server this finds none."""
+    typicals and every project). Fast_Edits/ is gitignored, so on the check server this finds none."""
     root = next(p for p in Path(__file__).resolve().parents if (p / "CLAUDE.md").exists())
     out = []
-    for fd in sorted((root / "job").glob("*/03_Working_Design/Exports/Fast_Drawings")):
+    for fd in sorted((root / "job").glob("*/03_Working_Design/Fast_Edits/Fast_Drawings")):
         for doc in sorted(p for p in fd.iterdir() if p.is_dir()):
             runs = sorted((p for p in doc.iterdir() if p.is_dir() and re.search(r"-fast-\d{3}$", p.name)),
                           key=lambda p: int(p.name.rsplit("-", 1)[-1]))

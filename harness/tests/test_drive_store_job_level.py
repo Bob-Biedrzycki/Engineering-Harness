@@ -38,7 +38,7 @@ class JobLevelStore(unittest.TestCase):
 
     def test_work_folders_excluded_in_every_project(self):
         for p in ("job/_work/drive-root.txt", "job/Project-X/_work/a.bin",
-                  "job/Project-X/03_Working_Design/Exports/build/a.step"):
+                  "job/Project-X/03_Working_Design/Fast_Edits/build/a.step"):
             self.assertTrue(D.excluded(p, self.cfg), p)
         self.assertFalse(D.excluded("job/Project-X/04_Vendor_Data/a.pdf", self.cfg))
 

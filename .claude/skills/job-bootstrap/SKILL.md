@@ -126,7 +126,7 @@ active one in `job/active-project.txt` (or `CPME_PROJECT`).
 - Empty `<project>/01_Design_Basis/01_Customer_Requirements/holds.md` and
   `customer-intake.md`, `<project>/00_Project_Admin/02_Schedule_Milestones/schedule.md`,
   and in `<project>/00_Project_Admin/07_Project_Controls/`: `tooling.md`
-  (record the pinned text-to-cad version), `question-log.md`, `change-log.md`,
+  (record the engine pin, `harness/requirements-cad.txt`, and each move of it), `question-log.md`, `change-log.md`,
   `documents-to-obtain.md`.
 - Run `harness/checks/project_layout.py` to confirm no folder is missing.
 

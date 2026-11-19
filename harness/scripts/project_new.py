@@ -34,7 +34,7 @@ def project_yaml(m: re.Match) -> str:
     return f"""# Project identity: the one place a project names itself (project folders, Bob 2026-10-26).
 # A job is the product line and its repo; a project is one order in it, this folder (Bob, chat, 2026-10-26).
 # harness/lib/repo_paths.py reads this file; harness code takes every ID from here, never as literals.
-# Flat `key: value` lines only (read without PyYAML, so the cadgen venv can import it).
+# Flat `key: value` lines only (read without PyYAML, so either venv can import it).
 # Values are exactly as on the project's records; do not normalize. `unknown` = not received yet.
 
 project_id: {pid}                  # folder name without "Project-" (Bob, chat, 2026-10-26)

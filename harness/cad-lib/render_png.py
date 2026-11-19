@@ -1,11 +1,11 @@
 """Snapshot renderer for review images (not drawings).
 
-The text-to-cad `cadgen` snapshot tool times out on the whole skid, so this is the documented fallback: tessellate
+The text-to-cad snapshot tool (`cadgen` then, `cad` now) times out on the whole skid, so this is the documented fallback: tessellate
 every body with build123d, project the triangles with an orthographic camera and paint them back to front with
 Pillow. Deterministic: same model, same view, same pixels. Review PNGs are not drawings and are never filed through
 revfile.py (TR-06..08 cover DWG / PDF).
 
-Library (any build123d venv: repo harness/tools/venv 0.13.0, cadgen harness/tools/venv-cadgen 0.11.1):
+Library (either venv, both on the same build123d: repo harness/tools/venv, cad harness/tools/venv-cad):
 
     render(bodies, path, direction, up=..., label=..., title=None, clip=None)
         bodies: objects with .shape and .category (and .label, used in warnings); title: the model named in the
@@ -40,10 +40,7 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-try:
-    import build123d as bd
-except ImportError:            # cadgen venv: build123d 0.11.1 vendored under cadgen
-    from cadgen import build123d as bd
+import build123d as bd
 
 Vector = bd.Vector
 SnapBody = namedtuple("SnapBody", "category shape label")

@@ -252,14 +252,14 @@ SITE_REPO = PROJECT_INFO["site_repo"]          # owner/name of the presentation 
 SKID_MODEL_ID = PROJECT_INFO["model_id"]
 SKID_MODEL = CAD / "01_Master_Assembly" / SKID_MODEL_ID
 FRAME_CALC = ENGINEERING / "06_Mechanical_Structural" / "frame-calc"   # frame_calc.py and its results
-EXPORTS = WORKING / "Exports"            # drawing previews and other throwaway output (gitignored)
+EXPORTS = WORKING / "Fast_Edits"            # drawing previews and other throwaway output (gitignored)
 BUILD = EXPORTS / "build"                # side builds only (exploded parts); model builds are in BUILDS
 PREVIEW = EXPORTS / "preview"
 # Every model build, fast or full, is one numbered folder that is never overwritten (Bob, chat, 2026-11-12):
 # BUILDS/rev<X>/rev<X>-fast-<nnn>/ and rev<X>-full-<nnn>/, <X> the last filed revision the build starts from, one
 # counter per letter shared by both kinds, one running list BUILDS/build-log.md. SKID_BUILD is the full build the
 # tools read (current_build). Before 2026-11-12 fast builds were in CAD/Fast_Builds and the one full build, overwritten
-# each time, in Exports/build/<MODEL-ID>; model_build.adopt_earlier_layout moves both once.
+# each time, in Fast_Edits/build/<MODEL-ID>; model_build.adopt_earlier_layout moves both once.
 BUILDS_ROOT = CAD / "Builds"
 BUILDS = BUILDS_ROOT
 FAST_BUILDS = BUILDS                     # the earlier name, kept for job code that reads it
@@ -391,7 +391,7 @@ if MODEL_ID_ARG and not (HAS_PROJECT and MODEL_ID_ARG == PROJECT_INFO.get("model
     BUILDS_ROOT = JOB_MODELS_BUILDS
     BUILDS = FAST_BUILDS = BUILDS_ROOT / SKID_MODEL_ID / MODEL_CONFIG
     EARLIER_FAST_ROOT = TYPICAL_WORKING / "CAD" / "Fast_Builds"
-    EARLIER_SKID_BUILD = TYPICAL_WORKING / "Exports" / "build" / SKID_MODEL_ID / MODEL_CONFIG
+    EARLIER_SKID_BUILD = TYPICAL_WORKING / "Fast_Edits" / "build" / SKID_MODEL_ID / MODEL_CONFIG
     SKID_BUILD = current_build(BUILDS)
     MODELS = JOB_MODELS_FILED
     SKID_FILED = MODELS / SKID_MODEL_ID

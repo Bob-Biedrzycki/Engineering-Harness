@@ -15,7 +15,7 @@ iteration fast and close-out unattended). Skill: .claude/skills/model-iterate.
 
 Runs, in this order (independent steps in parallel):
     1. lists        <project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/export_lists.py      takeoffs, manifest, layout note (repo venv, harness/tools/venv)
-    2. step         <project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/export_step_direct.py   assembly STEP (cadgen venv)
+    2. step         <project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/export_step_direct.py   assembly STEP (cad venv, harness/tools/venv-cad)
        in parallel with step:
          interference   harness/checks/interference.py
          pipe_supports  harness/checks/pipe_supports.py --report <build>   pipe-support-calc.csv / .md
@@ -84,7 +84,9 @@ import model_build as mb  # noqa: E402
 import accept_preflight as pf  # noqa: E402
 
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
-PY_CADGEN = rp.TOOLS / "venv-cadgen" / "Scripts" / "python.exe"
+# the second interpreter: the cad venv (cad[build123d] with ezdxf and matplotlib), built from the job's one
+# engine pin, harness/requirements-cad.txt; harness/scripts/engine_check.py compares a newer release and moves it
+PY_CAD = rp.TOOLS / "venv-cad" / "Scripts" / "python.exe"
 BUILDS = rp.BUILDS      # <project>/03_Working_Design/CAD/Builds: every build, fast or full (Bob, 2026-11-12)
 
 
@@ -132,7 +134,7 @@ def main() -> int:
     ap.add_argument("--change", default="", help="what this build changed, for the build log")
     rp.add_model_args(ap)
     a = ap.parse_args()
-    for exe in (PY, PY_CADGEN):
+    for exe in (PY, PY_CAD):
         if not exe.is_file():
             print(f"REFUSED: missing {rp.rel(exe)} (rebuild the venv from harness/requirements*.txt)", file=sys.stderr)
             return 2
@@ -184,7 +186,7 @@ def main() -> int:
         print("model_iterate: STOPPED - export_lists reported model problems (fix the model, or --keep-going)")
         return finish_full(a, results, started, t0, mt, newest, zipper, zipped)
 
-    step = Step("step", [PY_CADGEN, src_dir / "export_step_direct.py"])
+    step = Step("step", [PY_CAD, src_dir / "export_step_direct.py"])
     side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"]),
             "pipe_supports": Step("pipe_supports", [PY, rp.CHECKS / "pipe_supports.py", "--report", mb.BUILD]),
             "materials": Step("materials", [PY, rp.CHECKS / "materials.py"])}
@@ -206,7 +208,7 @@ def main() -> int:
             after["glb"] = Step("glb", [PY, src_dir / "export_glb.py"])
         # a job-level model files its review views (Linear CPM-155): render_png.py from the build STEP
         for view, name in mb.VIEWS if mb.JOB_LEVEL else ():
-            after[f"view_{view}"] = Step(f"view_{view}", [PY_CADGEN, rp.CAD_LIB / "render_png.py", mb.STEP,
+            after[f"view_{view}"] = Step(f"view_{view}", [PY_CAD, rp.CAD_LIB / "render_png.py", mb.STEP,
                                                           mb.BUILD / name, "--view", view, "--title", mb.DOC_ID])
         for k, s in after.items():
             results[k] = s.wait()
@@ -300,7 +302,7 @@ def fast(a) -> int:
     results: dict[str, dict] = {}
     # the GLB to look at (about 1 min, straight from the model, no STEP) runs beside everything else
     glb = out / f"{mb.DOC_ID}-{out.name}.glb"
-    view = Step("glb", [PY_CADGEN, rp.SKID_MODEL / "export_glb_fast.py", "--out", glb], logs)
+    view = Step("glb", [PY_CAD, rp.SKID_MODEL / "export_glb_fast.py", "--out", glb], logs)
     results["lists"] = Step("lists", [PY, rp.SKID_MODEL / "export_lists.py", "--out", out], logs).wait()
     say("lists", results["lists"])
     drawing_items, drawing_info = [], {}

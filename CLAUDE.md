@@ -221,7 +221,7 @@ harness/
                          First Principles.md: the seven principles the structure decides by
   checks/                Automated verification scripts (P&ID-to-model, sanitary, interference, sheet face)
   scripts/               model_iterate.py / model_accept.py (+ model_file.py) / closeout.py (the model tiers),
-                         track.py (GitHub tracking), drive_store.py (Google Drive store),
+                         track.py (GitHub tracking), drive_store.py (Google Drive store), engine_check.py (the engine pin),
                          label sync, lists workbook
   structural-models/     skidframe: skid frame load-bearing models (AISC 370/360, ASCE 7) for the Gate 3 check;
                          `run` saves each result in <project>/02_Engineering/06_Mechanical_Structural/Frame_Calcs/
@@ -234,8 +234,8 @@ harness/
                          writing, and the layout of proposals, data sheets, portals, slides and signatures;
                          brand.yaml / brand.css hold the values for scripts and HTML
   lib/repo_paths.py      Every repo location, by name
-  requirements*.txt      Pinned Python dependencies (repo venv; cadgen venv)
-  tools/                 venv/ and venv-cadgen/ (gitignored, rebuilt from requirements)
+  requirements*.txt      Pinned Python dependencies (repo venv; cad venv)
+  tools/                 venv/ and venv-cad/ (gitignored, rebuilt from requirements)
 job/
   JOB.md                 This job and its current project (loaded by CLAUDE.md)
   knowledge/             Job-wide: the product's research and design framework, review addendum,
@@ -268,7 +268,7 @@ job/
                          CAD/Builds/ (every model build, numbered, gitignored); PID/02_Tag_Lists/ (the six
                          P&ID lists, CSV);
                          PID/Fast_Edits/ (gitignored, pid-fast-edit); BOM/; Electrical_Controls/
-                         (placeholder for the other teams); Exports/ (gitignored drawing previews)
+                         (placeholder for the other teams); Fast_Edits/ (gitignored drawing fast edits and previews)
     04_Vendor_Data/      Supplier documents and CAD, <category>/<tag>/ (Drive store)
     05_Reviews_Changes/  Internal, customer and vendor reviews, change requests, approvals
     06_Issued_Revisions/ Drawings/<DOC-ID>/ and Models/<MODEL-ID>/, one <ID>-rev<X>/ folder per handed-off revision,
@@ -326,7 +326,7 @@ Skills (`.claude/skills/`) hold the how; this file holds the rules. Also:
 `component-add` (any new part), `partslib-load` (its facts and PDFs into Todd's PartsLib), `design-rule-add` (before any rule YAML edit,
 hard rule 11), `pid-fast-edit` (P&ID working copies; drafting rules in
 `harness/design-rules/drafting.yaml` apply to a brand new P&ID only, CPME practice),
-`plan-set-fast` (plan set drawings one sheet at a time, then the set, then the plan set, for the typical or project target; DRF-FACE-001 check; nothing filed),
+`plan-set-fast` (a plan set fast edit: one plan set, typical or project, in; the complete plan set PDF with edit clouds out; DRF-FACE-001 check; nothing filed),
 `agent-task` (before every `Agent(...)` call), `model-accept` (Bob accepts fast edits as a revision), `closeout`
 (optional full check run) and `github-tracking` (how this repo saves; see "Git" at the top). When a rule here changes,
 the skill that repeats it changes in the same edit.
@@ -351,20 +351,25 @@ file) are in the skill `.claude/skills/drawing-revise`; the rules are below.
   `fast-log.md`). Like `--preview`, it is not a filed revision. A fast edit's changes
   are held in that folder's `fast-changes.yaml` and no project file is edited until
   Bob says to convert it.
-- **Plan set drawings are worked one sheet at a time** (Bob, chat, 2026-11-17: "I no longer trust edits on the
-  entire plan set. We need to work with the individual plans, individually, then plan to merge the complete set ...
-  whenever that is needed or appropriate"; skill `plan-set-fast`). One command line, `plan_set.py` in the plan set
-  generators' `plan-set-reference/` folder, for the typical, the project or both: `sheet <SET> <KEY> --request
-  "<words>"` redraws one named sheet as its own numbered DXF + PDF
-  (`<level>/03_Working_Design/Exports/Fast_Drawings/<DOC-ID>/Sheets/<KEY>/<DOC-ID>-<KEY>-fast-<nnn>`, with its true
-  sheet number) and lists every other sheet the edit changed without writing it; `set <SET>` joins a drawing's latest
-  sheets and refuses a missing or out-of-date one; `combine` joins the seven drawings into the plan set PDF; `status`
-  shows where every sheet stands. An "also changed" sheet is Bob's to decide on, never redrawn unasked. The whole
+- **A plan set fast edit is aimed at one plan set and ends in the complete plan set, with edit clouds** (Bob, chat,
+  2026-11-18: "let's change our fast edits so that we are not left with several sheets in different stages. We'll
+  target fast edits to a specific plan set, and the output should be the completed planset with edit clouds like
+  we've done for other drawings"; skill `plan-set-fast`; this replaces the 2026-11-17 loop of loose single sheets
+  merged later). One command, `plan_set.py` in the plan set generators' `plan-set-reference/` folder:
+  `edit <typical|project> <SET> [<SET> ...] --request "<words>"` (or `--all`) redraws every sheet the edit changed
+  as its next sheet version (still built from the whole drawing in memory), with a revision cloud round what changed
+  since that sheet's previous version and the version's FAST number in the delta, puts those pages into the drawing's
+  set so that `Fast_Drawings/<DOC-ID>/` holds only its latest set PDF (no sheet is kept as a file; the sheet records
+  are out of sight in `<level>/_work/plan-set-sheets/`; Bob, chat, 2026-11-18: "just the latest version of each
+  individual plan set in the fast drawings folder"), and writes
+  `<prefix>-Full Planset/<prefix>-PLAN-SET-fast-<nnn>.pdf` with the changed sheets listed on its index page and a row
+  in that folder's `edit-log.md`. It writes the plan set or says `PLAN SET NOT WRITTEN`; nothing is left part-way.
+  The single-sheet commands (`sheet`, `changed`, `set`, `combine`, `status`) are kept for a look at one piece. The whole
   drawing in one go is still there (a generator with `--fast --target typical|project --request "<words>"`, Bob,
   chat, 2026-11-16, into `<DOC-ID>-<base>-fast-<nnn>/`, logged in `Fast_Drawings/fast-log.md`). All of it is
   gitignored, never overwritten and checked against DRF-FACE-001 on the way out; like `--preview` and a P&ID fast
   edit, none of it is a filed revision. Filing is the whole drawing, `drawing-revise`, on Bob's word, explained first.
-- `--preview` writes to `<project>/03_Working_Design/Exports/preview/` (gitignored) for the agent's own
+- `--preview` writes to `<project>/03_Working_Design/Fast_Edits/preview/` (gitignored) for the agent's own
   check only. A preview is never shown, sent or described as a revision.
 - **One folder per revision** (Bob, chat, 2026-10-30: "Everything like for
   them should be in a folder for each rev."). A document folder under
@@ -615,7 +620,8 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 `01_Master_Assembly/`, and every build of it, fast or full, in `Builds/rev<X>/` as a new numbered folder
 (`rev<X>-fast-<nnn>`, `rev<X>-full-<nnn>`; `<X>` the last filed revision, one counter per letter for both kinds).
 No build overwrites another, and each has a row in `Builds/build-log.md` naming the checks that ran. A revision is
-filed from a full build, and its `revisions.csv` rows name that build. `Exports/` holds only drawing previews.
+filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edits/` (named `Exports/` before 2026-11-18; Bob, chat,
+2026-11-18) holds only drawing fast edits and previews.
 
 1. Read this file, `harness/knowledge/Todd Requirements.md`, and the sources the task
    names.
@@ -690,12 +696,17 @@ filed from a full build, and its `revisions.csv` rows name that build. `Exports/
 
 ## Tooling
 
-- CAD generation: `text-to-cad` plugin (build123d), **pinned version recorded
-  in `<project>/00_Project_Admin/07_Project_Controls/tooling.md`**. Its CAD skill is for geometry, not FEA or
-  certification.
+- CAD generation: `text-to-cad` plugin (build123d). Its CAD skill is for geometry, not FEA or certification.
+  **Two tiers** (Bob, chat, 2026-11-18: "this skill updates frequently and we rely heavily on it"; "go ahead
+  with all five"): the plugin's skills and the computer's own `cad` command update themselves and are not
+  pinned. The engine that makes builds and drawing views is **one pin**, `harness/requirements-cad.txt`: it
+  moves only after `harness/scripts/engine_check.py` has compared the new release against it and Bob says yes
+  (skill `engine-update`). The pin and each move are recorded in
+  `<project>/00_Project_Admin/07_Project_Controls/tooling.md`. Harness text names no plugin version and no
+  plugin skill by its release.
 - Python dependencies pinned in `harness/requirements.txt` (repo venv,
-  `harness/tools/venv/`) and `harness/requirements-cadgen.txt` (cadgen venv,
-  `harness/tools/venv-cadgen/`).
+  `harness/tools/venv/`) and `harness/requirements-cad.txt` (cad venv,
+  `harness/tools/venv-cad/`: `cad[build123d]`, the text-to-cad library, with ezdxf and matplotlib).
 - No vendor STEP model may be committed without its source, revision and
   license recorded in `job/components/component-register.csv`.
 - **Permission rules in `.claude/settings.json`** (Bob, 2026-10-07, verbatim:

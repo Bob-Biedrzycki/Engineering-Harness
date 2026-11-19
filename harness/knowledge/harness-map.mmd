@@ -44,7 +44,7 @@ flowchart TB
   subgraph SKILLS["4. Skills"]
     direction LR
     SK1[".claude/skills/: agent-task, pid-digitize, skid-layout, pipe-route,<br/>model-iterate, model-accept, model-file, closeout, github-tracking, ..."]:::tool
-    SK2["text-to-cad plugin skills: cad, dxf, engineering-drawing, step-parts, ...<br/>pinned version in the project's tooling.md"]:::tool
+    SK2["text-to-cad plugin skills (CAD, engineering drawing, ...)<br/>update themselves; the engine pin is harness/requirements-cad.txt"]:::tool
   end
 
   subgraph HARN["5. harness/ : reused unchanged by every CPME skid job (owned paths in harness/harness-manifest.txt)"]
@@ -57,7 +57,7 @@ flowchart TB
     CHK["checks/*.py<br/>pid_consistency, sanitary, interference, envelope, pipe_supports, drive_pointers<br/>report, never block"]:::tool
     RP["lib/repo_paths.py<br/>every location by name"]:::tool
     RULES["Rule level 1, harness: design-rules/*.yaml (company-wide)<br/>knowledge/: Design Standards, Team, Setup, Approval Ladder<br/>templates/: review checklist, project-folder/"]:::store
-    VENV["tools/venv, tools/venv-cadgen<br/>gitignored, from requirements*.txt"]:::store
+    VENV["tools/venv, tools/venv-cad<br/>gitignored, from requirements*.txt"]:::store
   end
 
   subgraph JOB["6. job/ : this job (the product line) and one folder per project, job/Project-*/"]
@@ -69,7 +69,7 @@ flowchart TB
     SRC["Project-*/03_Working_Design/CAD/ build123d source, one folder per model<br/>CAD/05_Purchased_Components/ project-only components<br/>job/components/ job component library and component-register.csv<br/>04_Vendor_Data/ supplier documents and CAD"]:::store
     FILED["Project-*/06_Issued_Revisions/Drawings/DOC-ID/ and Models/MODEL-ID/<br/>filed revisions, immutable (TR-08)<br/>large files as file.drive pointers"]:::store
     QST["Agent-to-Agent Questions.md and Agent-to-Bob Questions.md at the repo root<br/>questions between agents and to Bob<br/>project: tooling.md, project.yaml; job: drive-store.yaml"]:::store
-    WORK["Project-*/_work/ and 03_Working_Design/Exports/ gitignored<br/>build/, preview/, filing/, daily/, tracking/"]:::store
+    WORK["Project-*/_work/ and 03_Working_Design/Fast_Edits/ gitignored<br/>build/, preview/, filing/, daily/, tracking/"]:::store
   end
 
   subgraph EXT["7. Outside the checkout"]

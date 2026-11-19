@@ -96,7 +96,7 @@ Company-wide practice, carried to every project; each applies only to the classe
 ## Working with Bob's edits
 
 - One revision per batch of his edits: build, `model-file`, show the filed
-  GLB path and a `cad_show` link, stop. No re-review loop per letter and no
+  GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`), stop. No re-review loop per letter and no
   renders unless he asks (Bob, 2026-10-08).
 - A tag in his text that does not exist: match it to the geometry he named
   and ask in one line. Never guess the tag.

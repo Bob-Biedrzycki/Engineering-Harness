@@ -145,7 +145,7 @@ class CheckTextTests(unittest.TestCase):
         self.good("GASKET CURE TBD; CONFIRM AT PURCHASE")
 
     def test_own_footer_passes(self):
-        self.good("job/Typical-CIP-TYP/03_Working_Design/Exports/Fast_Drawings/CIP-TYP-SPL-001/"
+        self.good("job/Typical-CIP-TYP/03_Working_Design/Fast_Edits/Fast_Drawings/CIP-TYP-SPL-001/"
                   "CIP-TYP-SPL-001-revA-fast-001/CIP-TYP-SPL-001-revA-fast-001.dxf")
         self.good("job/Project-1072-01-CIP-001/06_Issued_Revisions/Drawings/Project-1072-01-SPL-001/"
                   "Project-1072-01-SPL-001-revA/Project-1072-01-SPL-001-revA.dwg")

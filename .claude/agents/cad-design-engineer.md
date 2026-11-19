@@ -36,7 +36,7 @@ If any is missing, stop and say which. Do not model from assumed data.
 - `<project>/03_Working_Design/CAD/` — build123d source, one folder per model (`<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`,
   with its own `piping/<line_no>/` and frame), and the drawing generators in
   `<project>/03_Working_Design/CAD/06_Drawings/Generators/`. Generated STEP/DXF are derived output, written to
-  `<project>/03_Working_Design/CAD/Builds/` and `<project>/03_Working_Design/Exports/preview/`; a hand-off is filed
+  `<project>/03_Working_Design/CAD/Builds/` and `<project>/03_Working_Design/Fast_Edits/preview/`; a hand-off is filed
   under `<project>/06_Issued_Revisions/Models/` or `<project>/06_Issued_Revisions/Drawings/`.
 - Layout options (step 4a, skid layout): two or three, each with footprint, access and
   drainability notes, for the engineer to choose at Gate 2.
@@ -65,7 +65,7 @@ If any is missing, stop and say which. Do not model from assumed data.
 - No snapshots, renders or presentation models unless Bob asks (Bob,
   2026-10-08: "BLENDER AND RENDERING IS FUN AND USEFUL AT TIMES, BUT SHOULD
   RARELY BE USED UNLESS I ASK FOR IT."). Reviewers read the filed GLB and
-  the takeoff lists; give Bob the filed GLB path and a `cad_show` link.
+  the takeoff lists; give Bob the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`).
 - Never hand-edit STEP or DXF. Fix the source, regenerate, commit both.
 - **Never overwrite a design** (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO
   OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."). Every model change
