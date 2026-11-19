@@ -34,18 +34,18 @@ Claude Code reads its instructions from `CLAUDE.md` at the repository root. Keep
 |-|-|-|
 |CAD|Writes build123d Python source and generates STEP parts and assemblies. Supports named mating datums and joints. Includes inspection (measure, align, diff) and mandatory snapshot review.|Frame, baseplates, supports, piping assembly, full skid assembly|
 |CAD Viewer|Local browser preview of STEP and related files (`cad viewer --json <file>` prints the link)|Design reviews and 3D walkthroughs|
-|CAD, 2D profiles and DXF (part of the CAD skill since 0.11; the separate DXF skill is retired)|Creates 2D profiles, gaskets, and cut layouts|Laser-cut parts: gussets, baseplates, drip pans, kickplates|
-|CAD, manufacturing checks (part of the CAD skill since 0.11; the separate dfm skills are retired)|Checks whether a part can be machined, cut and bent, molded or printed|Optional review of fabricated parts; general practice, no shop's limits|
+|CAD, 2D profiles and DXF (part of the CAD skill)|Creates 2D profiles, gaskets, and cut layouts|Laser-cut parts: gussets, baseplates, drip pans, kickplates|
+|CAD, manufacturing checks (part of the CAD skill)|Checks whether a part can be machined, cut and bent, molded or printed|Optional review of fabricated parts; general practice, no shop's limits|
 |Engineering drawing|Projects dimensioned views of a part to a PDF sheet|The view engine behind the plan set drawings|
 |SendCutSend|Checks DXF and STEP files before upload to that service|Optional, if that fabrication service is used|
 
-The step.parts skill (off-the-shelf STEP parts) was retired upstream in 0.11; step.parts remains a website of its own. Skill list as of text-to-cad 0.11.12 (2026-11-18): cad, engineering-drawing, fea, pcb, print3d, render, robot-simulation, sendcutsend.
+The plugin's skills are renamed and merged between releases, so this table names what each does, not what it is called; the installed plugin's own list is the current one. step.parts (off-the-shelf STEP parts) is a website of its own.
 
 **Limits to plan around:**
 
 * The skill states it is not for engineering certification or FEA conclusions. Structural checks and sign-off stay with the engineer.
 * It has no fitting, valve or process-component library. Vendor STEP models must be supplied (skill `component-add`).
-* The project releases frequently. Pin one version for production work and upgrade on purpose (`<project>/00_Project_Admin/07_Project_Controls/tooling.md`).
+* The project releases frequently, so it is handled in two tiers. The plugin's skills and the computer's own `cad` command update themselves. The engine that makes builds and drawing views is one pin (`harness/requirements-cad.txt`) and is upgraded on purpose: `harness/scripts/engine_check.py` compares a newer release against the pin, and the pin moves on Bob's word (skill `engine-update`; each move is recorded in `<project>/00_Project_Admin/07_Project_Controls/tooling.md`).
 
 ---
 
@@ -58,7 +58,7 @@ The central task is turning the customer intake and the P&ID into a 3D skid that
 1. Settle data-retention terms (enterprise or zero-retention plans) before any customer specs or drawings enter Claude Code.
 2. One GitHub repo per job folder (global "Git and backup") with `harness/` (company-wide) and `job/` (this job, one folder per project); the map is in `CLAUDE.md` "Repository map". A new project folder is made by `harness/scripts/project_new.py` (skill `job-bootstrap`).
 3. `CLAUDE.md` carries scope, units and naming, and the hard rules: never invent part numbers or dimensions; always cite the design rule behind a decision; flag every assumption; trace every component to a P&ID tag.
-4. Install text-to-cad at a pinned version.
+4. Install text-to-cad (its skills update themselves) and build the cad venv from the engine pin, `harness/requirements-cad.txt`.
 
 ### Phase 1 – Make the Inputs Machine-Readable
 
@@ -117,7 +117,7 @@ Between gates, the agent drafts and the automated checks verify. At the gates, t
 
 * **Pull requests are the review record.** One per day (`CLAUDE.md` "Work cycle"). The engineer approves every change to rules, component data, CAD source and project deliverables.
 * **STEP is derived output.** Edit the build123d source, then regenerate. Never hand-edit generated STEP files in the repository.
-* **Pin tool versions** (text-to-cad, agent version, Python dependencies) for each project, and record them in the project's `tooling.md`.
+* **Pin what makes a deliverable** (the CAD engine in `harness/requirements-cad.txt`, the Python dependencies), move the engine pin only through `engine_check.py`, and record each move in the project's `tooling.md`. The plugin's skills are not pinned.
 * **Customer data stays under agreed retention terms.** No customer drawings or specs go into tools without those terms in place.
 
 ---

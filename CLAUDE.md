@@ -221,7 +221,7 @@ harness/
                          First Principles.md: the seven principles the structure decides by
   checks/                Automated verification scripts (P&ID-to-model, sanitary, interference, sheet face)
   scripts/               model_iterate.py / model_accept.py (+ model_file.py) / closeout.py (the model tiers),
-                         track.py (GitHub tracking), drive_store.py (Google Drive store),
+                         track.py (GitHub tracking), drive_store.py (Google Drive store), engine_check.py (the engine pin),
                          label sync, lists workbook
   structural-models/     skidframe: skid frame load-bearing models (AISC 370/360, ASCE 7) for the Gate 3 check;
                          `run` saves each result in <project>/02_Engineering/06_Mechanical_Structural/Frame_Calcs/
@@ -696,9 +696,14 @@ filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edi
 
 ## Tooling
 
-- CAD generation: `text-to-cad` plugin (build123d), **pinned version recorded
-  in `<project>/00_Project_Admin/07_Project_Controls/tooling.md`**. Its CAD skill is for geometry, not FEA or
-  certification.
+- CAD generation: `text-to-cad` plugin (build123d). Its CAD skill is for geometry, not FEA or certification.
+  **Two tiers** (Bob, chat, 2026-11-18: "this skill updates frequently and we rely heavily on it"; "go ahead
+  with all five"): the plugin's skills and the computer's own `cad` command update themselves and are not
+  pinned. The engine that makes builds and drawing views is **one pin**, `harness/requirements-cad.txt`: it
+  moves only after `harness/scripts/engine_check.py` has compared the new release against it and Bob says yes
+  (skill `engine-update`). The pin and each move are recorded in
+  `<project>/00_Project_Admin/07_Project_Controls/tooling.md`. Harness text names no plugin version and no
+  plugin skill by its release.
 - Python dependencies pinned in `harness/requirements.txt` (repo venv,
   `harness/tools/venv/`) and `harness/requirements-cad.txt` (cad venv,
   `harness/tools/venv-cad/`: `cad[build123d]`, the text-to-cad library, with ezdxf and matplotlib).

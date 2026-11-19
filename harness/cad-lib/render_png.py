@@ -5,7 +5,7 @@ every body with build123d, project the triangles with an orthographic camera and
 Pillow. Deterministic: same model, same view, same pixels. Review PNGs are not drawings and are never filed through
 revfile.py (TR-06..08 cover DWG / PDF).
 
-Library (either venv, both build123d 0.13.0: repo harness/tools/venv, cad harness/tools/venv-cad):
+Library (either venv, both on the same build123d: repo harness/tools/venv, cad harness/tools/venv-cad):
 
     render(bodies, path, direction, up=..., label=..., title=None, clip=None)
         bodies: objects with .shape and .category (and .label, used in warnings); title: the model named in the

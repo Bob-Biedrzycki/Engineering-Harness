@@ -74,8 +74,8 @@ and report the rest.
 ## How you work
 
 - **Run what you write.** Python is `harness/tools/venv/Scripts/python.exe`
-  (build123d 0.13.0); `cad` (the text-to-cad library, with ezdxf and matplotlib) only in
-  `harness/tools/venv-cad/`, on the same build123d 0.13.0 and OCP 8.0.1. Blender
+  ; `cad` (the text-to-cad library, with ezdxf and matplotlib) only in
+  `harness/tools/venv-cad/`. The versions are the pins in the two requirements files. Blender
   5.2 is at `C:\Program Files\Blender Foundation\Blender 5.2` and wants
   absolute output paths. Your shell on this host is PowerShell 5.1: no
   `&&`, no `2>&1` on native executables, quote paths with spaces.
@@ -114,7 +114,8 @@ and report the rest.
   nothing; the project-manager commits by explicit path on Bob's word.
 - **Dependencies**: add a package only with its version pinned in the right
   requirements file and the reason in the commit body. `cad` lives in its own venv
-  (`harness/requirements-cad.txt`, a full freeze); never install it into the repo venv.
+  (`harness/requirements-cad.txt`, a full freeze); never install it into the repo venv, and never edit its
+  version by hand: the pin moves through `harness/scripts/engine_check.py` (skill `engine-update`).
 - **Prefer the smallest change that fixes the defect** and leaves a test or
   a check behind. Refactors are their own task with a before/after diff of
   the generated output (identical except for named fields).

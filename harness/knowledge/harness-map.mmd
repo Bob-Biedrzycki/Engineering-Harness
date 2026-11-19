@@ -44,7 +44,7 @@ flowchart TB
   subgraph SKILLS["4. Skills"]
     direction LR
     SK1[".claude/skills/: agent-task, pid-digitize, skid-layout, pipe-route,<br/>model-iterate, model-accept, model-file, closeout, github-tracking, ..."]:::tool
-    SK2["text-to-cad plugin skills: cad, dxf, engineering-drawing, step-parts, ...<br/>pinned version in the project's tooling.md"]:::tool
+    SK2["text-to-cad plugin skills (CAD, engineering drawing, ...)<br/>update themselves; the engine pin is harness/requirements-cad.txt"]:::tool
   end
 
   subgraph HARN["5. harness/ : reused unchanged by every CPME skid job (owned paths in harness/harness-manifest.txt)"]

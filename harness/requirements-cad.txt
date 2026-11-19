@@ -1,13 +1,13 @@
-# cad venv: harness/tools/venv-cad/ (gitignored). The second interpreter model_iterate.py uses: the assembly STEP
-# (export_step_direct.py), the fast GLB (export_glb_fast.py), review PNGs (harness/cad-lib/render_png.py) and the
-# fast PDF of a DXF (harness/cad-lib/dxf_pdf_fast.py: ezdxf + matplotlib).
-# cad is the text-to-cad library (named cadgen before 0.10). cad[build123d]==0.11.12 brings build123d 0.13.0 and
-# OCP 8.0.1.1, the same kernel as harness/requirements.txt, so the two venvs no longer differ in kernel.
-# Exact freeze of the environment the comparison build was made in (2026-11-18, Python 3.13.16, built by
-#   uv pip install "cad[build123d]==0.11.12" pyyaml==6.0.3 pandas==3.0.6 ezdxf matplotlib).
-# Replaces requirements-cadgen.txt (cadgen 0.6.6, build123d 0.11.1, OCP 7.9.3.1.1, Python 3.14.7). Rebuild:
+# cad venv: harness/tools/venv-cad/ (gitignored). THE ONE ENGINE PIN of a job: the second interpreter of
+# model_iterate.py (export_step_direct.py, export_glb_fast.py, harness/cad-lib/render_png.py, dxf_pdf_fast.py) and
+# the interpreter a job's plan set view projection runs on.
+# cad is the text-to-cad library (named cadgen in its early releases); cad[build123d] brings build123d and OCP.
+# This is a full freeze, so a rebuild is exact. Never edit a version here by hand: harness/scripts/engine_check.py
+# `try` compares a newer release against this pin and `adopt` rewrites this file (skill engine-update). Each move
+# is recorded in the project's tooling.md. Rebuild the venv from this file: engine_check.py rebuild, or
 #   uv venv --python 3.13 harness\tools\venv-cad
 #   uv pip install --python harness\tools\venv-cad\Scripts\python.exe -r harness\requirements-cad.txt
+# Frozen 2026-11-18 (Python 3.13.16), when this file replaced requirements-cadgen.txt.
 anytree==2.13.0
 asttokens==3.0.2
 bd-materials==0.2.6

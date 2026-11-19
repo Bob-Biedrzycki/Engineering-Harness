@@ -84,8 +84,8 @@ import model_build as mb  # noqa: E402
 import accept_preflight as pf  # noqa: E402
 
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
-# the second interpreter: cad[build123d]==0.11.12 with ezdxf and matplotlib, from harness/requirements-cad.txt
-# (until 2026-11-18 this was venv-cadgen: cadgen 0.6.6, build123d 0.11.1, OCP 7.9.3)
+# the second interpreter: the cad venv (cad[build123d] with ezdxf and matplotlib), built from the job's one
+# engine pin, harness/requirements-cad.txt; harness/scripts/engine_check.py compares a newer release and moves it
 PY_CAD = rp.TOOLS / "venv-cad" / "Scripts" / "python.exe"
 BUILDS = rp.BUILDS      # <project>/03_Working_Design/CAD/Builds: every build, fast or full (Bob, 2026-11-12)
 

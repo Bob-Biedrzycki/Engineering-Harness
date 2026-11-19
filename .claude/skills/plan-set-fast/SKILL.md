@@ -197,7 +197,7 @@ whole-drawing fast drawing) into one PDF with a linked index and bookmarks, in t
 `plan_set.py baseline [<SET> ...]` writes every sheet of every drawing as a sheet version (about 20 minutes per
 target; it can be stopped and finished later with `changed`). The generators read the model pin,
 `job/Typical-<ID prefix>/_work/plan-set/model-pin.yaml` (the build the takeoffs come from and the view cache the views
-come from; the cache is projected by `plan_set_lib/project_views.py`, run with `cad run`, one agent at a time). The
+come from; the cache is projected by `plan_set_lib/project_views.py`, run with the cad venv, `harness/tools/venv-cad`, the job's one engine pin, one agent at a time). The
 saved copy of the pin is `plan-set-reference/model-pin.yaml`; `status` says when the two differ. After a pin change,
 run `baseline`.
 
