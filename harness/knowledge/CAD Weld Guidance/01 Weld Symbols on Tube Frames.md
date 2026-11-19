@@ -27,6 +27,14 @@ Points:
   of the gusset. Welds on each side of the plate each need their own symbol.
 - Symbols are not the only option: tail notes or drawing notes may carry the requirement.
 
+Figures (all seven are in `images/aws-slotted-hss-symbols/`, listed in `05 Image Catalogue.md`):
+
+![AWS Fig 1: arrow side and other side by joint type](images/aws-slotted-hss-symbols/fig01-arrow-side-other-side-by-joint.png)
+
+![AWS Figs 6 to 9: one symbol per joint on channels and slotted tubes](images/aws-slotted-hss-symbols/fig06-09-channel-and-slotted-tube-symbols.png)
+
+![AWS Fig 10: a single fillet symbol for each tube-wall joint](images/aws-slotted-hss-symbols/fig10-slotted-tube-symbol-per-joint.png)
+
 ## B. Commonly misapplied welding symbols
 
 - **Publisher:** STRUCTURE magazine (NCSEA), 2023-02-01. Author: Jason McCool, P.E.
@@ -50,6 +58,14 @@ Points:
 4. **"Arrow side = near side."** Wrong: arrow/other side is relative to the **joint**, not the viewer. A hidden member
    behind a gusset is better referenced in the tail than with an other-side symbol.
 - Closing: the code (D1.1) requires symbols to follow A2.4, so the standard is binding where the code is.
+
+Figures (`images/structure-misapplied-symbols/`; the full printed pages are there too):
+
+![STRUCTURE Fig 2: tube column on base plate, the all-around fillet must carry a size](images/structure-misapplied-symbols/fig2-fillet-size-not-specified.jpg)
+
+![STRUCTURE Fig 3: flare-bevel callout, wrong vs right](images/structure-misapplied-symbols/fig3-flare-bevel-throat.jpg)
+
+![STRUCTURE Fig 4: weld-all-around misuse at a double-angle gusset](images/structure-misapplied-symbols/fig4-all-around-misuse.jpg)
 
 ## C. Know your HSS welds
 
@@ -78,6 +94,14 @@ Points that affect the drawing:
 - CJP needs backing, which cannot be removed inside a closed tube: use rarely. Fillet-reinforced PJP is the suggested
   alternative.
 
+Figures (all nine are in `images/structure-know-hss-welds/`):
+
+![HSS Fig 2: matched vs stepped tube joints](images/structure-know-hss-welds/fig2-matched-vs-stepped.jpg)
+
+![HSS Fig 4: flare-bevel, flare-V and flare groove welds at tube corners](images/structure-know-hss-welds/fig4-flare-groove-welds.jpg)
+
+![HSS Fig 8: PJP groove depth vs effective throat](images/structure-know-hss-welds/fig8-pjp-effective-throat.jpg)
+
 ---
 
 ## Takeaways for the skid frame (synthesis, not from any one source)
@@ -90,3 +114,11 @@ Points that affect the drawing:
   grooves** with the effective throat in parentheses, not fillets.
 - Mitred rail butt joints are grooves; give the throat (or say CJP explicitly) rather than leaving the symbol blank.
 - If any frame weld is a continuous seal for sanitary washdown, say so on the symbol or note and name the inspection.
+
+Supporting textbook figures (CC BY 4.0, `images/open-textbook/`):
+
+![General note that sets the fillet size](images/open-textbook/ch06-fillet-img033.png)
+
+![Weld all around on a square tube](images/open-textbook/ch05-supplementary-img124.png)
+
+![Flare-bevel and flare-V welds on formed corners](images/open-textbook/ch07-groove-img101.png)

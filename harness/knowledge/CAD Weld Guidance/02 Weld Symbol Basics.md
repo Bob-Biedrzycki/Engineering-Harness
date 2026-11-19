@@ -37,6 +37,20 @@ Groove welds:
 
 Plug / slot: hole size left, pitch right, count in parentheses; arrow vs other side says which piece has the hole.
 
+Figures (all 21 plus Miller's one-page **symbol chart PDF** are in `images/miller-weld-symbols/`):
+
+![Parts of a welding symbol](images/miller-weld-symbols/01-structure_weld_symbol.png)
+
+![Field weld flag and weld-all-around circle](images/miller-weld-symbols/04-all_around_weld_symbol.png)
+
+![Fillet leg size](images/miller-weld-symbols/07-fillet_leg_size_weld_symbol.png)
+
+![Fillet length](images/miller-weld-symbols/08-fillet_length_weld_symbol.png)
+
+![Flare-bevel groove](images/miller-weld-symbols/18-flare_bevel_groove_weld_symbol.png)
+
+Chart: [`images/miller-weld-symbols/22-welding-symbol-chart.pdf`](images/miller-weld-symbols/22-welding-symbol-chart.pdf)
+
 ## B. A review of the application of weld symbols on drawings (British/ISO practice)
 
 - **Publisher:** TWI Job Knowledge; author Mark Cozens; reissued 2020-04-27.
@@ -50,6 +64,27 @@ Points useful to us:
 - Fillet contour: flush, convex or concave may be added to the triangle.
 - Weld all round shown on a rectangular tube to plate example.
 - Process numbers (ISO 4063) go in the tail.
+
+Figures (all 19 in `images/twi-weld-symbols-iso/`; ISO practice, so do not copy the dashed line or a/z prefixes onto
+our AWS drawings):
+
+![ISO weld contours](images/twi-weld-symbols-iso/part1-fig7-weld-contours.gif)
+
+![Weld all round on a rectangular tube](images/twi-weld-symbols-iso/fig06.gif)
+
+## C. Textbook figures (CC BY 4.0)
+
+Cameren Moran, *Interpretation of Metal Fab Drawings*, Open Oregon, 2017: https://openoregon.pressbooks.pub/weldsymbols/ .
+88 figures from the joints, basics, supplementary, fillet and groove chapters are in `images/open-textbook/`, each
+described in `05 Image Catalogue.md`. A few of the most useful:
+
+![Arrow side and other side on a T](images/open-textbook/ch04-basics-img004.png)
+
+![Fillet arrow side, other side, both sides](images/open-textbook/ch06-fillet-img029.png)
+
+![All groove types and their symbols](images/open-textbook/ch07-groove-img083.png)
+
+![Groove depth vs effective throat](images/open-textbook/ch07-groove-img095.png)
 
 ---
 

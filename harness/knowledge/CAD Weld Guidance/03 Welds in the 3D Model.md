@@ -18,6 +18,16 @@ Reference notes, paraphrased from CAD vendor help and reseller articles. Fetched
 - Advice: graphical beads for detailed weldment drawings with callouts and tables; solid beads where the physical weld
   matters for inspection or mass.
 
+Figures (all nine in `images/goengineer-weld-vs-fillet-bead/`):
+
+![Weld bead data shown as a weld table on the drawing](images/goengineer-weld-vs-fillet-bead/02-solidworks-weld-bead-benefits.png)
+
+![Solid fillet beads listed as bodies in the cut list](images/goengineer-weld-vs-fillet-bead/04-weld-bead-vs-fillet-bead-solidworks.png)
+
+![Finished intermittent and full-length solid beads](images/goengineer-weld-vs-fillet-bead/08-finished-fillet-bead-features-solidworks.png)
+
+![Intermittent bead as drawn on a sheet](images/goengineer-weld-vs-fillet-bead/09-intermittent-fillet-weld-bead-solidworks-drawing.png)
+
 ## B. Creating and adding weld beads in models and drawings (SOLIDWORKS)
 
 - **Publisher:** GoEngineer blog, Brad Hakeman, 2022-01-18.
@@ -25,6 +35,14 @@ Reference notes, paraphrased from CAD vendor help and reseller articles. Fetched
 - Weld path is picked as faces of the joint; tangent propagation runs it round a profile where a member meets a plate.
 - "Define weld symbol" attaches the symbol to the bead; a weld folder lists each bead and its length.
 - On the drawing, model items bring in the weld symbols and **"caterpillars"** (the drawn bead graphic) together.
+
+Figures (all 13 in `images/goengineer-adding-weld-beads/`, two of them animations):
+
+![Bead carried round a profile by tangent propagation](images/goengineer-adding-weld-beads/06-tangent-propagation-solidworks.png)
+
+![Weld symbol attached to the bead](images/goengineer-adding-weld-beads/08-define-weld-symbol-solidworks.png)
+
+![Symbols and caterpillars brought into a drawing view](images/goengineer-adding-weld-beads/13-solidworks-drawing-weld-bead-tutorial.png)
 
 ## C. Weld bead feature types (Inventor 2024)
 
@@ -35,6 +53,10 @@ Reference notes, paraphrased from CAD vendor help and reseller articles. Fetched
   different weld types. Made by picking **edges**.
 - **Solid weld (fillet or groove):** real bead, real mass, symbol on the assembly; use it when interference or mass
   matters. Made by picking **faces**; preparations optional.
+
+![Inventor bead types (a)](images/autodesk-inventor-weld-beads/01-bead-types-a.jpg)
+
+![Inventor bead types (b)](images/autodesk-inventor-weld-beads/02-bead-types-b.jpg)
 
 ## D. Welding symbols on models (Inventor 2020)
 
@@ -73,6 +95,7 @@ Reference notes, paraphrased from CAD vendor help and reseller articles. Fetched
 - Weld symbols are among the 3D annotations that can be placed on a model, including at assembly level, and published
   to 3D PDF / eDrawings / STEP AP242. Claims support for ASME Y14.41 and ISO 16792. AP242 recommended for long-term
   archive.
+- The page's pictures are gear and pillow-block examples with no welds, so none were kept.
 
 ---
 

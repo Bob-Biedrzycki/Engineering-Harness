@@ -10,7 +10,9 @@ structural welding; listed in `../Design Standards.md`, where A2.4 is not yet li
 in this folder.
 
 The notes are paraphrased from the public pages, with each source's URL, publisher, date and how much of it was read.
-Full copies are not stored: the pages are copyrighted, and four of them refuse automated download.
+The **figures from the sources are stored in `images/`** (175 files, one folder per source) for internal reference
+(Bob, chat, 2026-11-19), with the key ones shown inline in the notes and every one described in
+`05 Image Catalogue.md`. Copyright stays with each publisher; they are not for anything CPME sends out.
 
 | File | What it covers |
 |---|---|
@@ -18,6 +20,8 @@ Full copies are not stored: the pages are copyrighted, and four of them refuse a
 | `02 Weld Symbol Basics.md` | Primer on A2.4 symbol parts (arrow/other side, flag, all-around, tail, fillet and groove sizes) and how ISO 2553 differs |
 | `03 Welds in the 3D Model.md` | Cosmetic vs solid weld beads (SOLIDWORKS, Inventor), model-attached weld symbols, associativity with drawings, ASME Y14.41; what carries over to build123d |
 | `04 Standards and Pages Not Retrieved.md` | A2.4, D1.6, AISC Design Guide 24, AISC Steelwise and others that could not be read, with what is known and how to get them |
+| `05 Image Catalogue.md` | Every figure in `images/`, by source, with what each shows and which matter most for our frame |
+| `images/` | The figures: AWS, STRUCTURE (two articles), Miller (plus its symbol chart PDF and joint poster), TWI, GoEngineer (two articles), Autodesk Inventor, and an open (CC BY) welding-symbols textbook |
 
 ## Short version
 
