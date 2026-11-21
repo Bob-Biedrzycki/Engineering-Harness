@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CAD Weld Guidance</title>
+<!-- CPME USA style guide (harness/style-guide), section 7.5: white slides, Navy titles, Document Blue accent, logo bottom right. -->
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../style-guide/brand.css">
+<style>
+  :root{ --safe:100px; --foot:80px; --top:268px; }
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  #deck{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:center center}
+  .slide{position:absolute;inset:0;overflow:hidden;display:none;background:#fff;color:var(--ink);font-family:var(--sans);font-size:28px;line-height:1.35}
+  .slide.on{display:block;animation:enter .3s ease-out}
+  @keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+  #help{position:fixed;left:12px;bottom:10px;font:12px var(--mono);color:#fff6;z-index:9}
+
+  /* Header and footer, as in the Week 47 dev meeting deck */
+  .bar{position:absolute;left:var(--safe);top:62px;background:var(--cpme-doc-blue);color:#fff;font-family:var(--head);font-weight:700;font-size:26px;letter-spacing:.06em;text-transform:uppercase;padding:9px 20px}
+  h2{position:absolute;left:var(--safe);right:var(--safe);top:118px;margin:0;font-family:var(--head);font-weight:800;font-size:72px;line-height:1.05;color:var(--cpme-navy);letter-spacing:-.01em}
+  .rule{position:absolute;left:var(--safe);right:var(--safe);top:228px;height:2px;background:var(--line)}
+  .foot{position:absolute;left:var(--safe);right:var(--safe);bottom:0;height:var(--foot);border-top:3px solid var(--cpme-navy);display:flex;align-items:center;justify-content:space-between}
+  .foot .l{font-family:var(--mono);font-size:22px;color:var(--ink-3)}
+  .foot .r{display:flex;align-items:center;gap:28px}
+  .foot .n{font-family:var(--mono);font-size:22px;color:var(--ink-3)}
+  .foot img{height:46px;width:auto;display:block}
+
+  /* Body area and grids */
+  .body{position:absolute;left:var(--safe);right:var(--safe);top:var(--top);bottom:110px;display:flex;flex-direction:column;gap:22px}
+  .row{display:grid;gap:22px;min-height:0}
+  .c2{grid-template-columns:1fr 1fr} .c3{grid-template-columns:1fr 1fr 1fr} .c4{grid-template-columns:repeat(4,1fr)}
+  .fill{flex:1}
+  ul{margin:0;padding-left:28px} li{margin:0 0 6px}
+  b{font-weight:600;color:var(--cpme-navy)}
+  code{font-family:var(--mono);font-size:.85em;background:var(--tint);padding:1px 8px}
+
+  /* Cards: navy top rule; status cards carry a word, never colour alone */
+  .card{border:2px solid var(--line);border-top:6px solid var(--cpme-navy);padding:18px 24px;background:#fff}
+  .card h3{margin:0 0 8px;font-family:var(--head);font-weight:700;font-size:30px;color:var(--cpme-navy)}
+  .card.ok{border-top-color:var(--ok)} .card.warn{border-top-color:var(--warn)} .card.bad{border-top-color:var(--bad)}
+  .tag{display:inline-block;font-family:var(--mono);font-weight:600;font-size:20px;letter-spacing:.1em;padding:2px 10px;border:2px solid currentColor;border-radius:4px;margin-right:10px;vertical-align:4px}
+  .tag.ok{color:var(--ok)} .tag.warn{color:var(--warn)} .tag.bad{color:var(--bad)} .tag.info{color:var(--cpme-doc-blue)}
+  .small{font-size:24px;color:var(--ink-2)}
+
+  /* Figures: fixed boxes, image contained, click to enlarge */
+  figure{margin:0;display:flex;flex-direction:column;min-height:0}
+  figure .img{flex:1;min-height:0;border:2px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;padding:10px;cursor:zoom-in}
+  figure img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+  figcaption{font-size:22px;line-height:1.3;color:var(--ink-3);margin-top:8px}
+  figcaption b{color:var(--ink-2)}
+  .h300 figure .img{height:300px;flex:none} .h340 figure .img{height:340px;flex:none} .h420 figure .img{height:420px;flex:none} .h240 figure .img{height:230px;flex:none}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;font-size:24px;line-height:1.3}
+  th{background:var(--tint);color:var(--cpme-navy);font-family:var(--head);font-weight:700;font-size:20px;letter-spacing:.06em;text-transform:uppercase;text-align:left;padding:10px 14px;border-bottom:2px solid var(--line)}
+  td{padding:9px 14px;border-bottom:2px solid var(--line);vertical-align:top}
+  td a{color:var(--cpme-doc-blue)}
+
+  /* Cover */
+  .cover .band{position:absolute;left:0;top:0;bottom:0;width:22px;background:var(--cpme-navy)}
+  .cover .logo{position:absolute;left:var(--safe);top:96px;height:190px;width:auto}
+  .cover .kick{position:absolute;left:var(--safe);top:350px;font-family:var(--mono);font-size:28px;letter-spacing:.16em;color:var(--cpme-doc-blue);text-transform:uppercase}
+  .cover h1{position:absolute;left:var(--safe);top:396px;margin:0;font-family:var(--head);font-weight:800;font-size:120px;line-height:1;color:var(--cpme-navy)}
+  .cover .lead{position:absolute;left:var(--safe);top:540px;width:1500px;font-size:36px;color:var(--ink-2)}
+  .cover .stats{position:absolute;left:var(--safe);right:var(--safe);top:670px;display:grid;grid-template-columns:repeat(4,1fr);gap:26px}
+  .cover .stats div{border:2px solid var(--line);border-top:8px solid var(--cpme-navy);padding:18px 24px}
+  .cover .stats b{display:block;font-family:var(--head);font-weight:800;font-size:72px;line-height:1}
+  .cover .stats span{display:block;font-size:26px;color:var(--ink-2);margin-top:6px}
+  .cover .note{position:absolute;left:var(--safe);right:var(--safe);top:905px;font-size:22px;color:var(--ink-3)}
+
+  /* Weld record box */
+  .record{font-family:var(--mono);font-size:24px;line-height:1.45;white-space:pre;border:2px dashed var(--cpme-doc-blue);background:var(--tint);padding:18px 24px;color:var(--ink)}
+
+  /* Lightbox */
+  #lightbox{position:fixed;inset:0;background:rgba(7,11,34,.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:20;padding:24px;cursor:zoom-out}
+  #lightbox.on{display:flex}
+  #lightbox img{max-width:94vw;max-height:84vh;background:#fff;padding:10px}
+  #lightbox p{color:#E8ECFB;font:16px var(--sans);max-width:1000px;text-align:center}
+</style>
+</head>
+<body>
+<div id="deck">
+
+<!-- 1 Cover -->
+<section class="slide cover">
+  <div class="band"></div>
+  <img class="logo" src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA">
+  <div class="kick">Engineering Harness · Knowledge base</div>
+  <h1>CAD Weld Guidance</h1>
+  <div class="lead">How to show welds on a welded stainless square-tube skid frame: weld symbols on the plan set, and welds in the 3D model.</div>
+  <div class="stats">
+    <div><b>5</b><span>research notes</span></div>
+    <div><b>175</b><span>figures and charts catalogued</span></div>
+    <div><b>9</b><span>public sources read</span></div>
+    <div><b>6</b><span>paid standards still to obtain</span></div>
+  </div>
+  <div class="note">Gathered November 19, 2026. Company-wide (harness level): holds for any CPME skid frame. Internal reference only; figures remain the copyright of each publisher.</div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · Internal</span></div>
+</section>
+
+<!-- 2 Scope -->
+<section class="slide">
+  <div class="bar">Context</div>
+  <h2>What this knowledge base is, and is not</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2">
+      <div class="card"><h3>It is</h3><ul>
+        <li>Notes paraphrased from public articles, each with URL, publisher, date and how much was read</li>
+        <li>A catalogue of the source figures, one folder per source</li>
+        <li>What applies to <b>our stainless tube frame</b> and to <b>build123d models</b></li></ul></div>
+      <div class="card warn"><h3><span class="tag warn">NOT RULES</span>It is not</h3><ul>
+        <li><b>Not design rules.</b> Nothing binds until written into <code>harness/design-rules/</code>, with Bob choosing the level first</li>
+        <li>Not the standards: <b>AWS A2.4</b> (symbols) and <b>AWS D1.6</b> (stainless structural welding) govern; both are paid</li></ul></div>
+    </div>
+    <table>
+      <tr><th style="width:420px">Note</th><th>Covers</th></tr>
+      <tr><td><b>01</b> Weld Symbols on Tube Frames</td><td>AWS and STRUCTURE articles on symbols at tube (HSS) joints; takeaways for our frame</td></tr>
+      <tr><td><b>02</b> Weld Symbol Basics</td><td>A2.4 symbol anatomy; how ISO 2553 differs</td></tr>
+      <tr><td><b>03</b> Welds in the 3D Model</td><td>Cosmetic vs solid beads, model-attached symbols, ASME Y14.41, what carries over to build123d</td></tr>
+      <tr><td><b>04</b> Standards Not Retrieved</td><td>A2.4, D1.6, AISC Design Guide 24 and others: what is known and how to get them</td></tr>
+      <tr><td><b>05</b> Image Catalogue</td><td>Every figure in <code>images/</code>, by source</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 3 Short version -->
+<section class="slide">
+  <div class="bar">The short version</div>
+  <h2>Seven points to remember</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 fill">
+      <div class="card"><h3><span class="tag info">2D</span>Plan set</h3><ul>
+        <li>Every fillet has a <b>stated size</b>; a blank fillet symbol has no default. A general note may set it, with a <b>TYP</b> symbol at a representative joint</li>
+        <li><b>One symbol per joint and per tube wall</b>; all-around only where one joint's weld truly runs around without crossing a 3-D corner</li>
+        <li><b>Flush (matched-width)</b> tube joints: the flush faces are <b>flare-bevel grooves</b>, effective throat in parentheses</li>
+        <li><b>Mitred butt joints:</b> state the throat or CJP; never a blank groove symbol</li>
+        <li>Check <b>D1.6:2017</b> fillet size limits before fixing the general note</li></ul></div>
+      <div class="card ok"><h3><span class="tag ok">3D</span>Model</h3><ul>
+        <li>Every weld is a <b>data record</b> (joint, edges, type, size, length, side, all-around, field or shop), shown as a light cosmetic bead. Solid bead bodies only where clearance or mass matters</li>
+        <li>Weld maps, weld tables and plan-set symbols are <b>generated from those records</b>, never typed on a sheet</li></ul></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 4 Anatomy -->
+<section class="slide">
+  <div class="bar">Basics · AWS A2.4</div>
+  <h2>Anatomy of a welding symbol</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 fill">
+      <figure><div class="img"><img src="images/miller-weld-symbols/01-structure_weld_symbol.png" alt="Parts of a welding symbol"></div><figcaption><b>Parts of a welding symbol.</b> Miller Electric.</figcaption></figure>
+      <div style="display:flex;flex-direction:column;gap:22px;min-height:0">
+        <div class="card"><ul>
+          <li><b>Reference line</b> carries everything; the <b>arrow</b> joins it to the joint</li>
+          <li><b>Arrow side:</b> symbol below the line. <b>Other side:</b> above. Holds whichever way the arrow points</li>
+          <li>Arrow and other side are relative to the <b>joint</b>, not the viewer</li>
+          <li><b>Field weld:</b> flag at the junction (no flag = shop) · <b>All around:</b> open circle · <b>Tail:</b> process, notes</li></ul></div>
+        <figure class="fill"><div class="img"><img src="images/miller-weld-symbols/04-all_around_weld_symbol.png" alt="Field weld flag and all-around circle"></div><figcaption><b>Field-weld flag and weld-all-around circle.</b> Miller Electric.</figcaption></figure>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 5 Fillets -->
+<section class="slide">
+  <div class="bar">Fillet welds</div>
+  <h2>Size left, length right, and no default size</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 h340">
+      <figure><div class="img"><img src="images/miller-weld-symbols/07-fillet_leg_size_weld_symbol.png" alt="Fillet leg size"></div><figcaption><b>Leg size left of the triangle</b>; unequal legs give both. Miller.</figcaption></figure>
+      <figure><div class="img"><img src="images/miller-weld-symbols/08-fillet_length_weld_symbol.png" alt="Fillet length"></div><figcaption><b>Length right.</b> No length = runs between changes of direction. Miller.</figcaption></figure>
+      <figure><div class="img"><img src="images/structure-misapplied-symbols/fig2-fillet-size-not-specified.jpg" alt="Tube column on base plate"></div><figcaption><b>Tube on base plate:</b> the all-around fillet must carry a size. STRUCTURE, Feb 2023.</figcaption></figure>
+    </div>
+    <div class="row c2">
+      <div class="card bad"><h3><span class="tag bad">MISTAKE</span>"A fillet doesn't need a size"</h3>Unlike an unsized V-groove (read as CJP), a blank fillet has <b>no default</b>. Full-thickness fillets are discouraged.</div>
+      <div class="card ok"><h3><span class="tag ok">PRACTICE</span>General note plus TYP</h3>A general note may set the typical size, but keep a <b>TYP</b> symbol at a representative joint, close to the work.</div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 6 General note -->
+<section class="slide">
+  <div class="bar">Fillet welds · continued</div>
+  <h2>The general note, and intermittent fillets</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 fill">
+      <figure><div class="img"><img src="images/open-textbook/ch06-fillet-img033.png" alt="General note setting the fillet size"></div><figcaption><b>General note setting the fillet size</b>, size left off the symbol. Moran, <i>Interpretation of Metal Fab Drawings</i>, CC BY 4.0.</figcaption></figure>
+      <figure><div class="img"><img src="images/open-textbook/ch06-fillet-img029.png" alt="Fillet arrow side, other side, both sides"></div><figcaption><b>Fillet: arrow side, other side, both sides.</b> Moran, CC BY 4.0.</figcaption></figure>
+    </div>
+    <div class="card"><b>Intermittent (stitch) fillets:</b> length-pitch right of the symbol; pitch is <b>centre to centre</b>, not the gap. <b>Plug and slot:</b> hole size left, pitch right, count in parentheses.</div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 7 One symbol per joint -->
+<section class="slide">
+  <div class="bar">Tube frames · AWS Inspection Trends, May 2025</div>
+  <h2>One symbol per joint, and per tube wall</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 h300">
+      <figure><div class="img"><img src="images/aws-slotted-hss-symbols/fig01-arrow-side-other-side-by-joint.png" alt="Arrow side vs other side by joint type"></div><figcaption><b>Fig 1:</b> arrow side vs other side by joint type (A2.4:2020).</figcaption></figure>
+      <figure><div class="img"><img src="images/aws-slotted-hss-symbols/fig06-09-channel-and-slotted-tube-symbols.png" alt="Channel and slotted tube symbols"></div><figcaption><b>Figs 6–9:</b> one symbol per leg; a double fillet on a slotted tube means its outside and inside wall.</figcaption></figure>
+      <figure><div class="img"><img src="images/aws-slotted-hss-symbols/fig10-slotted-tube-symbol-per-joint.png" alt="One single fillet symbol per tube wall joint"></div><figcaption><b>Fig 10, correct:</b> one single-fillet symbol for each tube-wall-to-plate joint.</figcaption></figure>
+    </div>
+    <div class="card"><ul>
+      <li>A symbol applies <b>only to the joint its arrow touches</b>; a double fillet means both sides of that one joint</li>
+      <li><b>Fillets on all four walls of a square tube need four single-fillet symbols</b>, or a correctly used all-around</li></ul></div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 8 All around -->
+<section class="slide">
+  <div class="bar">Weld all around</div>
+  <h2>When the all-around circle is right, and when not</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 h340">
+      <figure><div class="img"><img src="images/open-textbook/ch05-supplementary-img124.png" alt="Weld all around on a square tube"></div><figcaption><b>Correct:</b> weld all around on a square and a square tube. Moran, CC BY 4.0.</figcaption></figure>
+      <figure><div class="img"><img src="images/structure-misapplied-symbols/fig4-all-around-misuse.jpg" alt="Weld all around misuse at a double-angle gusset"></div><figcaption><b>Wrong vs right:</b> all-around on double angles forces welding in the gap; use separate arrows. STRUCTURE, Feb 2023.</figcaption></figure>
+    </div>
+    <div class="row c2">
+      <div class="card bad"><h3><span class="tag bad">MISUSE</span>Across 3-D corners</h3>Thin throat at transitions, hidden poor fit-up. Example: <b>square tubes with flush members</b>, where the flush sides are flare-bevel grooves.</div>
+      <div class="card warn"><h3><span class="tag warn">NOTE</span>Sanitary washdown seal welds</h3>Recognised for washdown. When used, say so on the symbol or note and <b>name the inspection</b> (MT or PT).</div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 9 Matched vs stepped -->
+<section class="slide">
+  <div class="bar">Tube frames · STRUCTURE, "Know Your HSS Welds"</div>
+  <h2>Matched vs stepped tube joints</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 fill">
+      <figure><div class="img"><img src="images/structure-know-hss-welds/fig2-matched-vs-stepped.jpg" alt="Matched vs stepped tube joints"></div><figcaption><b>Matched</b> (welds land on the corner radius) vs <b>stepped</b> (branch narrower, welds on the flat).</figcaption></figure>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card ok"><h3><span class="tag ok">CHEAPER</span>Stepped</h3>Branch narrower than the chord: <b>plain fillets</b>.</div>
+        <div class="card warn"><h3><span class="tag warn">MORE WORK</span>Matched (flush)</h3><b>Fillets plus flare-bevel grooves.</b> Root opening 0 nominal, 1/16 in. detailed tolerance, 1/8 in. at fit-up.</div>
+        <div class="card small"><ul>
+          <li>Strength rests on the <b>effective throat</b>; one pass covers fillets to about 5/16 in.</li>
+          <li>Tube-end welds are outside-only (single-sided)</li>
+          <li>CJP needs backing that can't come out of a closed tube: use rarely</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 10 Flare grooves -->
+<section class="slide">
+  <div class="bar">Groove welds at tube corners</div>
+  <h2>Flare-bevel and flare-V: throat in parentheses</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 h300">
+      <figure><div class="img"><img src="images/structure-know-hss-welds/fig4-flare-groove-welds.jpg" alt="Flare groove welds at tube corners"></div><figcaption><b>Flare-bevel</b> and <b>flare-V</b>; R = 2t, effective throat S. STRUCTURE.</figcaption></figure>
+      <figure><div class="img"><img src="images/structure-misapplied-symbols/fig3-flare-bevel-throat.jpg" alt="Flare-bevel callout wrong vs right"></div><figcaption><b>Wrong vs right</b> flare-bevel callout. STRUCTURE, Feb 2023.</figcaption></figure>
+      <figure><div class="img"><img src="images/miller-weld-symbols/18-flare_bevel_groove_weld_symbol.png" alt="Flare bevel groove symbol"></div><figcaption><b>Flare-bevel groove symbol</b>, depth in parentheses. Miller.</figcaption></figure>
+    </div>
+    <div class="row c2">
+      <div class="card"><ul>
+        <li>Flare welds are <b>always PJP</b>; a size without parentheses is groove depth</li>
+        <li>Corner radius sets the throat: 2.25t stepped, average 2t matched (AISC)</li></ul></div>
+      <div class="card bad"><h3><span class="tag bad">RISK</span>No size given</h3>The shop fills flush (many passes). <b>A blank symbol on an HSS connection is read as CJP.</b></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 11 Groove family -->
+<section class="slide">
+  <div class="bar">Groove welds · reference</div>
+  <h2>The groove family: depth vs effective throat</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 h420">
+      <figure><div class="img"><img src="images/open-textbook/ch07-groove-img083.png" alt="All groove types and their symbols"></div><figcaption><b>All groove types</b> with their symbols. Moran, CC BY 4.0.</figcaption></figure>
+      <figure><div class="img"><img src="images/open-textbook/ch07-groove-img095.png" alt="Groove depth vs effective throat"></div><figcaption><b>Groove depth vs effective throat.</b> Moran, CC BY 4.0.</figcaption></figure>
+      <figure><div class="img"><img src="images/structure-know-hss-welds/fig8-pjp-effective-throat.jpg" alt="PJP groove depth vs effective throat"></div><figcaption><b>PJP depth D vs throat S</b> at 45° and 60°. STRUCTURE.</figcaption></figure>
+    </div>
+    <div class="card small">V-groove: angle and root opening; partial depth left, throat in parentheses. Bevel and J: the arrow points at the prepared piece. <b>R</b> in a backing symbol = remove after welding.</div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 12 Misapplied -->
+<section class="slide">
+  <div class="bar">STRUCTURE magazine, Feb 2023 · McCool</div>
+  <h2>Four commonly misapplied welding symbols</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c2 fill">
+      <div class="card bad"><h3>1 · "A fillet doesn't need a size"</h3>It has no default. The lap-joint limit (1/16 in. under plate thickness) is a <i>maximum</i>, not a default.</div>
+      <div class="card bad"><h3>2 · Flare-bevel or flare-V unsized</h3>Always PJP. Show the effective throat in parentheses.</div>
+      <div class="card bad"><h3>3 · "All-around is a fine shortcut"</h3>Not across 3-D corners. Seal welds are fine for washdown, with MT or PT called out.</div>
+      <div class="card bad"><h3>4 · "Arrow side = near side"</h3>Arrow and other side are relative to the joint, not the viewer.</div>
+    </div>
+    <div class="small">The structural code requires symbols to follow A2.4, so the standard is binding wherever the code is.</div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 13 AWS vs ISO -->
+<section class="slide">
+  <div class="bar">TWI Job Knowledge · ISO 2553</div>
+  <h2>AWS vs ISO: never mix them on one drawing</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row fill" style="grid-template-columns:560px 1fr">
+      <div style="display:flex;flex-direction:column;gap:18px;min-height:0">
+        <figure class="fill"><div class="img"><img src="images/twi-weld-symbols-iso/part1-fig7-weld-contours.gif" alt="ISO weld contours"></div><figcaption><b>Weld contours.</b> TWI.</figcaption></figure>
+        <figure class="fill"><div class="img"><img src="images/twi-weld-symbols-iso/fig06.gif" alt="Weld all round on a rectangular tube"></div><figcaption><b>Weld all round</b> on a rectangular tube (ISO). TWI.</figcaption></figure>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <table>
+          <tr><th>Item</th><th>AWS A2.4 (ours)</th><th>ISO 2553</th></tr>
+          <tr><td>Other side</td><td>Symbol above the line</td><td>Dashed second line</td></tr>
+          <tr><td>Fillet size</td><td>Leg size, left of symbol</td><td><code>z</code> leg, <code>a</code> throat</td></tr>
+          <tr><td>Unsized groove</td><td>Read as CJP</td><td>Full penetration</td></tr>
+          <tr><td>Process</td><td>In the tail</td><td>ISO 4063 number</td></tr>
+        </table>
+        <div class="card warn"><h3><span class="tag warn">OURS IS AWS</span>Don't copy ISO figures</h3>No dashed line, no a/z prefixes on CPME drawings.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 14 Cosmetic vs solid -->
+<section class="slide">
+  <div class="bar">Welds in the 3D model</div>
+  <h2>Cosmetic bead vs solid bead</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <tr><th style="width:230px"></th><th>Cosmetic (graphical) weld</th><th>Solid weld bead</th></tr>
+      <tr><td><b>Geometry</b></td><td>None: edges change appearance</td><td>Real body in the weldment</td></tr>
+      <tr><td><b>Data</b></td><td>Properties feed a <b>weld table</b></td><td>Shows in the cut list</td></tr>
+      <tr><td><b>Mass</b></td><td>Approximate</td><td>True</td></tr>
+      <tr><td><b>Interference</b></td><td>Not seen by checks</td><td>Seen (bead vs hole, clamp, part)</td></tr>
+      <tr><td><b>Vendor advice</b></td><td><span class="tag ok">DEFAULT</span>for detailed weldment drawings</td><td>Where mass or the physical weld matters</td></tr>
+    </table>
+    <div class="row c3 h240">
+      <figure><div class="img"><img src="images/goengineer-weld-vs-fillet-bead/02-solidworks-weld-bead-benefits.png" alt="Weld bead data as a weld table"></div><figcaption><b>Cosmetic bead data → weld table.</b> GoEngineer.</figcaption></figure>
+      <figure><div class="img"><img src="images/goengineer-weld-vs-fillet-bead/04-weld-bead-vs-fillet-bead-solidworks.png" alt="Solid fillet beads in cut list"></div><figcaption><b>Solid beads</b> in the cut list. GoEngineer.</figcaption></figure>
+      <figure><div class="img"><img src="images/autodesk-inventor-weld-beads/01-bead-types-a.jpg" alt="Inventor bead types"></div><figcaption><b>Inventor:</b> cosmetic vs solid bead. Autodesk.</figcaption></figure>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 15 Associativity -->
+<section class="slide">
+  <div class="bar">Welds in the 3D model · associativity</div>
+  <h2>Symbols tied to the model, not typed on the sheet</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 h300">
+      <figure><div class="img"><img src="images/goengineer-adding-weld-beads/06-tangent-propagation-solidworks.png" alt="Tangent propagation"></div><figcaption><b>Bead carried round a profile.</b> GoEngineer.</figcaption></figure>
+      <figure><div class="img"><img src="images/goengineer-adding-weld-beads/08-define-weld-symbol-solidworks.png" alt="Define weld symbol"></div><figcaption><b>Symbol attached to the bead.</b> GoEngineer.</figcaption></figure>
+      <figure><div class="img"><img src="images/goengineer-adding-weld-beads/13-solidworks-drawing-weld-bead-tutorial.png" alt="Symbols in a drawing view"></div><figcaption><b>Symbols brought into a drawing view.</b> GoEngineer.</figcaption></figure>
+    </div>
+    <div class="row c2">
+      <div class="card"><ul>
+        <li>A model weld symbol's leader is <b>attached to a model edge</b> and follows it</li>
+        <li>Drawings pull model symbols in and stay associative; hand-added notes do not</li></ul></div>
+      <div class="card"><h3>ASME Y14.41-2019</h3>Annotated model, or model plus drawing. Weld symbols still come from AWS A2.4.</div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 16 build123d -->
+<section class="slide">
+  <div class="bar">What carries over to our build123d models</div>
+  <h2>Every weld is a record; the rest is generated</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row fill" style="grid-template-columns:860px 1fr">
+      <div><div class="record">weld record   (cosmetic weld, the default)
+  joint id        e.g. FM-012 / FM-031 wall N
+  edges           model edges it runs along
+  type            fillet | flare-bevel | groove
+  size            leg or effective throat, in
+  length          or "full"
+  side            arrow | other | both
+  all_around      true | false
+  field_or_shop   shop | field
+  process, notes  tail content</div>
+        <div class="small" style="margin-top:10px">Field list from note 03; the joint id format is illustrative.</div></div>
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div class="card ok"><h3><span class="tag ok">DEFAULT</span>Weld as data</h3>A light bead line in 3D. Fast, covers every weld type.</div>
+        <div class="card warn"><h3><span class="tag warn">EXCEPTION</span>Solid bead body</h3>Only where clearance or mass matters: beside a support, clamp, panel mount or bolt hole.</div>
+        <div class="card"><h3>Generated, never typed</h3>Weld tables, maps and plan-set symbols come from the records, so model and drawings <b>cannot disagree</b>.</div>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 17 Takeaways -->
+<section class="slide">
+  <div class="bar">Synthesis</div>
+  <h2>Takeaways for the skid frame</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <div class="row c3 fill">
+      <div class="card"><h3>1 · Size every fillet</h3>Default in a general note <b>and</b> a TYP symbol at a representative joint.</div>
+      <div class="card"><h3>2 · One symbol per joint, per wall</h3>Four walls = four single fillets, or all-around only where it truly runs round one joint.</div>
+      <div class="card"><h3>3 · Flush members are flare-bevels</h3>Same-width members: flare-bevel grooves, throat in parentheses.</div>
+      <div class="card"><h3>4 · Mitred rail butts are grooves</h3>Give the throat, or say CJP. Never a blank groove symbol.</div>
+      <div class="card"><h3>5 · Name the washdown seal welds</h3>If a frame weld is a sanitary seal, say so and name the inspection.</div>
+      <div class="card ok"><h3>6 · Model drives the sheet</h3>Weld records in the model; symbols, maps and tables generated from them.</div>
+    </div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 18 Open items -->
+<section class="slide">
+  <div class="bar">Open items</div>
+  <h2>Standards still to obtain</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <tr><th style="width:470px">Source</th><th style="width:330px">Why not in the folder</th><th>What is known (search results only)</th></tr>
+      <tr><td><b>AWS A2.4:2020</b> Symbols for Welding</td><td>Paid</td><td>Current edition 2020; identical repeated welds → one symbol marked typical</td></tr>
+      <tr><td><b>AWS D1.6:2017</b> Stainless structural</td><td>Paid; scope PDF removed</td><td><b>Check the 2017 fillet limits before writing our general note</b></td></tr>
+      <tr><td><b>AISC Design Guide 24</b> (2nd ed., 2024)</td><td>Members only</td><td>The HSS connection reference</td></tr>
+      <tr><td>AISC Steelwise, July 2007</td><td>Refused automated download</td><td>Correct "typical" use; save the PDF by hand</td></tr>
+      <tr><td>AISC Manual, Table 8-2</td><td>Paid</td><td>Prequalified weld symbols</td></tr>
+      <tr><td>ASME Y14.41-2019</td><td>Paid</td><td>Secondary summary only</td></tr>
+    </table>
+    <div class="card warn"><h3><span class="tag warn">NEXT</span>To close these</h3>Get A2.4 and D1.6 from a licensed copy (AWS membership covers both) and download the AISC PDFs by hand. Any rule from them goes to <code>design-rules/</code> only after Bob picks the level.</div>
+  </div>
+  <div class="foot"><span class="l">CPME USA · Engineering Harness · CAD Weld Guidance</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+<!-- 19 Sources -->
+<section class="slide">
+  <div class="bar">Sources</div>
+  <h2>Where the notes came from</h2>
+  <div class="rule"></div>
+  <div class="body">
+    <table>
+      <tr><th>Source</th><th style="width:560px">Publisher, date</th><th style="width:260px">Read</th></tr>
+      <tr><td><a href="https://www.aws.org/magazines-and-media/inspection-trends/it-may-25-feature-02-symbols/" target="_blank" rel="noopener">Welding symbols for slotted HSS members</a></td><td>AWS <i>Inspection Trends</i>, May 2025</td><td>Partly</td></tr>
+      <tr><td><a href="https://www.structuremag.org/article/commonly-misapplied-welding-symbols/" target="_blank" rel="noopener">Commonly misapplied welding symbols</a></td><td>STRUCTURE, Feb 2023, J. McCool</td><td>Full</td></tr>
+      <tr><td><a href="https://www.structuremag.org/article/know-your-hss-welds/" target="_blank" rel="noopener">Know your HSS welds</a></td><td>STRUCTURE, Feb 2024, Manor &amp; Jacinto</td><td>Text and figures</td></tr>
+      <tr><td><a href="https://www.millerwelds.com/resources/article-library/how-to-read-and-understand-weld-symbols" target="_blank" rel="noopener">How to read and understand weld symbols</a></td><td>Miller Electric</td><td>Full</td></tr>
+      <tr><td><a href="https://www.twi-global.com/technical-knowledge/job-knowledge/weld-symbols" target="_blank" rel="noopener">Application of weld symbols on drawings</a></td><td>TWI, 2020 (ISO practice)</td><td>Summary</td></tr>
+      <tr><td><a href="https://openoregon.pressbooks.pub/weldsymbols/" target="_blank" rel="noopener">Interpretation of Metal Fab Drawings</a></td><td>C. Moran, Open Oregon, 2017, CC BY 4.0</td><td>88 figures</td></tr>
+      <tr><td><a href="https://www.goengineer.com/blog/weld-bead-vs-fillet-bead-solidworks-feature-comparison" target="_blank" rel="noopener">Weld bead vs fillet bead</a> · <a href="https://www.goengineer.com/blog/creating-adding-weld-beads-solidworks" target="_blank" rel="noopener">Adding weld beads</a></td><td>GoEngineer, 2022</td><td>Full</td></tr>
+      <tr><td><a href="https://help.autodesk.com/cloudhelp/2024/ENU/Inventor-Help/files/GUID-2B08844A-5314-476E-9B77-AD24BADFE611.htm" target="_blank" rel="noopener">Inventor weld bead types</a></td><td>Autodesk, 2020/2024</td><td>Full</td></tr>
+      <tr><td><a href="https://en.wikipedia.org/wiki/ASME_Y14.41" target="_blank" rel="noopener">ASME Y14.41</a></td><td>Wikipedia (secondary)</td><td>Full</td></tr>
+    </table>
+    <div class="small">Full notes and figures: <code>harness/knowledge/CAD Weld Guidance/</code>. Figures © their publishers, internal engineering reference; the open-textbook set is CC BY 4.0.</div>
+  </div>
+  <div class="foot"><span class="l">© CPME USA LLC. All Rights Reserved · Internal</span><span class="r"><span class="n"></span><img src="../../style-guide/assets/cpme-logo.svg" alt="CPME USA"></span></div>
+</section>
+
+</div>
+<div id="lightbox" role="dialog" aria-modal="true"><img alt=""><p></p></div>
+<div id="help">← → or click to move · click a figure to enlarge · F full screen</div>
+<script>
+  const deck=document.getElementById('deck'),slides=[...document.querySelectorAll('.slide')];
+  const lb=document.getElementById('lightbox'),lbImg=lb.querySelector('img'),lbP=lb.querySelector('p');
+  let i=0; const h=parseInt(location.hash.slice(1)); if(h>0&&h<=slides.length)i=h-1;
+  slides.forEach((s,k)=>{const n=s.querySelector('.foot .n');if(n)n.textContent=String(k+1).padStart(2,'0')});
+  function fit(){const s=Math.min(innerWidth/1920,innerHeight/1080);deck.style.transform=`translate(-50%,-50%) scale(${s})`}
+  function show(n){i=Math.max(0,Math.min(slides.length-1,n));slides.forEach((s,k)=>s.classList.toggle('on',k===i));history.replaceState(null,'','#'+(i+1))}
+  addEventListener('resize',fit);fit();show(i);
+  addEventListener('keydown',e=>{const k=e.key;
+    if(lb.classList.contains('on')){if(['Escape',' ','Enter'].includes(k)){lb.classList.remove('on');e.preventDefault()}return}
+    if(['ArrowRight','PageDown',' ','Enter'].includes(k)){e.preventDefault();show(i+1)}
+    else if(['ArrowLeft','PageUp','Backspace'].includes(k)){e.preventDefault();show(i-1)}
+    else if(k==='Home')show(0);else if(k==='End')show(slides.length-1);
+    else if(k.toLowerCase()==='f'){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}});
+  addEventListener('click',e=>{
+    if(lb.classList.contains('on')){lb.classList.remove('on');return}
+    const box=e.target.closest('figure .img');
+    if(box){const img=box.querySelector('img'),c=box.parentNode.querySelector('figcaption');lbImg.src=img.src;lbImg.alt=img.alt;lbP.innerHTML=c?c.innerHTML:'';lb.classList.add('on');return}
+    if(e.target.closest('a'))return;
+    show(i+(e.clientX<innerWidth/4?-1:1))});
+</script>
+</body>
+</html>
