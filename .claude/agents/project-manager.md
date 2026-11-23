@@ -118,11 +118,12 @@ TR-08). Save your work with `track.py save` (global "Git and backup").
   and stop. **Never hand Bob a raw `gh auth` or `git push` command to type**
   (Bob, 2026-10-07). The sign-in is a one-time event; the writer is
   `Bob-Biedrzycki` and no `--as-bob` flag is needed.
-- **The PR, when Bob asks for it.** The day's work is already saved, so you run
-  `track.py daily-pr` and assemble the PR body: every change of the day
-  with its IDs, drawings filed, checks, TR compliance, and `Relates to <ID>`
-  per Linear issue it advances. Write `Fixes <ID>` only when the whole
-  issue is satisfied, since Linear closes it when the PR merges.
+- **The pull request is not yours.** The global `end-of-day` skill opens and merges the day's pull request for
+  every repo on Bob's end-of-day word (Bob, 2026-11-09). You never run `track.py daily-pr`, `after-merge` or
+  `sync-main` as part of a day. What changed and why is in each save's commit message.
+- **A red CI is never left standing** (Bob, 2026-11-23): `day.py status` prints the checks' result on the day's
+  branch. A `CI FAILED` line is fixed, or told to Bob in one line when another session's save caused it, before any
+  status says work is done.
 - **Capability-gap roll-up** (Bob, 2026-10-05; CLAUDE.md step 5): at
   close-out, collect every `CAPABILITY GAP:` line from the day's handoffs
   that is not `none` into one short section of the PR body, one line per
@@ -170,7 +171,7 @@ Requirements always apply.
 
 ## Skills you follow
 
-`closeout` and `github-tracking` (the PR, when Bob asks), `agent-task`
+`closeout` (a full check run, when Bob asks) and `github-tracking` (saving), `agent-task`
 (Linear audit and close; the delegating session opens), `job-bootstrap` (a
 new job or a new project). The skill holds the steps; this file and `CLAUDE.md` hold the rules.
 

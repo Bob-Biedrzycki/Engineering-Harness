@@ -211,7 +211,85 @@ class ApplyPartChange(unittest.TestCase):
         self.assertEqual((self.data / "line-list.csv").read_bytes(), self.before["line-list.csv"])
 
 
+class RetireFastBuildText(unittest.TestCase):
+    """REVW-001 C-11 (Bob, chat, 2026-11-23: "Yes, rewrite them"): at acceptance a list row that cites a fast build
+    cites the accepted revision instead, and the joints and spools it names are checked against the build."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        root = Path(self.tmp.name)
+        self.data, self.build = root / "lists", root / "build"
+        self.data.mkdir()
+        self.build.mkdir()
+        rows = [VALVE_HEAD,
+                'XV-101,butterfly,2.0,canister,top,manifold,L-110,Tri-Clamp,'
+                '"fast build revC-fast-023: horizontal, clamp J007 || was: as modeled at Rev B (J099)",1/8 in,1,'
+                'kept,COMP-0096',
+                "XV-102,butterfly,2.0,canister,top,manifold,L-110,Tri-Clamp,up,1/8 in,1,kept,COMP-0096",
+                'HV-401,manual,2.0,handle,none,none,L-100,"J032 on the outlet, stub L-420-SP01 (fast build '
+                'revC-fast-028)",fast build revC-fast-028: vertical; J034 below,none,1,,COMP-0097']
+        (self.data / "valve-list.csv").write_bytes(("\r\n".join(rows) + "\r\n").encode("utf-8"))
+        (self.data / "instrument-list.csv").write_bytes(("\n".join(INSTRS) + "\n").encode("utf-8"))
+        (self.data / "line-list.csv").write_bytes(b"line_no,size_od_in,gauge,notes\nL-110,2.0,0.065,\n")
+        self.before = {p.name: p.read_bytes() for p in self.data.iterdir()}
+        (self.build / "clamp-schedule.csv").write_text("joint_id,line_no\nJ007,L-110\nJ032,L-100\n", encoding="utf-8")
+        (self.build / "spool-list.csv").write_text("spool_id,line_no\nL-420-SP01,L-420\n", encoding="utf-8")
+        p = mock.patch.object(rp, "DATA", self.data, create=True)
+        p.start()
+        self.addCleanup(p.stop)
+        self.report = LFM.apply(self.build, "Rev D")     # no list-delta.csv: the citation step still runs
+
+    def test_citations_become_the_accepted_revision(self):
+        with open(self.data / "valve-list.csv", newline="", encoding="utf-8") as f:
+            v = {r["tag"]: r for r in csv.DictReader(f)}
+        self.assertEqual(v["XV-101"]["orientation"],
+                         "model Rev D: horizontal, clamp J007 || was: as modeled at Rev B (J099)")
+        self.assertEqual(v["HV-401"]["orientation"], "model Rev D: vertical; J034 below")
+        self.assertEqual(v["HV-401"]["process_connection"], "J032 on the outlet, stub L-420-SP01 (model Rev D)")
+        self.assertNotIn(b"fast build", (self.data / "valve-list.csv").read_bytes())
+
+    def test_report_names_what_the_build_does_not_have(self):
+        self.assertEqual(self.report, [
+            "valve-list.csv XV-101: text that cited fast build revC-fast-023 now cites model Rev D",   # J099 is history
+            "valve-list.csv HV-401: text that cited fast build revC-fast-028 now cites model Rev D; it names J034, "
+            "which this build does not have: the row's text needs a look"])
+
+    def test_other_rows_and_lists_are_byte_identical(self):
+        new = (self.data / "valve-list.csv").read_bytes().split(b"\r\n")
+        old = self.before["valve-list.csv"].split(b"\r\n")
+        self.assertEqual((old[0], old[2]), (new[0], new[2]))             # header and XV-102
+        for n in ("instrument-list.csv", "line-list.csv"):
+            self.assertEqual((self.data / n).read_bytes(), self.before[n])
+        self.assertEqual(LFM.retire_fast_build_text(self.build, "Rev D"), [])   # a second run changes nothing
+
+
 # ---- model_iterate --fast and model_accept (need a project) ---------------------------------------------------
+@unittest.skipUnless(rp.HAS_PROJECT, "no project yet (model_iterate.py names the project's folders on import)")
+class BuildLock(unittest.TestCase):
+    """REVW-001 OP-1: one build of a model at a time."""
+
+    def test_second_build_is_refused_and_a_dead_lock_is_taken_over(self):
+        sys.path.insert(0, str(rp.SCRIPTS))
+        import model_iterate as mi
+        with tempfile.TemporaryDirectory() as d:
+            builds = Path(d) / "Builds"
+            lock, why = mi.take_build_lock(builds, "first request")
+            self.assertEqual((lock, why), (builds / mi.LOCK_NAME, ""))
+            second, why = mi.take_build_lock(builds, "second request")
+            self.assertIsNone(second)
+            self.assertIn("another build of this model is running", why)
+            self.assertIn("request: first request", why)
+            mi.release_build_lock(lock)
+            self.assertFalse(lock.exists())
+            lock.write_text(json.dumps({"pid": 0, "started": "x", "request": "gone"}), encoding="utf-8")
+            with mock.patch.object(mi, "_pid_alive", return_value=False):
+                third, why = mi.take_build_lock(builds, "third")
+            self.assertEqual((third, why), (lock, ""))
+            self.assertEqual(json.loads(lock.read_text(encoding="utf-8"))["request"], "third")
+            mi.release_build_lock(third)
+
+
 @unittest.skipUnless(rp.HAS_PROJECT, "no project yet (model_iterate.py names the project's folders on import)")
 class FastBuild(unittest.TestCase):
     def run_fast(self, drawings: bool):

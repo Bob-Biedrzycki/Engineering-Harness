@@ -97,6 +97,71 @@ PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 # engine pin, harness/requirements-cad.txt; harness/scripts/engine_check.py compares a newer release and moves it
 PY_CAD = rp.TOOLS / "venv-cad" / "Scripts" / "python.exe"
 BUILDS = rp.BUILDS      # <project>/03_Working_Design/CAD/Builds: every build, fast or full (Bob, 2026-11-12)
+LOCK_NAME = ".build-lock"   # one build of a model at a time (REVW-001 OP-1, 2026-11-23)
+
+
+def _pid_alive(pid: int) -> bool:
+    """True when a process with this id is running. (os.kill(pid, 0) ends the process on Windows, so it is not used.)"""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)            # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259            # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def take_build_lock(builds: Path, request: str, pid: int | None = None) -> tuple[Path | None, str]:
+    """(lock file, "") when this build may run, (None, why) when another build of this model is running.
+
+    REVW-001 (2026-11-23, OP-1): two sessions built in the shared checkout at the same time, so builds held both
+    sessions' half-made source and raced for the next build number, and nothing said so. One build at a time: the
+    second is refused with who holds the lock, and is run again when that one ends. A lock whose process is gone
+    (a build that was stopped) is taken over."""
+    builds.mkdir(parents=True, exist_ok=True)
+    lock = builds / LOCK_NAME
+    me = {"pid": pid or os.getpid(), "started": dt.datetime.now().replace(microsecond=0).isoformat(sep=" "),
+          "request": (request or "")[:120]}
+    for _ in range(2):
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                held = json.loads(lock.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                held = {}
+            if _pid_alive(int(held.get("pid") or 0)):
+                return None, (f"another build of this model is running (started {held.get('started', '?')}"
+                              + (f", request: {held['request']}" if held.get("request") else "") + "). One build at a "
+                              "time: this one would hold that session's half-made source and race it for the build "
+                              "number. Run it again when that build has ended; do not mention this to Bob.")
+            try:
+                lock.unlink()                             # the build that wrote it is gone
+            except OSError:
+                pass
+            continue
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(me, f)
+        return lock, ""
+    return None, f"could not take the build lock {lock}"
+
+
+def release_build_lock(lock: Path | None) -> None:
+    try:
+        if lock and json.loads(lock.read_text(encoding="utf-8")).get("pid") == os.getpid():
+            lock.unlink()
+    except (OSError, ValueError):
+        pass
 
 
 class Step:
@@ -168,6 +233,12 @@ def main() -> int:
     for line in mb.adopt_earlier_layout(rp.BUILDS_ROOT, rp.EARLIER_FAST_ROOT, BUILDS, rp.EARLIER_SKID_BUILD,
                                         mb.last_revision()):
         print(f"model_iterate: {line}", flush=True)
+    lock, why = take_build_lock(BUILDS, a.request)
+    if lock is None:
+        print(f"REFUSED: {why}", file=sys.stderr)
+        return 2
+    import atexit
+    atexit.register(release_build_lock, lock)
     if a.fast:
         return fast(a)
 

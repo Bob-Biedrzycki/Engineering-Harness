@@ -33,6 +33,9 @@ One rule per list delta kind (harness/lib/list_delta.py), the same every time:
                             air_connection; instrument-list range, signal, mounting_orientation, straight_run_req,
                             access_note. A register value of 'unknown', or no register row, gives 'unknown'
                             (hard rule 1: nothing is filled in that no record gives).
+After the delta, whatever it held (REVW-001 C-11, 2026-11-23): a list row whose text cites a fast build has that
+citation replaced by "model <revision>" and the joints and spools it names checked against the accepted build
+(retire_fast_build_text).
 Each change is one line of the returned report, recorded in the revision description. git history keeps the old rows.
 Rows no rule touches are written back as they were read (same columns, same line endings).
 """
@@ -132,8 +135,65 @@ def _drop_tokens(cell: str, gone: set[str]) -> str:
     return ";".join(keep) if len(keep) != len(toks) else cell
 
 
+FAST_CITE = re.compile(r"\bfast build (rev[A-Za-z]+-(?:fast|full)-\d{3})\b")
+_JOINT = re.compile(r"\bJ\d{3}\b")
+_SPOOL = re.compile(r"\b[A-Z]{1,5}-\d{2,4}-SP\d{2}\b")
+
+
+def retire_fast_build_text(build: Path, revision: str) -> list[str]:
+    """A list row written between acceptances may cite the working copy it described ("fast build revC-fast-028:
+    vertical, flow down ..."). Bob asked for 16 valve rows that way on 2026-11-23, and on the question of that text
+    said (chat, 2026-11-23, REVW-001 C-11): "Yes, rewrite them." So at acceptance every such citation becomes
+    "model <revision>", the accepted design the row now describes; a fast build is never the citation of a list
+    that is the formal input. The joint and spool ids named in the same passage (up to the next "||", which starts
+    the row's history) are checked against the build being accepted, and one that it does not have is named in the
+    report line, which goes into the revision description. Nothing else in the row changes; a list with no such
+    citation is not rewritten. Returns one report line per row changed."""
+    joints = {r.get("joint_id", "") for r in _rows(build / "clamp-schedule.csv")}
+    spools = {r.get("spool_id", "") for r in _rows(build / "spool-list.csv")}
+    report: list[str] = []
+    for name in LISTS.values():
+        if not (rp.DATA / name).is_file():
+            continue
+        fields, rows, nl = _read(name)
+        touched = False
+        for row in rows:
+            cited: list[str] = []
+            missing: set[str] = set()
+            for c in fields:
+                v = row.get(c) or ""
+                if not FAST_CITE.search(v):
+                    continue
+                parts = v.split("||")
+                for i, part in enumerate(parts):
+                    found = FAST_CITE.findall(part)
+                    if not found:
+                        continue
+                    cited += [b for b in found if b not in cited]
+                    if joints:
+                        missing |= {j for j in _JOINT.findall(part) if j not in joints}
+                    if spools:
+                        missing |= {s for s in _SPOOL.findall(part) if s not in spools}
+                    parts[i] = FAST_CITE.sub(f"model {revision}", part)
+                row[c] = "||".join(parts)
+            if cited:
+                touched = True
+                who = row.get("tag") or row.get("line_no") or "?"
+                report.append(f"{name} {who}: text that cited fast build {', '.join(cited)} now cites model {revision}"
+                              + (f"; it names {', '.join(sorted(missing))}, which this build does not have: "
+                                 "the row's text needs a look" if missing else ""))
+        if touched:
+            _write(name, fields, rows, nl)
+    return report
+
+
 def apply(build: Path, revision: str) -> list[str]:
-    """Write the build's list delta into the <project>/03_Working_Design/PID/02_Tag_Lists lists. Returns one report line per change."""
+    """Write the build's list delta into the <project>/03_Working_Design/PID/02_Tag_Lists lists, then retire any
+    fast-build citation in a list row (retire_fast_build_text). Returns one report line per change."""
+    return _apply_delta(build, revision) + retire_fast_build_text(build, revision)
+
+
+def _apply_delta(build: Path, revision: str) -> list[str]:
     delta = _rows(build / "list-delta.csv")
     if not delta:
         return []

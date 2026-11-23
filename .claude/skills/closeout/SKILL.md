@@ -1,24 +1,19 @@
 ---
 name: closeout
-description: Optional full check run before the PR, when Bob asks for one, or the fallback inside track.py daily for a day not saved as it went; run by the project-manager only on Bob's word. Runs every check, reviews the list delta, renders portal media and files the portal (once the job has a site; dormant until then), pushes the day's large files to the Google Drive store and verifies them, and writes the commit body skeleton. Use when Bob says to close out the day. Does not commit.
+description: Optional full check run on this computer, only when Bob asks for one; run by the project-manager on Bob's word. Not part of the day (the pull request and merge are the global end-of-day skill's). Runs every check, reviews the list delta, renders portal media and files the portal (once the job has a site; dormant until then), pushes the day's large files to the Google Drive store and verifies them, and writes the commit body skeleton. Use when Bob says to close out the day. Does not commit.
 ---
 
 # Close-out (tier 3, optional, on Bob's word)
 
 **Optional, only when Bob asks.** Work is saved and backed up as it is done (`track.py save`: Drive push, commit,
-branch push; CI runs the checks on every save; global "Git and backup"). Close-out is a full check run before the PR
-when Bob wants one, or the fallback inside `track.py daily` for a day not saved as it went.
+branch push; CI runs the checks on every save and its result is printed at every save; global "Git and backup").
+Close-out is a full check run on this computer when Bob wants one. It is not part of the day: the pull request and
+the merge are the global `end-of-day` skill's (Bob, 2026-11-09), and nothing here opens or merges one.
 
-**When.** On the day's one go (Bob, 2026-10-07; `github-tracking`): the
-project-manager runs `--dry-run` first, drafts the commit message and PR
-body, names close-out, commit, PR and the post-merge sync (and the site
-publish, once the job has a site) to Bob in one message, and on his one answer runs close-out and then the
-commit and PR with the same words. No separate go for close-out. Any number
-of model iterations and filings may come before it.
+**When.** Only when Bob asks for a full check run. The project-manager runs `--dry-run` first, then the command
+with Bob's words. Any number of model iterations and filings may come before it.
 
-**The one command** (repo root, repo venv). Normally `track.py daily`
-runs it for you with the day's go, then the commit and PR (`github-tracking`
-step 4); run it alone only as the fallback:
+**The one command** (repo root, repo venv):
 
 ```
 .\harness\tools\venv\Scripts\python.exe harness\scripts\closeout.py --bob-go "<the day's go>"
@@ -88,9 +83,8 @@ presentation site publish plan, dormant as above; it publishes the listed
 shared assets as the site's `assets/` and only the data-store files the
 published pages reach (the dry run names how much is left off). Its
 `upstream:`, `site packaging:` and `packaging note:` lines go into the step
-result (skill `site-publish`). Publishing runs after
-the PR merges, on the day's go, with no new ask (Bob, 2026-10-07):
-`track.py after-merge`.
+result (skill `site-publish`). Publishing is `publish_site.py` on its own, when the project
+has a site to publish; it is not part of close-out or of end of day.
 
 **Linear export, written first.** `closeout.py` has no Linear access, so before
 running it the project-manager reads the day's issues with the
@@ -105,6 +99,5 @@ running it the project-manager reads the day's issues with the
 initiative, or fix a list delta by editing the model's output.
 
 **Hand-off line.** Each step's result line (the `looks:` line among them), the checks with exit codes, what
-was pushed and verified, the commit-body path. Under `track.py daily` the
-commit and PR follow at once with the day's go; run alone, go straight on to
-`track.py daily-commit` / `daily-pr` with that go (`github-tracking`).
+was pushed and verified, the commit-body path. Anything it left unsaved is saved with `track.py save`
+(`github-tracking`); the pull request and merge wait for Bob's end-of-day word.
