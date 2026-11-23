@@ -12,8 +12,18 @@
 # recorded as an ASSUMPTION until Bob designates a rule.
 meta:
   owner: "<project engineer>"
-  revision: 9
+  revision: 10
   status: >-
+    Rev 10, 2026-11-23: STR-PS-001 hanger values corrected to AWI's own prints and STEP models (HS-100T-H,
+    HS-200T-H, HS-300T-H; Corbin Flower, AWI, email 2026-11-23, received through Bob, chat: "They're in the email
+    for you to grab"). 1.0 in: height 1.625 (was 1.5625 from the web table), bracket flat 0.8125 from the tube
+    centreline, 1/4-20 bolts (was 5/16), bracket 1.00 and collar 1.50 along the tube now from the print (the rev 9
+    ASSUMPTIONS dropped). Flat widths across the tube added for 1, 2 and 3 in; 2 and 3 in dimensions to the
+    prints' three places. Load rating: AWI has none per hanger; its catalog spacing table recorded against
+    STR-PS-002 (STR-PS-002 is the tighter; no value changed). Weld fit of the 3/4 in bar on the 1 in and 2 in
+    flats recorded as open (Q-0081). No key renamed or removed; keys added: bracket_flat_width_across_in,
+    bracket_flat_length_along_in, bolts per size, bracket_part / collar_part numbers, print, load_rating,
+    weld_fit.
     Rev 9, 2026-11-23: STR-PS-001 rewritten for a new hanger make, the AWI Manufacturing stainless hex hanger with
     collar (HS-200T-H, HS-200T-C, HS-300T-C), on a 3/4 in solid round 304 bar welded to the hanger's bracket, with a
     rod length limit from the sway load case (support_member max_length_in 29.6). The McMaster 8831T38 hanger, its
@@ -73,34 +83,61 @@ pipe_supports:
       series: Stainless Steel Hex Hangers with Collar, tube size
       source: >-
         https://awimfg.com/product/stainless-steel-hex-hangers-with-collar/ (read 2026-11-23); AWI cut sheets
-        HS-200T-H, HS-200T-C and HS-300T-C (revision -, version 1), received from Bob 2026-11-22. The 1.0 in
-        hanger is from the product page table only (no cut sheet on file; to request from AWI)
+        HS-200T-H, HS-200T-C and HS-300T-C (revision -, version 1), received from Bob 2026-11-22; AWI prints and
+        STEP models HS-100T-H (ID 691556), HS-200T-H (ID 692329) and HS-300T-H (ID 692667), version 1, and the
+        AWI Process Piping Catalog, from Corbin Flower, AWI, email 2026-11-23. Where a print and the web table
+        differ the print governs.
       bracket_material: 304 stainless
       bracket_thickness_in: 0.1875
       bracket_width_along_tube_in: 1.00
       bracket_halves: two, bolted together at both ears
-      bolts: 2 x 5/16-18 x 1 in 304 hex head bolts with 2 x 5/16-18 304 lock nuts (red wax)
+      bolts: 2 x 5/16-18 x 1 in 304 hex head bolts with 2 x 5/16-18 304 lock nuts (red wax)   # 2 and 3 in; 1 in under by_od_in
       collar_width_along_tube_in: 1.50
-      weight_capacity_lb: unknown   # AWI publishes none on the product page or the cut sheets
+      weight_capacity_lb: unknown   # AWI has no load rating per hanger (load_rating)
+      load_rating: >-
+        AWI states it has no individual load rating for each hanger (Corbin Flower, AWI, email 2026-11-23). Its
+        catalog (AWI Process Piping Catalog, printed page 25, "Recommended Hanger Spacing") gives maximum tube
+        hanger spacing of 8 ft (96 in) for 1 to 1.5 in tube and 10 ft (120 in) for 2 to 3 in tube, as estimates
+        from AWI's experience, with extra hangers for valves and instruments. STR-PS-002 is tighter on every size
+        (1.0 in 72 in, job value; 2.0 in 84 in; 3.0 in 96 in), set by sag against the slope rule, so there is no
+        conflict and STR-PS-002 governs. The 50 lb per support load basis (sizing_basis) stays CPME's.
+      weld_fit: >-
+        The bar top weld lands on the bracket's outer flat. 2.0 in: the 3/4 in bar plus two 1/8 in fillet legs is
+        1.00 in, against a flat 0.990 in across x 1.00 in along, so the fillet toes overhang the flat by about
+        0.005 in each side across the tube. 1.0 in: the flat is 0.412 in across, narrower than the 0.75 in bar, so
+        the bar does not land on the flat. 3.0 in: flat 1.567 in across, fits. Open, Bob's decision (Q-0081); not
+        resolved in this rule.
       component: unknown            # add the AWI parts to the component library (skill component-add)
       by_od_in:
-        "1.0":                                  # AWI product page table only; cut sheet not on file (to request from AWI)
-          overall_width_in: 3.375               # AWI page A 3 3/8, ear to ear
-          overall_height_in: 1.5625             # AWI page B 1 9/16
-          bracket_flat_from_tube_cl_in: 0.781   # half of 1 9/16
-          bolts: 5/16 x 1 in                    # AWI page
-          bracket_width_along_tube_in: 1.00     # ASSUMPTION carried from the 2 in cut sheet; confirm on the 1 in cut sheet
-          collar_width_along_tube_in: 1.50      # ASSUMPTION carried from the 2 in cut sheet; confirm on the 1 in cut sheet
-          bracket_thickness_in: 0.1875          # ASSUMPTION carried from the 2 in cut sheet; confirm on the 1 in cut sheet
+        "1.0":                                  # AWI print HS-100T-H version 1 (ID 691556) and STEP
+          overall_width_in: 3.375               # ear to ear (print)
+          overall_height_in: 1.625              # print (the web table's B 1 9/16 is superseded)
+          bracket_flat_from_tube_cl_in: 0.8125  # half of 1.625
+          bracket_flat_width_across_in: 0.412   # AWI STEP
+          bracket_flat_length_along_in: 1.00
+          bracket_width_along_tube_in: 1.00     # print
+          collar_width_along_tube_in: 1.50      # print
+          bracket_thickness_in: 0.1875          # print
+          bracket: BK-100T-NH
+          bracket_part: AW1000451               # 304 (print item 1)
+          bolts: 2 x 1/4-20 x 0.75 in 304 hex head bolts with 2 x 1/4-20 304 lock nuts (red wax)   # print items 3, 4
+          print: >-
+            The title block reads material "Mild Steel" while item 1, the bracket, reads 304 and the description
+            reads T304: a question for AWI, recorded, not resolved here. The 304 of item 1 is used.
           high_temp:
             part_number: HS-100T-H
             collar: CH-100T
+            collar_part: "1003625"
+            collar_material: polysulfone
             collar_temperature_f: 325           # continuous (AWI, high temp collar)
         "2.0":
-          overall_width_in: 4.44                # across the bolt ears (cut sheet; AWI page A 4 7/16)
-          overall_height_in: 2.63               # reference dimension (cut sheet; AWI page B 2 5/8)
-          bracket_flat_from_tube_cl_in: 1.315   # outer flat of each bracket from the tube centreline, half of 2.63
+          overall_width_in: 4.438               # across the bolt ears (AWI print and STEP; cut sheet 4.44, AWI page A 4 7/16)
+          overall_height_in: 2.625              # AWI print (cut sheet 2.63, AWI page B 2 5/8)
+          bracket_flat_from_tube_cl_in: 1.3125  # outer flat of each bracket from the tube centreline, half of 2.625
+          bracket_flat_width_across_in: 0.990   # AWI STEP
+          bracket_flat_length_along_in: 1.00
           bracket: BK-200T-NH
+          bracket_part: AW1000453
           high_temp:
             part_number: HS-200T-H
             collar: CH-200T
@@ -112,18 +149,23 @@ pipe_supports:
             collar_material: polypropylene
             collar_temperature_f: see collar_selection   # AWI gives deflection temperatures only
         "3.0":
-          overall_width_in: 5.56
-          overall_height_in: 3.63
-          bracket_flat_from_tube_cl_in: 1.815
+          overall_width_in: 5.625               # HS-300T-C; HS-300T-H 5.563 (AWI print and STEP); AWI page A 5 9/16
+          overall_height_in: 3.625              # AWI print
+          bracket_flat_from_tube_cl_in: 1.8125  # half of 3.625
+          bracket_flat_width_across_in: 1.567   # AWI STEP
+          bracket_flat_length_along_in: 1.00
           bracket: BK-300T-NH
+          bracket_part: AW1000455
           standard:
             part_number: HS-300T-C
             collar: CP-300T
             collar_material: polypropylene
             collar_temperature_f: see collar_selection
           high_temp:
-            part_number: HS-300T-H              # on the AWI page (same A and B as HS-300T-C); no cut sheet in hand
+            part_number: HS-300T-H              # AWI print version 1 (ID 692667) and STEP
+            overall_width_in: 5.563             # AWI print (narrower ears than HS-300T-C)
             collar: CH-300T
+            collar_material: polysulfone
             collar_temperature_f: 325           # continuous (AWI)
     collar_selection:
       rule: >-
@@ -140,7 +182,8 @@ pipe_supports:
         each line takes is a project value (the project's structural.yaml).
       basis: >-
         AWI product page, "Typical Unfilled Polypropylene" and "Typical High
-        Temp Collar", read 2026-11-23. Reading the polypropylene rating at the
+        Temp Collar", read 2026-11-23; the same values in the AWI Process
+        Piping Catalog, printed page 23 (FAQ). Reading the polypropylene rating at the
         66 psi deflection temperature is CPME first-pass practice, ASSUMPTION
         for Bob to confirm.
     sizing_load_case:
@@ -170,9 +213,9 @@ pipe_supports:
       1/8 in fillet all round the bar (throat 0.088 in) carries the 148 in-lb
       at about 3.8 ksi on the throat. The bar plus two 1/8 in legs is 1.00 in,
       the bracket's width along the tube, so the fillet toes reach the bracket
-      edges with no margin; the width of the bracket's outer flat across the
-      tube is not dimensioned on the cut sheets (to confirm on the maker's
-      model before a shop detail).
+      edges with no margin. Across the tube the flat is 0.990 in (2.0 in),
+      0.412 in (1.0 in) and 1.567 in (3.0 in) on AWI's STEP models; the 2.0 in
+      and 1.0 in fits are open (hanger weld_fit, Q-0081).
     basis: >-
       Make: Bob, chat, 2026-11-22: "We are going to change pipe hangers. This
       is now the desired make.
