@@ -12,8 +12,16 @@
 # recorded as an ASSUMPTION until Bob designates a rule.
 meta:
   owner: "<project engineer>"
-  revision: 8
+  revision: 9
   status: >-
+    Rev 9, 2026-11-23: STR-PS-001 rewritten for a new hanger make, the AWI Manufacturing stainless hex hanger with
+    collar (HS-200T-H, HS-200T-C, HS-300T-C), on a 3/4 in solid round 304 bar welded to the hanger's bracket, with a
+    rod length limit from the sway load case (support_member max_length_in 29.6). The McMaster 8831T38 hanger, its
+    stud, EPDM seat washer, weld base plate and the 1 x 1 x 0.065 in square support tube are withdrawn from the rule.
+    Keys read by code are kept with their values (weld.leg_in, every sizing_load_case key, all of STR-PS-002); the
+    clamp block and the old support_member values are replaced. STR-PS-002: the joint-clearance basis now cites the
+    AWI 1.50 in collar; its values are unchanged. Designation harness (Bob, chat, 2026-11-23: "The support rule can
+    move to the engineering harness.").
     Rev 8, 2026-11-06: new rule STR-FRAME-001, the reference list of frame materials (frame-materials.csv), from the
     AISC Shapes Database v16.0 until CPME has established suppliers (Bob, chat, 2026-11-06; designation harness).
     STR-PS-001 and STR-PS-002 unchanged.
@@ -24,92 +32,155 @@ meta:
 pipe_supports:
   - id: STR-PS-001
     rule: >-
-      A 2.0 in OD tube support is one support member: a 1 x 1 x
-      0.065 in ASTM A554 304 square tube standing straight under the tube
-      centreline, full height from the frame member or equipment top it stands
-      on to the clamp's weld base, with no post under it and no horizontal arm
-      (a horizontal reach is a frame or support member, PS-nnn). Any clamp
-      used on a support has a stainless weld base that covers the whole
-      support-tube end and extends beyond the tube on every side by at least
-      the fillet leg (weld.leg_in), so the tube top is fillet welded all round
-      to its underside on a land and that weld closes the tube end; bolt or
-      stud holes in the weld base are blind or sealed from below, and any
-      threaded mount on the weld base is sealed at its seat (an FDA elastomer
-      seal, 21 CFR 177.2600, rated at or above the line design temperature,
-      under the clamp's boss or nut; a stud plug weld is fused through the full
-      plate thickness, so no annulus is open at the plate top). The clamp
-      body or insert is rated at or above the design temperature of the line
-      it carries. Both ends of the support tube are SEAL WELDED ALL ROUND,
-      CONTINUOUS (no stitch welds, no open tube end; SAN-FRAME-001). The clamp
-      body is off while welding; heat tint is removed from both faces of the
-      weld base and it is passivated (ASTM A380 / A967), and the body goes
-      back only on a cool, rinsed, dry base. Size check: under the sizing load
-      case below the support's sway at the clamp stays within sway_limit_in
-      at the longest support on the skid; if it does not, the next tube size
-      up is used.
-    applies_to: 2.0 in OD tube
+      A 2.0 in or 3.0 in OD tube support is one AWI stainless hex hanger with
+      collar (hanger below) on one support member: a 3/4 in diameter solid
+      round bar, ASTM A276 / A479 304, standing straight under the tube
+      centreline from the frame member or equipment top it stands on to the
+      centre of the outer flat of the hanger's lower bracket. The bar top is
+      fillet welded all round to that flat and the bar bottom is fillet welded
+      all round to the member or equipment top, both CONTINUOUS (no stitch
+      welds; SAN-FRAME-001); a solid bar has no open end to seal. A hung
+      support (the bar down from above to the outer flat of the upper
+      bracket) and a side support (a horizontal bar from a member face to the
+      outer flat of a hanger turned to face it) use the same parts and welds,
+      turned. The collar is rated at or above the design temperature of the
+      line it carries (collar_selection). The collar is out of the brackets
+      while welding; heat tint is removed from the bracket and the bar and
+      they are passivated (ASTM A380 / A967), and the collar goes back only on
+      a cool, rinsed, dry bracket. Length: no bar is longer than
+      support_member max_length_in, the length at which its sway at the
+      hanger under the sizing load case reaches sway_limit_in. Where the drop
+      is longer, a post or member (PS-nnn or FM-nnn, sealed per
+      SAN-FRAME-001) brings the bar's base up so the bar stays within
+      max_length_in, as the earlier 5/8 in rod rule did (a 12 in rod with a
+      post making up the height, before Rev 4 of this rule). The bar is not
+      made larger instead: a bar over 3/4 in plus its two fillet legs would
+      not land on the 1.00 in wide bracket.
+    applies_to: 2.0 in and 3.0 in OD stainless sanitary tube
     support_member:
-      material: ASTM A554 304 square tube
-      size_in: 1.0 x 1.0
-      wall_in: 0.065
-      length: full height, member or equipment top to the clamp weld base, no post
-      ends: seal weld all round, both ends, continuous (bottom to the member, top to the clamp weld base)
-      candidates_in: [0.75 x 0.065, 1.0 x 0.065, 1.5 x 0.065]   # smallest that meets sway_limit_in is used
-    clamp:
-      vendor: McMaster-Carr
-      part_number: 8831T38
-      description: >-
-        washdown threaded-rod-mount clamping hanger, 316 SS two-piece, FDA
-        silicone cushion (21 CFR 177.2600), 2 in ID, 3/8-16 boss, two 316
-        acorn nuts, 32 Ra exterior, concealed threads
-      mounting: inverted on its boss (McMaster load location top or bottom) on the weld base, on a 3/8-16 x 7/8 in 316 SS stud
-      bottom_plate_in: none (the weld base below is a separate plate)
-      weld_base_plate_in: 1.25 x 1.25 x 0.1875   # ASTM A240 304, laser cut, 0.391 in centre hole for the stud
-      weld_base_material: ASTM A240 304
-      stud: 3/8-16 x 7/8 in 316 SS, plug welded through the weld base from below (no open hole)
-      plate_offset_from_tube_cl_in: 1.882   # boss face = weld base top (vendor STEP, 2026-10-08)
-      top_above_tube_cl_in: 1.618           # inverted hanger (vendor STEP, 2026-10-08)
-      land_on_1in_tube_in: 0.125 each side   # = weld.leg_in, filled by the fillet, no ledge
-      temperature_f: -60 to 400     # McMaster
-      weight_capacity_lb: 600       # McMaster
-      weight_capacity: 600 lb       # McMaster
-      component: unknown            # add the vendor STEP to the project's component library (skill component-add)
-      seat_seal: >-
-        FDA EPDM sealing washer under the boss: McMaster 99186A124,
-        one piece, 21 CFR 177.2600, -50 to 300 F, for 3/8 in screw, 0.355 in ID x 0.625 in OD x 0.047..0.077 in
-      seat_seal_part_number: 99186A124
-      seat_seal_temperature_f: -50 to 300   # McMaster
-      seat_seal_thickness_in: 0.062         # as modelled (vendor STEP); catalog 0.047..0.077, compressed when fitted
-      seat_seal_component: unknown          # add the vendor STEP to the project's component library
-      stud_plug_weld: fused through the full weld base thickness from below, flush at the plate top, top-face ring 100 % visual before the seal goes on
-      plate_top_below_tube_cl_in: 1.944     # boss face 1.882 + seal 0.062; plate_offset_from_tube_cl_in stays the boss face
+      material: ASTM A276 / A479 304 solid round bar
+      diameter_in: 0.75
+      area_in2: 0.4418              # pi d^2 / 4
+      I_in4: 0.01553                # pi d^4 / 64
+      S_in3: 0.04142                # pi d^3 / 32
+      max_length_in: 29.6           # (sway_limit_in x 3 x E_psi x I_in4 / side_load_lb)^(1/3) = 29.66 in, rounded down
+      length: member or equipment top to the hanger bracket flat, at most max_length_in; a longer drop stands the bar on a post or member (rule)
+      orientation: standing (vertical, under the tube centreline); hung (vertical, from above); side (horizontal, from a member face)
+      ends: fillet weld all round, continuous, both ends (top to the bracket's outer flat, bottom to the member or equipment top)
+    hanger:
+      vendor: AWI Manufacturing, Inc. (Winsted, MN)
+      series: Stainless Steel Hex Hangers with Collar, tube size
+      source: >-
+        https://awimfg.com/product/stainless-steel-hex-hangers-with-collar/ (read 2026-11-23); AWI cut sheets
+        HS-200T-H, HS-200T-C and HS-300T-C (revision -, version 1), received from Bob 2026-11-22
+      bracket_material: 304 stainless
+      bracket_thickness_in: 0.1875
+      bracket_width_along_tube_in: 1.00
+      bracket_halves: two, bolted together at both ears
+      bolts: 2 x 5/16-18 x 1 in 304 hex head bolts with 2 x 5/16-18 304 lock nuts (red wax)
+      collar_width_along_tube_in: 1.50
+      weight_capacity_lb: unknown   # AWI publishes none on the product page or the cut sheets
+      component: unknown            # add the AWI parts to the component library (skill component-add)
+      by_od_in:
+        "2.0":
+          overall_width_in: 4.44                # across the bolt ears (cut sheet; AWI page A 4 7/16)
+          overall_height_in: 2.63               # reference dimension (cut sheet; AWI page B 2 5/8)
+          bracket_flat_from_tube_cl_in: 1.315   # outer flat of each bracket from the tube centreline, half of 2.63
+          bracket: BK-200T-NH
+          high_temp:
+            part_number: HS-200T-H
+            collar: CH-200T
+            collar_material: polysulfone
+            collar_temperature_f: 325           # continuous (AWI); softening 374 F
+          standard:
+            part_number: HS-200T-C
+            collar: CP-200T
+            collar_material: polypropylene
+            collar_temperature_f: see collar_selection   # AWI gives deflection temperatures only
+        "3.0":
+          overall_width_in: 5.56
+          overall_height_in: 3.63
+          bracket_flat_from_tube_cl_in: 1.815
+          bracket: BK-300T-NH
+          standard:
+            part_number: HS-300T-C
+            collar: CP-300T
+            collar_material: polypropylene
+            collar_temperature_f: see collar_selection
+          high_temp:
+            part_number: HS-300T-H              # on the AWI page (same A and B as HS-300T-C); no cut sheet in hand
+            collar: CH-300T
+            collar_temperature_f: 325           # continuous (AWI)
+    collar_selection:
+      rule: >-
+        The collar is rated at or above the line's design temperature
+        (line-list.csv design_temp_f). High-temp collar (CH-, polysulfone): AWI
+        rates it for continuous service to 325 F. Polypropylene collar (CP-):
+        AWI publishes no continuous service temperature, only typical
+        deflection temperatures of 120 F at 264 psi and 225 F at 66 psi (melt
+        about 329 F); it is taken as rated to 225 F where the collar bearing
+        pressure (support load over tube OD x collar width) is at or below 66
+        psi, else to 120 F. At the 50 lb load basis the bearing pressure is
+        about 17 psi on 2.0 in tube and 11 psi on 3.0 in. A line whose design
+        temperature is unknown is not checked until it is known. Which collar
+        each line takes is a project value (the project's structural.yaml).
+      basis: >-
+        AWI product page, "Typical Unfilled Polypropylene" and "Typical High
+        Temp Collar", read 2026-11-23. Reading the polypropylene rating at the
+        66 psi deflection temperature is CPME first-pass practice, ASSUMPTION
+        for Bob to confirm.
     sizing_load_case:
-      side_load_lb: 5.0             # sideways at the clamp
+      side_load_lb: 5.0             # sideways at the hanger
       support_fixity: fixed at the base, free at the top (cantilever)
       E_psi: 28000000.0
       sway_limit_in: 0.1            # CPME practice
       sizing_table: the model's layout note (regenerated in every model revision)
     weld:
-      type: fillet, all round, both ends
-      leg_in: 0.125                # not more than the support-tube wall can carry without burn-through (1/8 in on 0.065 in wall, ER308L)
+      type: fillet, all round, both ends of the bar
+      leg_in: 0.125                # limited by the 0.1875 in bracket; the 0.75 in bar plus two 1/8 in legs fills the 1.00 in bracket width
       filler: ER308L
-      seal: continuous, all round, both ends of the support tube (SAN-FRAME-001)
+      seal: continuous, all round, both ends of the bar (SAN-FRAME-001)
     sizing_basis: >-
       First-pass check, not a certification (Gate 3). Load per support taken as
-      50 lb: 2.0 x 0.065 in tube 1.37 lb/ft plus water 1.19 lb/ft = 2.56 lb/ft
-      over a 4 ft span (about 10 lb), one 2 in sanitary butterfly valve with
-      actuator (about 10 lb), and margin. The 1 x 1 x 0.065 in square tube meets
-      the 0.1 in sway limit at a 30 in support under the 5 lb side load; 3/4 in
-      tube does not. Allowable stress 0.6 Fy (304, Fy 30 ksi, 18 ksi), CPME practice.
+      50 lb, as before: 2.0 x 0.065 in tube 1.37 lb/ft plus water 1.19 lb/ft =
+      2.56 lb/ft over a 4 ft span (about 10 lb), one 2 in sanitary butterfly
+      valve with actuator (about 10 lb), and margin. 3/4 in solid round 304: A
+      0.4418 in2, I 0.01553 in4, S 0.04142 in3. Length limit, cantilever sway
+      under the 5 lb side load at the hanger: L = (0.1 x 3 x 28,000,000 x
+      0.01553 / 5)^(1/3) = 26,093^(1/3) = 29.66 in, held to 29.6 in (sway 0.099
+      in). At 29.6 in: side-load bending moment 148 in-lb, 3.6 ksi; the 50 lb
+      vertical load 0.11 ksi axial (0.34 ksi at 3 g in transport, TR-18), 3.7
+      ksi with 10 % of it sideways at the hanger; Euler load (fixed base, free
+      top, K 2) about 1,220 lb, 24 times the 50 lb basis and 8 times at 3 g.
+      All against 18 ksi, 0.6 Fy for 304 (Fy 30 ksi), CPME practice. Weld: a
+      1/8 in fillet all round the bar (throat 0.088 in) carries the 148 in-lb
+      at about 3.8 ksi on the throat. The bar plus two 1/8 in legs is 1.00 in,
+      the bracket's width along the tube, so the fillet toes reach the bracket
+      edges with no margin; the width of the bracket's outer flat across the
+      tube is not dimensioned on the cut sheets (to confirm on the maker's
+      model before a shop detail).
     basis: >-
-      CPME practice: square-tube supports, seal welded all round at both ends,
-      with a fillet land at the hanger pad, and clamps chosen to suit those
-      welds. Clamp: no McMaster clamp with an integral stainless weld base is
-      rated at or above 200 F without an aluminium body, so the weld base is a
-      CPME plate with a stud, carrying the inverted 8831T38 with the sealed
-      seat and fused plug weld. Sway limit 0.1 in (CPME practice). Designation:
-      harness (CPME practice). Not a 3-A or ASME BPE hygienic hanger; a
-      hygienic review of the clamp on the project is still to be done.
+      Make: Bob, chat, 2026-11-22: "We are going to change pipe hangers. This
+      is now the desired make.
+      https://awimfg.com/product/stainless-steel-hex-hangers-with-collar/".
+      Collar by line: Bob, chat, 2026-11-22: "L-300 and L-400 do not need the
+      high temp variant." (a project value). Bar and its length: Bob, chat,
+      2026-11-22: "I'm told that 'fab shop can weld the support post from 3/4
+      solid rod', i suspect we still want to limit the length of the rod as we
+      did in the past."; the limit is the existing sway load case (5 lb, 0.1
+      in, CPME practice) applied to the bar, with a post making up a longer
+      drop as the earlier rod rule did. Dimensions and materials from the AWI
+      cut sheets and product page (hanger source). Weld cleaning and
+      passivation ASTM A380 / A967; continuous welds SAN-FRAME-001.
+      Designation: harness (Bob, chat, 2026-11-23: "The support rule can move
+      to the engineering harness."). Not a 3-A or ASME BPE hygienic hanger:
+      the collar sits outside the tube and touches no product, but the
+      bracket-to-collar joint, the bolted ears and the lock nuts are to be
+      reviewed for cleanability on each project; AWI states NSF and USDA for
+      its products generally, not for this collar by name. Withdrawn at Rev 9:
+      McMaster 8831T38 inverted on a 3/8-16 stud, EPDM seat washer 99186A124,
+      1.25 x 1.25 x 0.1875 in weld base, 1 x 1 x 0.065 in A554 304 square
+      support tube (STR-PS-001 rev 5, to Rev 8 of this file).
 
   - id: STR-PS-002
     rule: >-
@@ -126,7 +197,7 @@ pipe_supports:
       carry the pipe weight; (e) a vertical run longer than
       vertical_guide_over_in gets one guide; (f) no hanger sits on a weld, a
       ferrule or a clamp: the hanger centre is at least min_clear_of_joint_in
-      along the tube from any butt weld, ferrule face or clamp, so the cushion
+      along the tube from any butt weld, ferrule face or clamp, so the collar
       bears on straight tube and every weld stays visible for inspection
       (SAN-WELD-001).
     applies_to: 2.0 in OD x 0.065 in wall stainless sanitary tube, water full
@@ -154,9 +225,10 @@ pipe_supports:
       possible, each change of direction) is the looser trade practice this
       rule tightens. The 12, 24 and 48 in placement values and the 2.0 in
       joint clearance are CPME practice set at first pass: 2.0 in covers the
-      0.775 in half length of the 1.550 in hanger cushion plus the 0.500 in
-      length of a 2 in short weld ferrule, leaving about 0.7 in for the clamp
-      band and the ferrule's weld to the tube.
+      0.75 in half length of the 1.50 in AWI hanger collar (STR-PS-001 rev 9,
+      CP-200T / CH-200T) plus the 0.500 in length of a 2 in short weld
+      ferrule, leaving about 0.75 in for the clamp band and the ferrule's weld
+      to the tube (0.7 in with the 1.550 in McMaster cushion before rev 9).
     verification: >-
       Measured on the 3D model along each line's centreline once hangers are
       modelled (STR-PS-001): spans, distances to component clamp faces,
@@ -174,7 +246,7 @@ pipe_supports:
         max_from_elbow_in: 24
         max_from_pump_in: 24
         vertical_guide_over_in: 48
-        min_clear_of_joint_in: 2.0   # provisional: re-check against the 3 in hanger cushion and 3 in ferrule once selected
+        min_clear_of_joint_in: 2.0   # collar side met (HS-300T-C collar CP-300T 1.50 in, as 2 in); provisional on the 3 in short weld ferrule length, not recorded here
     sizing_basis_3in: >-
       Same method as sizing_basis (simply supported span, 316L at 200 F, E
       27,000 ksi, sustained sag no more than 1/16 in, one 10.2 lb valve at mid
@@ -185,8 +257,11 @@ pipe_supports:
       50 lb (25 lb from each), at 108 in about 54 lb. At 96 in: sag 0.037 in
       with the valve (0.026 in without), bending stress 1.7 ksi, 5.0 ksi at 3 g
       vertical in transport (TR-18), first mode about 22 Hz. The 12, 24 and 48
-      in placement values are carried over from 2.0 in as CPME practice; the
-      2.0 in joint clearance is provisional until a 3 in hanger is selected.
+      in placement values are carried over from 2.0 in as CPME practice. The
+      2.0 in joint clearance holds on the collar side: the 3 in hanger
+      (HS-300T-C, STR-PS-001 rev 9) has the same 1.50 in collar as the 2 in,
+      half length 0.75 in; it stays provisional on the 3 in short weld
+      ferrule length, which this file does not record.
       First pass, not a certification (Gate 3). Designation: harness (CPME
       practice).
 
@@ -236,7 +311,7 @@ frame_materials:
       each ASTM specification (A500 Gr C rectangular HSS, A36, A992). Neither the Manual table nor the ASTM
       specifications were re-read in this change: ASSUMPTION, confirm against them before a Gate 3 frame check.
     not_on_the_list: >-
-      Stainless frame tube (ASTM A554, used for STR-PS-001 supports) and plate and flat bar (A36, A240) are not in
+      Stainless frame tube (ASTM A554), stainless round bar (ASTM A276 / A479, used for STR-PS-001 supports) and plate and flat bar (A36, A240) are not in
       the AISC database; each is added here with its own source when a frame needs it. Round HSS and pipe are
       left out of the frame list.
     source:
