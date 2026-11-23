@@ -203,7 +203,7 @@ saved copy of the pin is `plan-set-reference/model-pin.yaml`; `status` says when
 run `baseline`.
 
 **Who moves the pin, and when** (Bob, chat, 2026-11-23: "When the model is accepted, thats when the plans should be
-updated"; CAPA-2026-11-23). The pin moves in a plan set session only: to the newly filed model revision after an
+updated"; CAPA REVW-001). The pin moves in a plan set session only: to the newly filed model revision after an
 acceptance, or to a build Bob names when he asks for a plan set fast edit from it. A model fast-edit session never
 moves the pin, never redraws a plan set and never tells Bob a plan set is stale. A plan set drawn from a fast
 build is a working copy of that build and simply waits for the next acceptance.

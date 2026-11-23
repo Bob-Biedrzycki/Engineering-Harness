@@ -5,7 +5,7 @@ description: Tier 1 of the skid-model pipeline for the project. One build of the
 
 # Model iterate (tier 1, every build)
 
-**Fast edit scope: the model only** (Bob, chat, 2026-11-23; CLAUDE.md "Work cycle"; CAPA-2026-11-23). Read this
+**Fast edit scope: the model only** (Bob, chat, 2026-11-23; CLAUDE.md "Work cycle"; CAPA REVW-001). Read this
 before anything else in this skill. A fast edit changes the model source, builds, reports the build and stops.
 - **Tag lists** (`<project>/03_Working_Design/PID/02_Tag_Lists/`): do not edit them and do not ask Bob to approve
   a list change. `model_accept.py` writes them from the model at acceptance: new tags, removed tags, line sizes,

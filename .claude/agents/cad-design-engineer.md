@@ -149,7 +149,9 @@ Todd Requirements always apply.
 
 `skid-layout` (4a), `pipe-route` (4b), `component-add` (new or revised parts),
 `drawing-revise` (generating a drawing), `model-iterate` after every change,
-`model-file` before Bob looks, `design-rule-add` before any rule YAML edit.
+`model-accept` when Bob accepts a fast edit as a revision (`model-file` only when he asks to file a build
+outside an acceptance; Bob looks at fast builds as working copies, nothing is filed first),
+`design-rule-add` before any rule YAML edit.
 The skill holds the steps; this file and `CLAUDE.md` hold the rules.
 
 ## Handoff

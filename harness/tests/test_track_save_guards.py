@@ -120,6 +120,22 @@ class FolderGuard(Base):
         self.refused(T.save_guards, self.save_paths(f"{PROBE}/probe.txt"), "2026-11-23", root=self.root)
         self.passes(T.save_guards, self.save_paths(f"{PROBE}/probe.txt", FL.REGISTER_REL), "2026-11-23", root=self.root)
 
+    def test_a_save_reports_an_unnamed_folder_it_does_not_save(self):
+        """REVW-001 review finding 1: a gitignored working folder no saved path names is still reported at the save,
+        as a warning (the save goes on)."""
+        register(self.root)
+        other = self.root / PROJ / "03_Working_Design" / "ok.txt"
+        other.write_text("ok\n", encoding="utf-8")
+        _, out = self.passes(T.save_guards, self.save_paths(f"{PROJ}/03_Working_Design/ok.txt"), "2026-11-23",
+                             root=self.root)
+        self.assertIn("folders on disk: 1 that nothing names", out)
+        self.assertIn(f"WARNING: folder nothing names: {PROBE}/", out)
+        register(self.root, PROBE)
+        _, out = self.passes(T.save_guards, self.save_paths(f"{PROJ}/03_Working_Design/ok.txt", FL.REGISTER_REL),
+                             "2026-11-23", root=self.root)
+        self.assertIn("folders on disk: 0 that nothing names", out)
+        self.assertNotIn("WARNING", out)
+
     def test_no_register_not_checked(self):
         _, out = self.passes(T.save_guards, self.save_paths(f"{PROBE}/probe.txt"), "2026-11-23", root=self.root)
         self.assertIn("folders: not checked (no job/folder-register.csv)", out)

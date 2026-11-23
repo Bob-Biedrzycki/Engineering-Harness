@@ -14,7 +14,8 @@ files, starting with `piping.yaml` `job_rules_by_class`; the project's `Design_R
 (`job/knowledge/`, named in `job/JOB.md`; the section "Layout and piping specifics for skid-layout and
 pipe-route").
 Writes the model source only (`<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/piping/<line>/`,
-`skidlib/`). Then `model-iterate`; `model-file` before Bob looks.
+`skidlib/`). Then `model-iterate`: Bob looks at the numbered fast build, as a working copy. Nothing is filed
+until he accepts it (`model-accept`) or asks for a filing (`model-file`).
 
 ## Service class first (PIPE-SVC-001)
 

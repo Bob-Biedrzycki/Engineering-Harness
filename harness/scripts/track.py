@@ -859,12 +859,42 @@ def master_refusals(paths: list[str], root: Path | None = None, master: Path | N
     return out
 
 
+def disk_folder_report(root: Path | None = None) -> list[str]:
+    """The whole-disk folder check, run at every save (REVW-001 independent review, 2026-11-23, finding 1): the
+    folders sessions invented in plan set week were gitignored working folders, which no saved path names and CI's
+    clean checkout does not have, so nothing ran harness/checks/folder_layout.py over them. A save is the one step
+    every piece of work passes through on the computer that has those folders. Returns and prints one WARNING line
+    per folder under job/ that nothing names; it never refuses (the folder may be another session's), and it says
+    so when it could not check."""
+    root = root or REPO
+    try:
+        fl = _import_from(rp.CHECKS, "folder_layout")
+        rows = fl.load(root)
+        if rows is None:
+            return []
+        _, unnamed = fl.walk(root, fl.Namer(root, rows))
+    except Exception as e:  # noqa: BLE001 - a report, never a reason a save fails
+        print(f"folders on disk: not checked ({type(e).__name__}: {e})", flush=True)
+        return []
+    out = [f"WARNING: folder nothing names: {d}/ ({fl.git_state(root, d)}). If this session made it: move its "
+           f"contents to the place that exists for them, or tell Bob the full path and add its row to "
+           f"{FOLDER_REGISTER} (CLAUDE.md 'No new location without a name'). If not, tell Bob in one line."
+           for d in unnamed]
+    print(f"folders on disk: {len(unnamed)} that nothing names" + ("" if unnamed else " (tracked and gitignored)"),
+          flush=True)
+    for ln in out:
+        print(f"  {ln}", flush=True)
+    return out
+
+
 def save_guards(paths_file: str, date: str, root: Path | None = None) -> None:
-    """Refuse the save (die, exit 2) on a path in an unnamed folder or a harness file that differs from the master."""
+    """Refuse the save (die, exit 2) on a path in an unnamed folder or a harness file that differs from the master;
+    then report, without refusing, every folder on disk that nothing names (disk_folder_report)."""
     paths = [ln.strip() for ln in read_text(paths_file).splitlines() if ln.strip() and not ln.startswith("#")]
     problems = folder_refusals(paths, save_register_text(paths, date, root), root) + master_refusals(paths, root)
     if problems:
         die(f"{len(problems)} path(s) cannot be saved; nothing pushed or committed:\n  " + "\n  ".join(problems))
+    disk_folder_report(root)
 
 
 def cmd_save(a) -> None:

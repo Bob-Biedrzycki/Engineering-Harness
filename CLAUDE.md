@@ -470,18 +470,22 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   single-piece STL/3MF in subfolders: `<MODEL-ID>-rev<X>-<piece>.<ext>`,
   never just a `revX` folder.
 - **A filed design is never modified, overwritten, renamed or deleted.** A
-  change to the model, however small (removing a part, moving a nozzle), is
-  the next letter. Before any rebuild, check that the next revision's folder does
+  change to a filed design, however small (removing a part, moving a nozzle), is
+  the next letter, filed when Bob accepts it ("Work cycle"); until then it is a
+  numbered fast build. The filing scripts check that the next revision's folder does
   not exist yet, and stop if it does.
 - The build folders (`<project>/03_Working_Design/CAD/Builds/`) and `<project>/_work/` are
-  working copies. Never point Bob at a working copy as the design: give him
-  the filed revision's path. When he has been viewing a working copy, file it
-  as a revision before rebuilding over it.
+  working copies. Bob looks at fast builds as working copies, and each is named as one
+  ("working copy only, not filed"); a working copy is never called the design or sent
+  out. Builds are numbered and never overwritten, so looking at one needs no filing
+  (REVW-001: the earlier "file it as a revision before rebuilding over it" dated from
+  one overwritten build folder and pulled against the fast loop).
 - Two models of the same skid are two `<MODEL-ID>`s, each with its own
   revision sequence. One agent never rebuilds or re-exports another's model.
 - Models are filed with `harness/scripts/model_file.py` (skill `model-file`,
   from 2026-10-02), which does exactly the above; before it, revisions were
-  filed by hand. The filing step is part of the change, not a follow-up.
+  filed by hand. Filing happens at an acceptance (tier 2) or when Bob asks for it
+  (tier 2a), explained to him first; it is never a step a session adds on its own.
 
 **Issue packages** (Bob, chat, 2026-10-26: "For a Human it is helpful to have a copy of the issued files in
 the folder"). When anything is sent out, it goes as a package
@@ -644,7 +648,7 @@ filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edi
 **A model fast edit is the model only** (Bob, chat, 2026-11-23: "Planset updates should not be of concern or worry
 when making model edits. When the model is accepted, thats when the plans should be updated"; the line diagram
 "should not be a concern during model fast edits"; "i thought our harness made sure the correct list updates
-happened at the correct time"; CAPA-2026-11-23). A fast edit changes the model source, and what the model needs to
+happened at the correct time"; CAPA REVW-001). A fast edit changes the model source, and what the model needs to
 build (a component in the library, a rule value Bob has placed), makes a new numbered build, reports the build
 and stops. Everything downstream follows the accepted model and is nobody's concern before then:
 - **Tag lists** (`02_Tag_Lists/`): written from the model by `model_accept.py` at acceptance, part changes on
@@ -680,8 +684,13 @@ and stops. Everything downstream follows the accepted model and is nobody's conc
    one go. Only a model or drawing that cannot be produced stops it, and that is the agent's to fix. There are no side sessions during an acceptance and no filing by hand.
 4. Run `harness/checks/` relevant to the change. Report failures, skips and
    limitations. Then save it (`track.py save`, "Git" at the top); CI
-   (`.github/workflows/checks.yml`) runs every check on that push. The handoff
-   shows the `git status` check the global rules require.
+   (`.github/workflows/checks.yml`) runs every check on that push, and its result is read, not assumed:
+   the session-start note, `day.py status` and the end of every save print it for the day's branch. A
+   `CI FAILED` line is fixed (or, when another session's save caused it, told to Bob in one line) before
+   anything else and before any work is reported done; no report says "clean" or "passing" while the branch
+   is red or its checks are still running (global rules, "A red CI is never left standing"; Bob, 2026-11-23).
+   Every save also prints any folder on disk that nothing names (`folder_layout.py`, tracked and gitignored).
+   The handoff shows the `day.py status` lines the global rules require.
 5. **Hand off** in chat or `Agent-to-Agent Questions.md`: files changed, changed IDs, checks,
    blockers, exact next action, a **`CAPABILITY GAP:`** line, a **`NEXT:`**
    line, and the **TR compliance list** (each TR row the work touched and
@@ -702,36 +711,12 @@ and stops. Everything downstream follows the accepted model and is nobody's conc
    recommendation to Bob (`agent-task`); the **project-manager** rolls the
    day's gap lines into the PR body. Bob decides; the
    fix is a `tools:` line edit with his approval, effective next session.
-6. **The pull request, when Bob asks for it, then Bob's merge, then
-   everything else runs on its own** (Bob, 2026-10-07, verbatim: "THIS SHOULD BE 1 "GO" THEN MY
-   MERGE. THE SYNC SHOULD BE AUTOMATED."). The day's work is already saved and
-   backed up. The project-manager writes
-   the PR body and names the PR to Bob in one message, with what follows his
-   merge (sync, and the site publish when a portal revision is newer than the
-   site holds). **Bob answers once.** His words are saved verbatim to
-   `<project>/_work/daily/<date>-go.txt` and passed as `--bob-go`:
-   `track.py daily-pr`, and after the merge `track.py after-merge` (sync,
-   site publish). The
-   **PR** from `.github/pull_request_template.md`, whose body lists
-   every change of the day with its IDs and names each Linear issue it
-   advances (`Relates to <ID>`; `Fixes <ID>` only when the whole issue is
-   satisfied, since Linear closes it on merge); and the PR bound to the
-   desktop app's PR monitor. The engineering-manager reviews it; Bob merges
-   on GitHub, his only action after the go.
-   **After the merge, on the merge event or Bob saying it is merged, with
-   the day's go and no new ask:** `track.py sync-main` moves the shared
-   checkout's `main` to `origin/main` with a mixed reset (no file written)
-   after proving every local difference is already merged (the commit was
-   made in a worktree, so without this the checkout reads stale rules and
-   reports merged work as uncommitted; Bob, 2026-10-02; never `stash`,
-   `reset --hard` or `checkout .` instead); then `publish_site.py` when the
-   dry run named a newer revision (Bob, 2026-10-07: "IF THE ORIGINAL PR WAS
-   APPROVED, THE CONTENT HAS ALREADY BEEN APPROVED AND IT SHOULD BE DONE").
-   While a job has no presentation site
-   (`site_repo` in `project.yaml` is `unknown`), `publish_site.py`
-   then finds no site and stops, and nothing is published. The desktop
-   app's permission classifier may refuse `publish_site.py` from an agent
-   shell as a production deploy; the allow rule is added only as under
+6. **End of day is not a step here.** The pull request, the wait for CI, the merge into `main` and bringing this
+   checkout up to date are done for every repo by the global `end-of-day` skill on Bob's end-of-day word
+   (`Claude-Git-Tools\day.py end-day`; "Git" at the top; Bob, 2026-11-09). No session opens a pull request, merges,
+   or runs `track.py daily-pr`, `after-merge` or `sync-main` as part of a day. A site publish is `publish_site.py`
+   on its own, when a project has a site to publish (skill `site-publish`); the desktop app's permission
+   classifier may refuse it from an agent shell as a production deploy, and the allow rule is added only as under
    "Tooling" below.
 
 ## Tooling
