@@ -110,7 +110,10 @@ CUST_IDS = [("CMP record ID", r"C(?:O)?MP-\d", 0), ("frame/support/plate ID", r"
 SHOWN_ATTRS = {"alt", "title", "placeholder", "aria-label"}
 TEXT_SCRIPTS = {"application/json", "text/markdown"}
 VENDOR_STOP = {"the", "company", "control", "engineering", "supply", "manufacturer", "unknown", "cpme", "oem", "not",
-               "disclosed", "selected", "part", "number", "and", "&"}
+               "disclosed", "selected", "part", "number", "and", "&",
+               # generic product words in a maker's name ("... Valves"), which are also ordinary model tree folder
+               # names; found 2026-11-23 when a new register row made the customer GLB lint fail on "valves" (REVW-001)
+               "valves", "valve", "pumps", "pump", "instruments", "fittings", "products", "inc", "llc", "corp"}
 FAIL_AUDIENCES = ("fabricator", "customer")
 
 

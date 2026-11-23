@@ -10,13 +10,31 @@ One rule per list delta kind (harness/lib/list_delta.py), the same every time:
     model-line-not-on-list  a line-list row from the model's spools: size, wall, material, from / to, service from the
                             spool note; every field the model does not carry is 'unknown'
     model-tag-not-on-list   a valve-list or instrument-list row (by the BOM class): tag, line, size, the part the model
-                            uses; the rest 'unknown'
+                            uses (type, and component_id where the list has that column); the rest 'unknown'
     list-tag-not-in-model   the row is removed from its list, the tag is dropped from other rows' from / to lists,
                             and from each service text the comma-separated phrase naming it
     line-not-routed         the row is removed only when its from or to tag was removed with it (a relief line with its
                             relief valve);
                             otherwise it stays, as a note
+    tag-part-changed        the tag stays, its part changed (CAPA 2026-11-23). The row's component_id becomes the
+                            model's; the columns the component register can give are filled from the placed
+                            component's register row (harness/lib/components.py, the current row, else its latest);
+                            every other column that described the old part becomes 'unknown'; notes gain
+                            "part <old> -> <new> from model <revision> (...)". When the row had no component id
+                            ('unknown' or blank) only component_id and the register columns that read 'unknown' are
+                            written: nothing else on the row was said to describe another part.
+                            Register mapping (list column <- register columns), only where they mean the same thing:
+                                type                <- category - manufacturer model, part number <part_number>
+                                process_connection  <- end_connections
+                            Kept as they are (they belong to the tag and the line, not the part): tag, tag_rev_*,
+                            size_od_in (the line size at the tag), line_no, line_no_or_equip, pid_sheet, notes
+                            (appended), component_id (written). Every other column is the old part's and becomes
+                            'unknown': on today's lists valve-list actuator, feedback, solenoid, orientation,
+                            air_connection; instrument-list range, signal, mounting_orientation, straight_run_req,
+                            access_note. A register value of 'unknown', or no register row, gives 'unknown'
+                            (hard rule 1: nothing is filled in that no record gives).
 Each change is one line of the returned report, recorded in the revision description. git history keeps the old rows.
+Rows no rule touches are written back as they were read (same columns, same line endings).
 """
 from __future__ import annotations
 
@@ -29,6 +47,38 @@ from pathlib import Path
 import repo_paths as rp
 
 LISTS = {"line": "line-list.csv", "valve": "valve-list.csv", "instrument": "instrument-list.csv"}
+# tag-part-changed: the columns that belong to the tag and the line, not to the part (left as they are)
+KEEP = {"tag", "size_od_in", "line_no", "line_no_or_equip", "pid_sheet", "notes", "component_id"}
+KEEP_PREFIX = ("tag_rev_",)
+
+
+def _known(v) -> bool:
+    s = str(v or "").strip()
+    return bool(s) and not s.lower().startswith("unknown")
+
+
+def register_row(cid: str) -> dict | None:
+    """The placed component's register row: the current one, else the latest; None when it is in no register."""
+    import components
+    rows = [r for r in components.rows() if r.get("component_id") == cid]
+    cur = [r for r in rows if r.get("status", "").lower() in ("", "current")]
+    return (cur or rows or [None])[-1]
+
+
+def from_register(reg: dict | None) -> dict[str, str]:
+    """{list column: value} for the columns the register can give (mapping in the module docstring)."""
+    if not reg:
+        return {"type": "unknown", "process_connection": "unknown"}
+    head = " ".join(v for v in (reg.get("manufacturer"), reg.get("model")) if _known(v))
+    typ = " - ".join(v for v in (reg.get("category") if _known(reg.get("category")) else "", head) if v)
+    if typ and _known(reg.get("part_number")):
+        typ += f", part number {reg['part_number']}"
+    return {"type": typ or "unknown",
+            "process_connection": reg["end_connections"] if _known(reg.get("end_connections")) else "unknown"}
+
+
+def _part_columns(fields: list[str]) -> list[str]:
+    return [c for c in fields if c not in KEEP and not c.startswith(KEEP_PREFIX)]
 
 
 def _read(name: str) -> tuple[list[str], list[dict], str]:
@@ -164,6 +214,9 @@ def apply(build: Path, revision: str) -> list[str]:
             if "line_no_or_equip" in f:
                 row["line_no_or_equip"] = line
             row["type"] = m.get("source") or b.get("source") or "unknown"
+            if "component_id" in f:
+                import list_delta
+                row["component_id"] = list_delta.placed_component(m.get("source") or b.get("source")) or "unknown"
             row["pid_sheet"] = "1"
             row["notes"] = (f"NEW {src}"
                             + (f"; outlet line {starts[0]['line_no']}" if starts and starts[0]["line_no"] != line else "")
@@ -171,6 +224,30 @@ def apply(build: Path, revision: str) -> list[str]:
             rows.append(row)
             changed.add(key)
             report.append(f"{LISTS[key]} {subj}: added (line {line}, {size} in, {row['type'][:70]})")
+        elif kind == "tag-part-changed":
+            new = d["model"].strip()
+            for key in ("valve", "instrument"):
+                f, rows, _ = lists[key]
+                row = next((r for r in rows if r.get("tag") == subj), None)
+                if row is None or "component_id" not in f:
+                    continue
+                old = (row.get("component_id") or "").strip() or "unknown"
+                had = _known(old)
+                reg = register_row(new)
+                for c, v in from_register(reg).items():
+                    if c in f and (had or not _known(row.get(c))):
+                        row[c] = v
+                if had:
+                    for c in _part_columns(f):
+                        if c not in ("type", "process_connection"):
+                            row[c] = "unknown"
+                row["component_id"] = new
+                row["notes"] = (row.get("notes", "") + f" || part {old} -> {new} {src}").strip(" |")
+                changed.add(key)
+                report.append(f"{LISTS[key]} {subj}: part {old} -> {new}"
+                              + ("" if reg else " (not in a component register: type and connection unknown)")
+                              + ("; the old part's columns set to unknown" if had else ""))
+                break
         elif kind == "list-tag-not-in-model":
             for key in ("valve", "instrument"):
                 f, rows, nl = lists[key]

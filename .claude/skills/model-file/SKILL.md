@@ -1,12 +1,13 @@
 ---
 name: model-file
-description: Tier 2 of the skid-model pipeline for the project. Files the latest full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) as the next sequential revision under <project>/06_Issued_Revisions/Models/ (STEP zipped, GLB, every takeoff, list delta), read-only, with revisions.csv rows and Drive pointers. Use whenever Bob is to look at the model or anything built from it. No push.
+description: Tier 2 of the skid-model pipeline for the project. Files the latest full build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) as the next sequential revision under <project>/06_Issued_Revisions/Models/ (STEP zipped, GLB, every takeoff, list delta), read-only, with revisions.csv rows and Drive pointers. Use when Bob asks to file a build outside an acceptance. Not for fast edits (model-iterate) and not for accepting them (model-accept). No push.
 ---
 
 # Model file (tier 2, when Bob looks at it)
 
-**When.** Before the model, a render of it or any takeoff is shown or handed to
-Bob or anyone else (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE
+**When.** Before the model, a render of it or any takeoff is shown as the design or handed to
+anyone (a fast build Bob looks at during fast edits is a working copy and is not filed: skill `model-iterate`)
+(TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO OVERWRITE
 DESIGNS. THEY MUST BE LABELED AS REVISIONS."). Run `model-iterate` first; this
 refuses a build that is incomplete, failed a check, or is older than its
 source.

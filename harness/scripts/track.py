@@ -23,6 +23,10 @@ What it enforces (how this repo carries out the "Git and backup" rules in Bob's 
     No Drive-store file is ever added: .gitignore joins the paths when
     only its managed block changed, and a selected large file is refused unless
     its pointer exists and the committed .gitignore ignores it (2026-10-07).
+  * `save` refuses, before anything is pushed (REVW-001, 2026-11-23): a listed path inside a folder that neither the
+    project template, a guide nor job/folder-register.csv names (harness/checks/folder_layout.py; the register row
+    goes in the same save), and a harness-owned file (harness/harness-manifest.txt) that differs from the Engineering
+    Harness master (the change is made in the master and pulled; skipped where there is no master folder).
   * Anything that writes to GitHub or pushes needs --bob-go "<Bob's words>", except `save`: saving and backing
     up the day's branch is routine and carries Bob's standing words (STANDING_SAVE, 2026-11-03).
     --dry-run prints what would happen and sends nothing.
@@ -764,11 +768,112 @@ def cmd_daily_commit(a) -> None:
 STANDING_SAVE = 'Bob, chat, 2026-11-03: "Yes, adopt it" (save and back up each piece of work as it is done)'
 
 
+# --------------------------------------------------------------------------
+# save guards (REVW-001, 2026-11-23, CAPA PA-2 and PA-3; Bob, chat, 2026-11-23: "address preventative measures so
+# they dont happen again"). Both run before anything else in `save`: nothing is pushed to Drive, no worktree is made.
+# --------------------------------------------------------------------------
+FOLDER_REGISTER = "job/folder-register.csv"
+NEW_FOLDER_REFUSAL = ("{path} is in a folder nothing names. Use an existing location, or (CLAUDE.md 'No new location "
+                      "without a name') tell Bob the full path first and add it to job/folder-register.csv in this "
+                      "same save.")
+MASTER_REFUSAL = ("{path} is a harness file that differs from the Engineering Harness master. Make the change in the "
+                  "master and run harness_sync.py pull.")
+
+
+def _import_from(folder: Path, name: str):
+    """Import a sibling tool (harness/checks/folder_layout.py, harness/scripts/harness_sync.py) by name."""
+    if str(folder) not in sys.path:
+        sys.path.insert(0, str(folder))
+    return __import__(name)
+
+
+def save_register_text(paths: list[str], date: str, root: Path | None = None) -> str | None:
+    """The folder register as the commit will hold it: the working copy when this save lists it, else the copy on the
+    save's base (origin/daily/<date>, else origin/main), else the working copy; None when there is none."""
+    root = root or REPO
+    if covered_by(FOLDER_REGISTER, paths):
+        f = root / FOLDER_REGISTER
+        return f.read_text(encoding="utf-8-sig") if f.is_file() else None
+    for ref in (f"origin/daily/{date}", f"origin/{BASE}"):
+        if git("rev-parse", "--verify", "--quiet", ref, cwd=root, check=False).strip():
+            text = git("show", f"{ref}:{FOLDER_REGISTER}", cwd=root, check=False)
+            return text or None
+    f = root / FOLDER_REGISTER
+    return f.read_text(encoding="utf-8-sig") if f.is_file() else None
+
+
+def folder_refusals(paths: list[str], register_text: str | None, root: Path | None = None) -> list[str]:
+    """One refusal line per saved path that sits in (or, for a folder, holds) a folder the project template, a guide
+    and the folder register do not name (harness/checks/folder_layout.py --paths-file). No register: none."""
+    root = root or REPO
+    if register_text is None:
+        print(f"folders: not checked (no {FOLDER_REGISTER})", flush=True)
+        return []
+    fl = _import_from(rp.CHECKS, "folder_layout")
+    try:
+        rows = fl.read_register(register_text)
+    except fl.RegisterError as e:
+        die(f"the folder register cannot be read: {e}")
+    bad = fl.unnamed_for_paths(root, paths, fl.Namer(root, rows))
+    return [NEW_FOLDER_REFUSAL.format(path=p) + f" (unnamed folder: {d}/)" for p, d in bad]
+
+
+def saved_files(paths: list[str], root: Path) -> list[str]:
+    """Repo-relative files the listed paths name in the checkout (folders walked; .git and __pycache__ skipped)."""
+    out = []
+    for p in (norm_rel(x) for x in paths):
+        src = root / p
+        if src.is_file():
+            out.append(p)
+        elif src.is_dir():
+            for dirpath, dirs, files in os.walk(src):
+                dirs[:] = [d for d in dirs if d not in (".git", "__pycache__")]
+                rel_dir = Path(dirpath).relative_to(root).as_posix()
+                out += [f"{rel_dir}/{f}" for f in files]
+    return sorted(set(out))
+
+
+def master_refusals(paths: list[str], root: Path | None = None, master: Path | None = None) -> list[str]:
+    """One refusal line per saved harness-owned file (harness/harness-manifest.txt, read through harness_sync.py) that
+    differs from, or is missing in, the Engineering Harness master: a harness change is made in the master and pulled
+    (First Principle 3). Skipped, with a note, when there is no master folder on this machine (CI, another computer)
+    and when the repo being saved is the master."""
+    root = (root or REPO).resolve()
+    hs = _import_from(rp.SCRIPTS, "harness_sync")
+    master = Path(master or hs.default_master())
+    if not master.is_dir():
+        print(f"harness master: not checked (no master folder {master} on this machine)", flush=True)
+        return []
+    if master.resolve() == root:
+        return []
+    m = hs.read_manifest(master, root)
+    out = []
+    for rel in saved_files(paths, root):
+        if rel in m.core:
+            if hs.core_lines(root / rel) != hs.core_lines(master / rel):
+                out.append(MASTER_REFUSAL.format(path=rel) + " (outside its drive-store block)")
+        elif hs.owned(rel, m):
+            mine, theirs = root / rel, master / rel
+            if not theirs.is_file() or mine.read_bytes() != theirs.read_bytes():
+                out.append(MASTER_REFUSAL.format(path=rel) + ("" if theirs.is_file() else " (absent in the master)"))
+    return out
+
+
+def save_guards(paths_file: str, date: str, root: Path | None = None) -> None:
+    """Refuse the save (die, exit 2) on a path in an unnamed folder or a harness file that differs from the master."""
+    paths = [ln.strip() for ln in read_text(paths_file).splitlines() if ln.strip() and not ln.startswith("#")]
+    problems = folder_refusals(paths, save_register_text(paths, date, root), root) + master_refusals(paths, root)
+    if problems:
+        die(f"{len(problems)} path(s) cannot be saved; nothing pushed or committed:\n  " + "\n  ".join(problems))
+
+
 def cmd_save(a) -> None:
     """One piece of work done: Drive pointers and push (large files backed up), then the documented commit on the
     day's branch by explicit paths, pushed to GitHub (daily-commit). Prints the stage reached. Nothing official
-    changes: the PR and the merge stay Bob's."""
+    changes: the PR and the merge stay Bob's. First the save guards (save_guards): a path in a folder nothing names,
+    or a harness file that differs from the master, refuses the save before anything is pushed."""
     a.date = check_date(a.date or dt.date.today().isoformat())
+    save_guards(a.paths_file, a.date)
     ds = [str(VENV_PY), str(rp.SCRIPTS / "drive_store.py")]
     steps = [["push", "--dry-run"]] if DRY else [["pointers"], ["push"]]
     for step in steps:

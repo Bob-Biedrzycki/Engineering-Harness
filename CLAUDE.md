@@ -133,12 +133,14 @@ agents decide the rest, do it and report in a line. That file gives the reasonin
    Never hand-edit generated geometry in the repo. **Regenerating never
    overwrites a design that has been shown or handed off** (TR-08; Bob,
    2026-09-24: "YOU ARE NO LONGER TO OVERWRITE DESIGNS. THEY MUST BE LABELED
-   AS REVISIONS."). Every design change is filed as the next revision, per
-   "Designs" under "Drawing and design revisions".
+   AS REVISIONS."). A design change becomes the design when it is filed as the next
+   revision, per "Designs" under "Drawing and design revisions"; until Bob accepts
+   it, it lives only in numbered fast builds, which are working copies ("Work cycle").
 7. **The engineer decides at gates.** Agents do not sign off Gate 1–4 items.
 8. **One authoritative location per fact.** The project's lists in `<project>/03_Working_Design/PID/02_Tag_Lists/`
    and registers in `<project>/00_Project_Admin/07_Project_Controls/Registers/` are the source of truth; drawings
-   and docs link to them.
+   and docs link to them. The tag lists describe the last accepted model: between acceptances the model source
+   leads, and `model_accept.py` is the only writer that brings the lists up to it ("Work cycle", fast edit scope).
 9. Do not merge, release, transmit externally, or delete retained records
    unless the assignment explicitly authorizes it.
 10. **Todd's requirements are met on every task, no exceptions** (`harness/knowledge/Todd
@@ -279,6 +281,22 @@ job/
     07_Fabrication_QA/  08_Handover/   Shop, QA, FAT, commissioning and handover records
     _work/               Gitignored working copies: filing/, daily/, tracking/, logs/, portal
 ```
+
+**No new location without a name** (Bob, chat, 2026-11-23, on sessions "inventing new ways to file stuff and new
+folders to put stuff in"; CAPA REVW-001). The places things go are the template tree, each level's
+`README_Project_Guide.md` and the job's `job/folder-register.csv`, and code reaches them through
+`harness/lib/repo_paths.py`. When Bob asks for an outcome ("show me the frame drawings from this build", "keep the
+latest set"), the work goes in the place that already exists for it, under the naming that already exists. A session
+does not create a folder, a file-naming scheme, a counter or a second copy of an input to get there. If no existing
+place fits:
+1. Tell Bob in one line the full path proposed, what it will hold and why no existing place fits, before writing to it.
+2. Add it in the same change to `job/folder-register.csv` (what it holds, the basis, the date), to the level's
+   guide, and to `repo_paths.py` if code will reach it; a path typed by hand in a script is a defect.
+3. When a method replaces another, the old method's code, text and folders are retired in the same change (its
+   outputs are kept, moved to the place the register names for them). Two live ways to do one thing is a defect.
+`harness/checks/folder_layout.py` reports every folder on disk that none of these name; `track.py save` refuses a
+path inside one. Inputs a generator reads are tracked files, never in `_work/`. A review, audit or CAPA record is
+`05_Reviews_Changes/01_Internal_Reviews/REVW-<nnn>_<date>_<subject>/` with `Request/ Markups/ Responses/ Closure/`.
 
 ## Adding an instrument or component (Bob, 2026-10-05)
 
@@ -443,7 +461,7 @@ OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS.")
   `<MODEL-ID>-rev<X>-P<nn>.glb`, `<MODEL-ID>-rev<X>-P<nn>.blend` and
   `<MODEL-ID>-rev<X>-P<nn>-<view>.png`, with rows in that model's
   `revisions.csv` (notes start `P<nn>`). P numbers count within one revision;
-  a locked P folder never changes. Tool: `job/Typical-<ID prefix>/03_Working_Design/CAD/09_Presentation/`
+  a locked P folder never changes. Tool: `<project>/03_Working_Design/CAD/09_Presentation/`
   (README.md). The **web GLB** (decimated for the browser) is a portal asset,
   not a locked file.
 - **3D print files** (Bob, 2026-10-01: "make sure all future 3D Print files
@@ -611,7 +629,7 @@ Model work runs in **three tiers** (CPME practice; Bob, chat, 2026-10-02), one s
 
 | Tier | When | Script | Skill |
 |---|---|---|---|
-| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: lists, STEP, interference, envelope, materials, pipe supports, GLB, list delta, into a new numbered folder under `<project>/03_Working_Design/CAD/Builds/` only | `model-iterate` |
+| 1. Iterate | every model build | `harness/scripts/model_iterate.py`: a fast build (`--fast`: takeoffs, interference, envelope, materials, a GLB to look at) or a full build (adds the STEP, pipe supports and the export GLB), into a new numbered folder under `<project>/03_Working_Design/CAD/Builds/` only | `model-iterate` |
 | 2. Accept | Bob says he accepts, or would like to file, the fast edit as Rev <X> | `harness/scripts/model_accept.py`: preflight (lists written from the model, open items recorded as notes), full build, `model_file.py`, then the P&ID, LSD and PFD filed when changed, PRRs, pointers; no push | `model-accept` |
 | 2a. File | Bob asks to file a build outside an acceptance | `harness/scripts/model_file.py`: the latest full build (or `--build <name>`), next letter, filed read-only under `<project>/06_Issued_Revisions/Models/<MODEL-ID>/<MODEL-ID>-rev<X>/`, `revisions.csv`, pointers, no push | `model-file` |
 | 3. Close-out (optional) | only when Bob asks for a full check run: CI already runs the checks on every save | `harness/scripts/closeout.py`: all checks, list delta review, portal media and portal filing, Drive push and verify, commit body skeleton; no commit | `closeout` |
@@ -623,17 +641,39 @@ No build overwrites another, and each has a row in `Builds/build-log.md` naming 
 filed from a full build, and its `revisions.csv` rows name that build. `Fast_Edits/` (named `Exports/` before 2026-11-18; Bob, chat,
 2026-11-18) holds only drawing fast edits and previews.
 
+**A model fast edit is the model only** (Bob, chat, 2026-11-23: "Planset updates should not be of concern or worry
+when making model edits. When the model is accepted, thats when the plans should be updated"; the line diagram
+"should not be a concern during model fast edits"; "i thought our harness made sure the correct list updates
+happened at the correct time"; CAPA-2026-11-23). A fast edit changes the model source, and what the model needs to
+build (a component in the library, a rule value Bob has placed), makes a new numbered build, reports the build
+and stops. Everything downstream follows the accepted model and is nobody's concern before then:
+- **Tag lists** (`02_Tag_Lists/`): written from the model by `model_accept.py` at acceptance, part changes on
+  existing tags included. During a fast edit nobody edits them by hand and nobody asks Bob to approve a list
+  change. A line the model adds ahead of the list is declared in the model's own parameters, not in the list.
+  If Bob asks for a list entry himself, that is his request and is done as asked.
+- **P&ID, line segment diagram, process flow diagram**: drawn and filed by the acceptance run, which checks they
+  draw before anything is filed. A fast build does not draw them (`--drawings` only when Bob asks) and a fast edit
+  does not run, fix or report on their generators.
+- **Plan sets**: read a model pin. The pin moves to a filed model revision after an acceptance, or to a build Bob
+  names when he asks for a plan set fast edit. A model session never moves it and never raises a plan set as
+  stale, due or needing a redraw.
+- **What a fast build carries to acceptance** (list rows the model will write, components not placed, open
+  questions) is written to the build folder as notes for the acceptance run. It is not relayed to Bob as a list
+  and nothing in it is a question for him.
+
 1. Read this file, `harness/knowledge/Todd Requirements.md`, and the sources the task
    names.
 2. Work in the shared working tree. Never switch branches or reset there;
    save only through `track.py save` (it commits in a separate worktree).
-3. Make the bounded change; update affected registers in the same change.
-   For the model: tier 1 after every change, tier 2 before anything is shown.
+3. Make the bounded change; update affected registers in the same change (for a model fast edit the tag lists
+   are not among them: see the fast edit scope above).
+   For the model: tier 1 after every change; a fast build is shown as a working copy, and tier 2 comes before
+   anything is shown or handed off as the design.
    **Acceptance is one scripted pass** (Bob, chat, 2026-10-15: "they should be run
    progamatically and deterministically. A P&ID revision should be part of the package."). It starts only when Bob
    says he accepts, or would like to file, the fast edit as Rev <X>. A request for part of it before that is that
-   part only, as a fast edit: nothing is filed, and nobody asks whether to do the rest. Every fast build prints
-   what is still open before the next letter, as notes. **At acceptance the model is the source of truth** (Bob,
+   part only, as a fast edit: nothing is filed, and nobody asks whether to do the rest. Every fast build writes
+   what it carries to acceptance into its own folder, as notes. **At acceptance the model is the source of truth** (Bob,
    chat, 2026-10-16: "when accepted, all of the lists and other drawings get updated based on the model ... not a
    list of questions for me to answer prior to acceptance"): `model_accept.py` writes the model's changes into the
    `<project>/03_Working_Design/PID/02_Tag_Lists/` lists, records every open item as a note in the description, and files the model and its drawings in

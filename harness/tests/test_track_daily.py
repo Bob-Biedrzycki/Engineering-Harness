@@ -395,20 +395,22 @@ class CloseoutCheckStatus(unittest.TestCase):
         self.assertTrue(all(res == f"{why}; passed" for _, res in R.steps))
         self.assertIn(f"{why}; passed", out.getvalue())
 
-    def test_list_delta_starts_a_missing_prr_file(self):
-        with tempfile.TemporaryDirectory() as d:
-            prr = Path(d) / "sub" / "pid-revision-requests.md"
-            delta = {"rows": [{"kind": "line-size", "subject": "W-901", "line_no": "W-901", "model": "2", "lists": "3",
-                               "detail": "x"}], "n_list_tags": 0, "n_spools": 1}
-            import list_delta
-            with mock.patch.object(C, "PRR", prr), mock.patch.object(list_delta, "compute", return_value=delta), \
-                    mock.patch.object(C, "run", return_value=(0, "")), \
-                    mock.patch.object(C.rp, "rel", side_effect=lambda p: str(p)), \
-                    contextlib.redirect_stdout(io.StringIO()):
-                self.assertTrue(C.step_list_delta(C.Report(), False, "A", "2026-10-26"))
-            text = prr.read_text(encoding="utf-8")
-        self.assertTrue(text.startswith(C.PRR_HEADER))
-        self.assertIn("| line-size | W-901 |", text)
+    def test_list_delta_is_a_warning_only(self):
+        """CAPA 2026-11-23: model_accept.py owns a non-empty delta; close-out reports it, appends nothing, goes on."""
+        delta = {"rows": [{"kind": "line-size", "subject": "W-901", "line_no": "W-901", "model": "2", "lists": "3",
+                           "detail": "x"}], "n_list_tags": 0, "n_spools": 1}
+        import list_delta
+        R = C.Report()
+        with mock.patch.object(list_delta, "compute", return_value=delta), \
+                mock.patch.object(C, "run", return_value=(0, "")), \
+                mock.patch.object(C, "rcsv", return_value=[]), \
+                mock.patch.object(C.rp, "rel", side_effect=lambda p: str(p)), \
+                contextlib.redirect_stdout(io.StringIO()) as out:
+            self.assertFalse(C.step_list_delta(R, False, "A", "2026-10-26"))
+        self.assertEqual(R.failed, [])
+        self.assertIn("model_accept.py", R.steps[0][1])
+        self.assertIn("line-size: W-901", out.getvalue())
+        self.assertFalse(hasattr(C, "PRR"))
 
     def test_hard_fail_list_matches_ci(self):
         sh = (REPO / "harness" / "scripts" / "run_checks.sh").read_text(encoding="utf-8")

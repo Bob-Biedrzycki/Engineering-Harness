@@ -25,8 +25,7 @@ step 4); run it alone only as the fallback:
 ```
 
 **Exit codes.** 0 done; 1 done but a step failed, a check is broken, or a
-repo-integrity check (`drive_pointers`) failed; 2 refused; 3 stopped at the
-list delta. Checks are judged as CI judges them (`run_checks.sh`; Bob,
+repo-integrity check (`drive_pointers`, `filed_layout`, `folder_layout`) failed; 2 refused. Checks are judged as CI judges them (`run_checks.sh`; Bob,
 2026-10-07: "The PR should not be flagging design findings."): a design
 finding (exit 1 with the `<name>: FAIL` summary) is a `WARN` row, not a
 failure, so it never stops `track.py daily`.
@@ -48,8 +47,9 @@ once per model revision; the landing page is filed only when it changed
 **Steps.** (1) every `harness/checks/*.py`, as CI, except `portal_terms.py`,
 which runs at the end of step 5 on the portal revision just filed; (2) frame-calc basis vs the
 newest filed revision; (3) list delta of the newest filed revision vs the lists:
-non-empty means it is appended to `<project>/01_Design_Basis/06_Assumptions_Open_Items/pid-revision-requests.md` and
-close-out STOPS (exit 3) for the process-engineer step, then you rerun it;
+non-empty is a warning only (the acceptance run writes the lists from the model, so a difference on a filed
+revision means `list_from_model.py` missed a kind of change: a harness defect to report, never a list for Bob or
+the process-engineer);
 **(4), (5) and (9) are the presentation site, dormant until the job has one**: the
 site framework (project tracker, Mobile Optimized, landing page) is
 dormant until Bob defines the job's presentation site (Bob,

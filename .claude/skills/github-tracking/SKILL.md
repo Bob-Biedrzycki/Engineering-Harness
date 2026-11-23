@@ -157,7 +157,11 @@ has a site. The steps below that name the site, the portals or
      `.gitignore` the commit carries ignores it, and the branch does not
      still track it. Each line names the pointer to list instead. Files that
      pass stay out of the worktree and the add; a large file listed by name
-     is replaced by its pointer.
+     is replaced by its pointer;
+   - refuses, before any Drive or git work, a path inside a folder nothing names (the template, a guide or
+     `job/folder-register.csv`; `harness/checks/folder_layout.py`, CLAUDE.md "No new location without a name"),
+     unless the folder's register row is in the same save; and a harness-owned file that differs from the
+     Engineering Harness master (make the change in the master, then `harness_sync.py pull`). CAPA REVW-001.
 2. **Write the commit message** to a file. The subject is at most 72
    characters. The body has these sections, each required: **Why**,
    **Changed IDs**, **Sources and rules cited**, **TR rows touched**,

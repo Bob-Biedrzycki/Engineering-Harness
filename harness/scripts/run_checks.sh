@@ -25,6 +25,9 @@
 #                       (CPME practice); the repo itself is wrong, not the design.
 #   filed_layout.py   - a filed drawing or model revision not in its own <DOC-ID>-rev<X>/ folder
 #                       (Bob, chat, 2026-10-30); the filing is wrong, not the design.
+#   folder_layout.py  - a folder under job/ that neither the project template, a guide nor job/folder-register.csv
+#                       names (REVW-001 CAPA PA-2, 2026-11-23); the filing system is wrong, not the design. On CI
+#                       it sees only tracked folders (the gitignored ones do not exist in a clean checkout).
 # Every other check measures the design or its output (sanitary, pipe_supports,
 # interference, envelope, pid_consistency, portal_terms, tag_crosscheck, component_register) and reports.
 #
@@ -32,7 +35,7 @@
 # harness/checks), GITHUB_STEP_SUMMARY (default /dev/null).
 set +e
 
-HARD_FAIL_CHECKS="drive_pointers.py filed_layout.py"
+HARD_FAIL_CHECKS="drive_pointers.py filed_layout.py folder_layout.py"
 
 PYTHON="${PYTHON:-python}"
 CHECKS_DIR="${CHECKS_DIR:-harness/checks}"

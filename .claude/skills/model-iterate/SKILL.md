@@ -1,13 +1,31 @@
 ---
 name: model-iterate
-description: Tier 1 of the skid-model pipeline for the project. One build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - takeoffs, STEP, interference, envelope, materials, pipe supports, GLB and the list delta - into a new numbered folder under <project>/03_Working_Design/CAD/Builds/ (fast or full, never overwritten). Use after any edit to the model source, the <project>/03_Working_Design/PID/02_Tag_Lists lists, component models or design rules, before showing anything to Bob. Never files, never pushes.
+description: Tier 1 of the skid-model pipeline for the project. One build of the project's skid model (rp.SKID_MODEL_ID, named in job/JOB.md) after every model change - a fast build (takeoffs, interference, envelope, materials, a GLB to look at) or a full build (adds STEP, pipe supports, export GLB) - into a new numbered folder under <project>/03_Working_Design/CAD/Builds/ (never overwritten). Use after any edit to the model source, component models or the design rules the model reads, before showing anything to Bob. A fast edit is the model only - no tag list edits, no P&ID or line diagram work, no plan sets. Never files, never pushes.
 ---
 
 # Model iterate (tier 1, every build)
 
+**Fast edit scope: the model only** (Bob, chat, 2026-11-23; CLAUDE.md "Work cycle"; CAPA-2026-11-23). Read this
+before anything else in this skill. A fast edit changes the model source, builds, reports the build and stops.
+- **Tag lists** (`<project>/03_Working_Design/PID/02_Tag_Lists/`): do not edit them and do not ask Bob to approve
+  a list change. `model_accept.py` writes them from the model at acceptance: new tags, removed tags, line sizes,
+  and the part on a tag that stays (`harness/lib/list_from_model.py`). A line the model adds before the list has
+  it is named in the model's parameters (`UNNUMBERED_LINES`), a removed one in `REMOVED_LINES`; never by editing
+  `line-list.csv`. If Bob himself asks for a list entry, do exactly that.
+- **P&ID, line segment diagram, process flow diagram**: not drawn, checked, fixed or mentioned. Never edit a
+  drawing generator in a model fast edit. The acceptance run checks they draw before it files anything; a failure
+  there is fixed there. `--drawings` adds the check to one fast build, only when Bob asks for it.
+- **Plan sets** (frame, general arrangement, pipe supports, spools and the rest): never mentioned, offered or
+  described as stale. The model pin they read moves after an acceptance, or when Bob asks for a plan set fast
+  edit (skill `plan-set-fast`). A reviewer agent's remark about a plan set is not passed on to Bob.
+- **Carried to acceptance**: the build writes `carried-to-acceptance.md` in its folder and prints one line with
+  the count. Do not paste its items into the report and do not ask Bob about them.
+- **The report** is: what changed in the model, the build's GLB path, the check lines the build printed, and
+  "working copy only, not filed". No closing offer of further work on lists, drawings or plan sets.
+
 **When.** After every change to `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/`
-(`rp.SKID_MODEL`; `<MODEL-ID>` is `rp.SKID_MODEL_ID`, named in `job/JOB.md`), the `<project>/03_Working_Design/PID/02_Tag_Lists/`
-lists, `job/components/` models or the design rules. Run it as often as you like; it only writes a new working copy.
+(`rp.SKID_MODEL`; `<MODEL-ID>` is `rp.SKID_MODEL_ID`, named in `job/JOB.md`), `job/components/` models or the
+design rules the model reads. Run it as often as you like; it only writes a new working copy.
 
 **One build series** (Bob, chat, 2026-11-12: one numbered, never-overwritten series in place of two build folders;
 "many times it takes 30+ edits to get to the desired result"). Every run, full or `--fast`, writes a new folder
@@ -48,7 +66,7 @@ revision of that configuration and skips the P&ID drawing checks. Commands and t
 build without a GLB cannot be filed.
 
 **Fast loop** (Bob, 2026-10-10: light-weight modelling that is very fast):
-`--fast` runs only lists, list delta, interference and the
+`--fast` runs only the takeoffs (`export_lists.py`), list delta, interference, materials and the
 model-only envelope (about 6 s), and beside them `export_glb_fast.py`, a GLB to
 look at straight from the model with no STEP (about 1 min, instead of about
 6 min for the full build; Bob, 2026-10-10: "I need to be able to see it ...
@@ -80,13 +98,13 @@ the row (build name, time, request, change, the check results, the open count) u
 the row by hand. A build another session made gets its row from that session.
 `model_accept.py` builds Rev <X>'s description from these rows, so the change cell says what changed.
 
-**Open before Rev <next>** (Bob, chat, 2026-10-15: acceptance "should be run progamatically and
-deterministically"). Every fast build also draws the P&ID, line segment diagram and PFD from itself in check mode
-(about 1-2 s each, beside the GLB, nothing written; a failure is a `[FAIL] check P&ID` line), then prints
-`OPEN BEFORE REV <next>: n` with each item: failed checks, drawing errors and layout issues (HARD), list delta
-rows, components registered since the last revision but not in the model, questions opened since then
-(`harness/lib/accept_preflight.py`). **Put that list, as printed, at the end of every fast-edit report**, so Bob
-sees what acceptance will ask before he asks for it. Do not fix items he did not ask about, and do not offer to.
+**What a fast build prints at the end** (Bob, chat, 2026-10-15: acceptance "should be run progamatically and
+deterministically"; 2026-10-16: "not a list of questions for me to answer prior to acceptance"; 2026-11-23, fast
+edit scope above). Hard items only for the checks it ran (a model problem, interference, envelope, materials, the
+GLB); then one line, `carried to acceptance: n item(s) ... -> <build>/carried-to-acceptance.md` (list rows the
+model will write, components not placed, open questions; `harness/lib/accept_preflight.py`); then the
+`FAST EDIT SCOPE` footer. Fix a hard item, because the model is wrong. Leave the carried items where they are:
+the acceptance run reads them.
 
 **A request for part of the acceptance is only that part** (Bob, chat, 2026-10-15: "If I request parts of the
 acceptance prior to aceptance it does not mean do everything else, or ask if i would like everything else
@@ -112,14 +130,15 @@ what `model_file.py` checks.
 
 **List delta.** `list-delta.csv` / `.md`: tags in the model not on the
 `<project>/03_Working_Design/PID/02_Tag_Lists/*-list.csv`, list tags not in the model, line size / wall /
-material differences, spools per line vs the line list. Zero rows means the
-model and the lists agree. A non-empty delta is not fixed here: it goes to the
-process-engineer at close-out (lists stay the formal input, hard rule 2).
+material differences, spools per line vs the line list, and the part on a tag
+that differs from the list's (`tag-part-changed`). It is what `model_accept.py`
+will write into the lists at acceptance, and nothing else: a non-empty delta is
+not fixed here, not handed to anyone and not put to Bob.
 
-**Never.** File, push, build the portal, edit a generated output (TR-03), or
-point Bob at `<project>/_work/` as the design (TR-08). Not a substitute for
-`pid_consistency` (close-out runs it) or the frame calc.
+**Never.** File, push, build the portal, edit a generated output (TR-03), edit a tag list or a drawing
+generator in a fast edit, or point Bob at `<project>/_work/` as the design (TR-08). Not a substitute for
+`pid_consistency` (the acceptance run does it) or the frame calc.
 
 **Hand-off line.** `model_iterate: PASS|FAIL in <min>`, each check's summary
-line, the list delta row count, the `looks:` line, the build's name (`rev<X>-full-<nnn>`), and "working copy only,
-not filed".
+line, the `looks:` line (full build), the build's name (`rev<X>-fast-<nnn>` or `rev<X>-full-<nnn>`), and
+"working copy only, not filed".

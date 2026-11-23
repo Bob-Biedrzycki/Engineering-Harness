@@ -1,8 +1,10 @@
 """list_delta - what the model says that the P&ID lists do not (CPME practice).
 
-Lists stay the formal input layer and the model leads: every build emits a list delta, and at close-out a
-non-empty delta becomes a list update or a P&ID revision request (<project>/01_Design_Basis/06_Assumptions_Open_Items/pid-revision-requests.md). Hard
-rule 2 stays intact: the delta is how a gap between the model and the P&ID is surfaced, never a fix.
+Lists stay the formal input layer and the model leads: every build emits a list delta, and the one owner of a
+non-empty delta is harness/scripts/model_accept.py at acceptance, which writes it into the lists
+(harness/lib/list_from_model.py, one rule per kind). A fast build only carries the rows to acceptance; nobody edits a
+list by hand to clear them. Hard rule 2 stays intact: the delta is how a gap between the model and the P&ID is
+surfaced, never a fix.
 
 Reads one build or one filed revision (a folder and a file prefix):
     <prefix>manifest.json, <prefix>spool-list.csv, <prefix>weld-map.csv
@@ -20,9 +22,20 @@ Delta rows (one per difference; zero rows = the model and the lists agree):
     line-material           spool material differs from line-list spec + material
     spool-id / weld-id      spool id not <LINE>-SP<nn> for its line (any line_no, e.g. CS-201-SP03;
                             rule_scope.spool_id_ok); weld id malformed or duplicated
+    tag-part-changed        a tag on a list that has a component_id column (valve-list, instrument-list) whose row
+                            names a different component than the one the model places on that tag (CAPA
+                            2026-11-23: a maker swap on tags that stay). `model` = the placed id, `lists` = the
+                            row's component_id ('unknown' when the row has none yet), `detail` names the list file.
+                            The placed id is read from the model item's source text (manifest.json, else the BOM):
+                            the id that prefixes the STEP file it places (COMP-0067-....step), else the id the
+                            source starts with, else the only id it names; a source naming none, or several with
+                            none of those forms, is not compared (information line). CMP-nnnn and COMP-nnnn are
+                            the same component number (norm_ids, placed_component); a row naming several ids
+                            agrees when the placed one is among them.
 The tag and line rows are the ones harness/checks/pid_consistency.py fails on (same rules, same off-skid set).
 Where the list says 'unknown' and the model has a value, that is reported as information in the .md, not as
-a delta row (the list is not contradicted).
+a delta row (the list is not contradicted); tag-part-changed is the exception, since the component id is the
+model's to give.
 """
 from __future__ import annotations
 
@@ -74,6 +87,65 @@ def list_material(row: dict) -> str:
     """'ASTM A270 S2 316L' from spec 'ASTM A270 S2 (rule ...)' and material '316L'."""
     spec = re.sub(r"\s*\(.*\)\s*$", "", (row.get("spec") or "").strip())
     return f"{spec} {(row.get('material') or '').strip()}".strip()
+
+
+PART_LISTS = ("valve-list.csv", "instrument-list.csv")   # the lists whose rows may carry component_id
+_ID = re.compile(r"\b(?:COMP|CMP)-(\d{4})\b")
+
+
+def norm_ids(text) -> list[str]:
+    """Every component number named in the text, as COMP-nnnn (CMP-nnnn is the old spelling of the same number),
+    in order, without repeats."""
+    out = []
+    for n in _ID.findall(str(text or "")):
+        cid = f"COMP-{n}"
+        if cid not in out:
+            out.append(cid)
+    return out
+
+
+def placed_component(source) -> str | None:
+    """The component the model places, read from an item's source text (rule in the module docstring), or None."""
+    s = str(source or "")
+    step = re.search(r"\b(?:COMP|CMP)-(\d{4})-[^\s,;()]*\.(?:step|stp)\b", s, re.I)
+    if step:
+        return f"COMP-{step.group(1)}"
+    lead = re.match(r"\s*(?:COMP|CMP)-(\d{4})\b", s)
+    if lead:
+        return f"COMP-{lead.group(1)}"
+    ids = norm_ids(s)
+    return ids[0] if len(ids) == 1 else None
+
+
+def part_changes(man: dict, bom: list[dict], lists: dict[str, list[dict]]) -> tuple[list[dict], list[str]]:
+    """tag-part-changed rows and information lines: each list row with a component_id column against the component
+    the model places on its tag. `lists` maps a list file name to its rows."""
+    src: dict[str, str] = {}
+    for b in bom:
+        if b.get("item") and b.get("source"):
+            src.setdefault(b["item"].strip(), b["source"])
+    for it in man.get("items", []):
+        if it.get("tag") and it.get("key") == it.get("tag") and it.get("source"):
+            src[it["tag"]] = it["source"]   # the item keyed by its tag is the tagged part itself
+    rows, info = [], []
+    for name, lrows in lists.items():
+        for r in lrows:
+            tag = (r.get("tag") or "").strip()
+            if "component_id" not in r or not tag or tag not in src:
+                continue
+            placed = placed_component(src[tag])
+            have = (r.get("component_id") or "").strip()
+            if placed is None:
+                info.append(f"{tag}: the model's source names no single component ({src[tag][:80]}); "
+                            f"{name} says {have or 'unknown'}")
+                continue
+            if placed in norm_ids(have):
+                continue
+            rows.append({"kind": "tag-part-changed", "subject": tag,
+                         "line_no": (r.get("line_no") or r.get("line_no_or_equip") or "").strip(),
+                         "model": placed, "lists": have if not _unknown(have) else "unknown",
+                         "detail": f"{name}: the model places {placed}, the row names {have or 'unknown'}"})
+    return rows, info
 
 
 def compute(folder: Path, prefix: str = "") -> dict:
@@ -178,6 +250,12 @@ def compute(folder: Path, prefix: str = "") -> dict:
         if not wid.startswith(sid + "-W") or wid in seen:
             add("weld-id", wid, w.get("line_no", ""), wid, "<SPOOL>-W<nn>, unique", "weld id malformed or duplicated")
         seen.add(wid)
+
+    # the part on each tag (CAPA 2026-11-23): the component the model places vs the list row's component_id
+    bom_p = rp.model_rev_file(folder, f"{prefix}bom-model.csv")
+    prow, pinfo = part_changes(man, _csv(bom_p) if bom_p.is_file() else [], {n: _list(n) for n in PART_LISTS})
+    rows += prow
+    info += pinfo
 
     counts = Counter(sp["line_no"] for sp in spools)
     spool_table = []
