@@ -12,8 +12,12 @@
 # recorded as an ASSUMPTION until Bob designates a rule.
 meta:
   owner: "<project engineer>"
-  revision: 10
+  revision: 11
   status: >-
+    Rev 11, 2026-11-23: STR-PS-001 support bar under the 1.0 in hanger (HS-100T-H) is a 1/2 in solid round bar, max
+    length 17.2 in by the same sway check (Bob, chat, 2026-11-23: "Yes, 1/2 in bar", answering Q-0081). Key added:
+    support_member.by_od_in "1.0" (the 3/4 in values stay the default for 2.0 and 3.0 in); hanger weld_fit and
+    sizing_basis updated. No key renamed or removed.
     Rev 10, 2026-11-23: STR-PS-001 hanger values corrected to AWI's own prints and STEP models (HS-100T-H,
     HS-200T-H, HS-300T-H; Corbin Flower, AWI, email 2026-11-23, received through Bob, chat: "They're in the email
     for you to grab"). 1.0 in: height 1.625 (was 1.5625 from the web table), bracket flat 0.8125 from the tube
@@ -45,7 +49,8 @@ pipe_supports:
     rule: >-
       A 1.0 in, 2.0 in or 3.0 in OD tube support is one AWI stainless hex hanger with
       collar (hanger below) on one support member: a 3/4 in diameter solid
-      round bar, ASTM A276 / A479 304, standing straight under the tube
+      round bar (1/2 in under the 1.0 in hanger, support_member by_od_in),
+      ASTM A276 / A479 304, standing straight under the tube
       centreline from the frame member or equipment top it stands on to the
       centre of the outer flat of the hanger's lower bracket. The bar top is
       fillet welded all round to that flat and the bar bottom is fillet welded
@@ -66,7 +71,8 @@ pipe_supports:
       max_length_in, as the earlier 5/8 in rod rule did (a 12 in rod with a
       post making up the height, before Rev 4 of this rule). The bar is not
       made larger instead: a bar over 3/4 in plus its two fillet legs would
-      not land on the 1.00 in wide bracket.
+      not land on the 1.00 in wide bracket. Under the 1.0 in hanger, whose
+      bottom flat is 0.412 in across, the bar is 1/2 in.
     applies_to: 1.0 in, 2.0 in and 3.0 in OD stainless sanitary tube
     support_member:
       material: ASTM A276 / A479 304 solid round bar
@@ -78,6 +84,13 @@ pipe_supports:
       length: member or equipment top to the hanger bracket flat, at most max_length_in; a longer drop stands the bar on a post or member (rule)
       orientation: standing (vertical, under the tube centreline); hung (vertical, from above); side (horizontal, from a member face)
       ends: fillet weld all round, continuous, both ends (top to the bracket's outer flat, bottom to the member or equipment top)
+      by_od_in:                     # the values above are for 2.0 and 3.0 in tube; a size listed here overrides them
+        "1.0":                      # Bob, chat, 2026-11-23: "Yes, 1/2 in bar" (Q-0081)
+          diameter_in: 0.5
+          area_in2: 0.1963          # pi d^2 / 4
+          I_in4: 0.003068           # pi d^4 / 64
+          S_in3: 0.01227            # pi d^3 / 32
+          max_length_in: 17.2       # (0.1 x 3 x 28,000,000 x 0.003068 / 5)^(1/3) = 17.27 in, rounded down
     hanger:
       vendor: AWI Manufacturing, Inc. (Winsted, MN)
       series: Stainless Steel Hex Hangers with Collar, tube size
@@ -105,8 +118,9 @@ pipe_supports:
         The bar top weld lands on the bracket's outer flat. 2.0 in: the 3/4 in bar plus two 1/8 in fillet legs is
         1.00 in, against a flat 0.990 in across x 1.00 in along, so the fillet toes overhang the flat by about
         0.005 in each side across the tube. 1.0 in: the flat is 0.412 in across, narrower than the 0.75 in bar, so
-        the bar does not land on the flat. 3.0 in: flat 1.567 in across, fits. Open, Bob's decision (Q-0081); not
-        resolved in this rule.
+        the 1.0 in hanger takes the 1/2 in bar (support_member by_od_in; Bob, chat, 2026-11-23, Q-0081). The 1/2 in
+        bar still overhangs the 0.412 in flat by 0.044 in each side across the tube, so its fillet toes run onto
+        the bracket bends there (along the tube, 0.75 in of the 1.00 in flat). 3.0 in: flat 1.567 in across, fits.
       component: unknown            # add the AWI parts to the component library (skill component-add)
       by_od_in:
         "1.0":                                  # AWI print HS-100T-H version 1 (ID 691556) and STEP
@@ -214,8 +228,14 @@ pipe_supports:
       at about 3.8 ksi on the throat. The bar plus two 1/8 in legs is 1.00 in,
       the bracket's width along the tube, so the fillet toes reach the bracket
       edges with no margin. Across the tube the flat is 0.990 in (2.0 in),
-      0.412 in (1.0 in) and 1.567 in (3.0 in) on AWI's STEP models; the 2.0 in
-      and 1.0 in fits are open (hanger weld_fit, Q-0081).
+      0.412 in (1.0 in) and 1.567 in (3.0 in) on AWI's STEP models (hanger
+      weld_fit). 1/2 in solid round 304 under the 1.0 in hanger: A 0.1963
+      in2, I 0.003068 in4, S 0.01227 in3; L = (0.1 x 3 x 28,000,000 x
+      0.003068 / 5)^(1/3) = 17.27 in, held to 17.2 in (sway 0.099 in). At
+      17.2 in: side-load moment 86 in-lb, 7.0 ksi; 50 lb axial 0.25 ksi
+      (0.76 ksi at 3 g); Euler load (K 2) about 716 lb, 14 times the 50 lb
+      basis; the 1/8 in fillet all round carries the 86 in-lb at about 5.0
+      ksi on the throat. All under 18 ksi.
     basis: >-
       Make: Bob, chat, 2026-11-22: "We are going to change pipe hangers. This
       is now the desired make.
@@ -226,7 +246,8 @@ pipe_supports:
       solid rod', i suspect we still want to limit the length of the rod as we
       did in the past."; the limit is the existing sway load case (5 lb, 0.1
       in, CPME practice) applied to the bar, with a post making up a longer
-      drop as the earlier rod rule did. Dimensions and materials from the AWI
+      drop as the earlier rod rule did. 1/2 in bar under the 1.0 in hanger:
+      Bob, chat, 2026-11-23: "Yes, 1/2 in bar" (Q-0081). Dimensions and materials from the AWI
       cut sheets and product page (hanger source). Weld cleaning and
       passivation ASTM A380 / A967; continuous welds SAN-FRAME-001.
       Designation: harness (Bob, chat, 2026-11-23: "The support rule can move
