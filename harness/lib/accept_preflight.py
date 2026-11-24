@@ -11,8 +11,12 @@ One function lists every open item, the same way every time, so nothing is disco
            last filed revision but not in the model; a question (Q-nnnn) opened since the last filed revision and still open;
            sanitary.py or pid_consistency.py failing (accept only).
 
-Used by harness/scripts/model_iterate.py --fast (the running "open before Rev <next>" list on every fast build) and
-harness/scripts/model_accept.py (the acceptance package). Reports only; the callers decide what stops.
+Used by harness/scripts/model_accept.py (the acceptance package: every item, before anything is filed) and
+harness/scripts/model_iterate.py --fast. A fast build prints only the hard items of the checks it ran; the open items
+go to carried-to-acceptance.md in its folder with one count line (write_carried, carried_line) and the fixed
+FAST_SCOPE_FOOTER (CAPA 2026-11-23; Bob, chat: "Planset updates should not be of concern or worry when making model
+edits. When the model is accepted, thats when the plans should be updated."). Reports only; the callers decide what
+stops.
 """
 from __future__ import annotations
 
@@ -119,7 +123,9 @@ def unplaced_components(build: Path, since: str) -> list[dict]:
     out, seen = [], set()
     for r in components.current_rows():
         cid, got = r.get("component_id", ""), components.obtained_on(r)
-        if not cid or cid in seen or got < since:
+        # a row with no real date (blank or 'unknown') is library stock of unknown age, not "registered since the
+        # last revision": 'unknown' sorts after every date as text and was reported as new (CAPA REVW-001)
+        if not cid or cid in seen or not re.match(r"\d{4}-\d{2}-\d{2}$", got) or got < since:
             continue
         seen.add(cid)
         if not re.search(rf"\b{re.escape(cid)}\b", text):
@@ -157,8 +163,9 @@ def open_questions(since: str) -> list[dict]:
     return uniq
 
 
-def start_drawing_checks(build: Path, logs: Path) -> dict:
-    """Start the three generators in --check-build mode (about 1-2 s each, nothing written). Returns the processes."""
+def start_drawing_checks(build: Path, logs: Path, env: dict | None = None) -> dict:
+    """Start the three generators in --check-build mode (about 1-2 s each, nothing written). Returns the processes.
+    `env` (model_accept.py --sandbox) carries CPME_DRAWINGS_ROOT to the generators."""
     logs.mkdir(parents=True, exist_ok=True)
     procs = {}
     for name, gen, _ in DRAWINGS:
@@ -166,7 +173,7 @@ def start_drawing_checks(build: Path, logs: Path) -> dict:
         fh = open(log, "w", encoding="utf-8")
         procs[name] = (subprocess.Popen([str(PY), str(rp.DRAWING_SOURCES / gen), "--check-build", str(build)],
                                         cwd=rp.REPO, stdout=fh, stderr=subprocess.STDOUT, text=True,
-                                        encoding="utf-8", errors="replace"), fh, log)
+                                        encoding="utf-8", errors="replace", env=env), fh, log)
     return procs
 
 
@@ -192,7 +199,8 @@ def finish_drawing_checks(procs: dict) -> tuple[list[dict], dict]:
         if p.returncode not in (0, 1) and not errs:
             errs.append(f"generator stopped (exit {p.returncode}); see {_rel(log)}")
         for e in errs:
-            out.append(item(f"drawing:{name}:{e}", f"{name} cannot be drawn cleanly from this build - {e}", True))
+            out.append(item(f"drawing:{name}:{e}", f"{name} cannot be drawn cleanly from this build - {e} "
+                                                    f"(generator log {_rel(log)})", True))
     return out, info
 
 
@@ -219,6 +227,49 @@ def collect(build: Path, *, supports: bool, drawing_items: list[dict], accept: b
     if accept:
         items += close_out_checks()
     return items
+
+
+# ---- the fast build's closing report (CAPA 2026-11-23) ------------------------------------------------------------
+CARRIED_NAME = "carried-to-acceptance.md"
+# the instruction a session reads at the end of every fast build: short and literal, never reworded per build
+FAST_SCOPE_FOOTER = (
+    "FAST EDIT SCOPE: this build changed the model only. Report the build and stop.\n"
+    "  - Tag lists (02_Tag_Lists) are written from the model by model_accept.py at acceptance. Do not edit them and "
+    "do not ask Bob to approve a list change.\n"
+    "  - The P&ID, line segment diagram, process flow diagram and plan sets follow the accepted model. Do not run, "
+    "fix or mention them unless Bob asked for that drawing.\n"
+    "  - Items carried to acceptance are notes for the acceptance run, not questions for Bob.")
+CARRIED_KINDS = (("delta:", "list row(s) the model will write"), ("component:", "component(s) not placed"),
+                 ("question:", "open question(s)"))
+
+
+def carried_counts(items: list[dict]) -> list[int]:
+    """How many carried items are list rows, unplaced components and open questions (CARRIED_KINDS order)."""
+    return [sum(1 for i in items if i["key"].startswith(p)) for p, _ in CARRIED_KINDS]
+
+
+def carried_line(items: list[dict], path: Path) -> str:
+    """The one line a fast build prints for everything it carries to acceptance."""
+    parts = ", ".join(f"{n} {what}" for n, (_, what) in zip(carried_counts(items), CARRIED_KINDS))
+    return f"carried to acceptance: {len(items)} item(s) ({parts}) -> {_rel(path)}"
+
+
+def write_carried(items: list[dict], path: Path, build: str, letter: str) -> Path:
+    """carried-to-acceptance.md: the open items of a fast build, for model_accept.py, which writes the list rows
+    from the model and records the rest as notes in the revision description. Not a question list."""
+    L = [f"# Carried to acceptance: {build}", "",
+         f"Written by `harness/scripts/model_iterate.py --fast`; do not hand-edit. These are notes for the acceptance "
+         f"run of Rev {letter} (`harness/scripts/model_accept.py`), not questions for Bob: at acceptance the model is "
+         "the source of truth, the tag lists are written from it and every other item is recorded in the revision "
+         "description.", "", f"**{len(items)} item(s).**", ""]
+    for (prefix, what), n in zip(CARRIED_KINDS, carried_counts(items)):
+        L += [f"## {n} {what}", ""] + ([f"- {i['text']}" for i in items if i["key"].startswith(prefix)]
+                                       or ["- none"]) + [""]
+    other = [i for i in items if not i["key"].startswith(tuple(p for p, _ in CARRIED_KINDS))]
+    if other:
+        L += [f"## {len(other)} other", ""] + [f"- {i['text']}" for i in other] + [""]
+    path.write_text("\n".join(L), encoding="utf-8", newline="\n")
+    return path
 
 
 def print_items(items: list[dict], title: str) -> None:

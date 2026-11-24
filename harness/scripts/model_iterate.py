@@ -33,7 +33,7 @@ Runs, in this order (independent steps in parallel):
 Writes only to its new folder under <project>/03_Working_Design/CAD/Builds/ (working copies, gitignored), with logs/ and
 iterate-summary.json there. Never files, never pushes, never builds the portal. Prints one summary line per step.
 
-    .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_iterate.py [--keep-going] [--no-glb] [--fast [--supports]] [--request "..." --change "..."]
+    .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_iterate.py [--keep-going] [--no-glb] [--fast [--supports] [--drawings]] [--request "..." --change "..."]
 
 --fast (Bob, chat, 2026-10-10: light-weight modelling that is very fast; "The fast build should still create a
 new file, and not overwrite an existing."; "I need to be able to see it ... whatever is fastest.") runs lists, list
@@ -47,19 +47,28 @@ refused if it exists, and touches nothing else: every earlier build stays as it 
 <project>/03_Working_Design/CAD/Builds/ is gitignored and outside the Drive store: working copies,
 not revisions. model_file.py never files a fast build: run the full build once before filing.
 
-Every fast build also draws the P&ID, line segment diagram and PFD from itself in check mode (about 1-2 s each,
-beside the GLB, nothing written) and ends with the running list "OPEN BEFORE REV <next>": failed checks, drawing
-errors, list delta rows, components registered since the last revision but not placed, questions opened since then
-(harness/lib/accept_preflight.py; Bob, chat, 2026-10-15: acceptance "should be run progamatically and
-deterministically"). --request "<Bob's words>" --change "<what changed>" go in the build's build-log row (a fast
-build is logged when --request is given, a full build always).
+A fast build changes and checks the model only (CAPA 2026-11-23; Bob, chat: "Planset updates should not be of concern
+or worry when making model edits. When the model is accepted, thats when the plans should be updated." and the line
+diagram "should not be a concern during model fast edits"). It draws no drawing: --drawings, given only when Bob asks
+for it, also draws the P&ID, line segment diagram and PFD from the build in check mode (about 1-2 s each, beside the
+GLB, nothing written), as model_accept.py does in its preflight. The build ends with:
+    - the hard items of the checks it ran (lists / model problems, interference, envelope, GLB, pipe supports with
+      --supports, drawings with --drawings), harness/lib/accept_preflight.py;
+    - one line, "carried to acceptance: n item(s) (...) -> <path>", for everything else (list delta rows, components
+      registered since the last revision but not placed, questions opened since then), written to
+      carried-to-acceptance.md in the build folder for model_accept.py, which writes the lists from the model and
+      records the rest in the revision description;
+    - the fixed FAST EDIT SCOPE footer (accept_preflight.FAST_SCOPE_FOOTER).
+A full build and model_accept.py still print the whole open list. --request "<Bob's words>" --change "<what changed>"
+go in the build's build-log row (a fast build is logged when --request is given, a full build always); the row names
+only the checks that ran.
 
 --model-id <ID> [--config <CFG>] (or CPME_MODEL_ID / CPME_MODEL_CONFIG; Linear CPM-155) builds a job-level model
 (a folder in the job-level models folder, harness/lib/repo_paths.py) in one configuration (B, X or a switch string the
 model accepts; default B) into job/Typical-<ID prefix>/03_Working_Design/CAD/Builds/<MODEL-ID>/<CFG>/, numbered the same way; the checks it starts inherit the
 choice. A job-level build also renders the review views (iso, plan, front, side PNGs from the build STEP,
-harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build skips the P&ID drawing checks
-(those are the project's drawings). Without --model-id everything is as above.
+harness/cad-lib/render_png.py), which model_file.py files with it. Its fast build never draws the P&ID drawing
+checks, even with --drawings (those are the project's drawings). Without --model-id everything is as above.
 
 Exit 0 = every step ran and every check passed; 1 = a step or check failed (see the lines and logs/);
 2 = refused (missing venv, or a configuration the model does not accept).
@@ -88,6 +97,71 @@ PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 # engine pin, harness/requirements-cad.txt; harness/scripts/engine_check.py compares a newer release and moves it
 PY_CAD = rp.TOOLS / "venv-cad" / "Scripts" / "python.exe"
 BUILDS = rp.BUILDS      # <project>/03_Working_Design/CAD/Builds: every build, fast or full (Bob, 2026-11-12)
+LOCK_NAME = ".build-lock"   # one build of a model at a time (REVW-001 OP-1, 2026-11-23)
+
+
+def _pid_alive(pid: int) -> bool:
+    """True when a process with this id is running. (os.kill(pid, 0) ends the process on Windows, so it is not used.)"""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+        k = ctypes.windll.kernel32
+        h = k.OpenProcess(0x1000, False, pid)            # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        code = ctypes.c_ulong()
+        ok = k.GetExitCodeProcess(h, ctypes.byref(code))
+        k.CloseHandle(h)
+        return bool(ok) and code.value == 259            # STILL_ACTIVE
+    try:
+        os.kill(pid, 0)
+        return True
+    except OSError:
+        return False
+
+
+def take_build_lock(builds: Path, request: str, pid: int | None = None) -> tuple[Path | None, str]:
+    """(lock file, "") when this build may run, (None, why) when another build of this model is running.
+
+    REVW-001 (2026-11-23, OP-1): two sessions built in the shared checkout at the same time, so builds held both
+    sessions' half-made source and raced for the next build number, and nothing said so. One build at a time: the
+    second is refused with who holds the lock, and is run again when that one ends. A lock whose process is gone
+    (a build that was stopped) is taken over."""
+    builds.mkdir(parents=True, exist_ok=True)
+    lock = builds / LOCK_NAME
+    me = {"pid": pid or os.getpid(), "started": dt.datetime.now().replace(microsecond=0).isoformat(sep=" "),
+          "request": (request or "")[:120]}
+    for _ in range(2):
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            try:
+                held = json.loads(lock.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                held = {}
+            if _pid_alive(int(held.get("pid") or 0)):
+                return None, (f"another build of this model is running (started {held.get('started', '?')}"
+                              + (f", request: {held['request']}" if held.get("request") else "") + "). One build at a "
+                              "time: this one would hold that session's half-made source and race it for the build "
+                              "number. Run it again when that build has ended; do not mention this to Bob.")
+            try:
+                lock.unlink()                             # the build that wrote it is gone
+            except OSError:
+                pass
+            continue
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(me, f)
+        return lock, ""
+    return None, f"could not take the build lock {lock}"
+
+
+def release_build_lock(lock: Path | None) -> None:
+    try:
+        if lock and json.loads(lock.read_text(encoding="utf-8")).get("pid") == os.getpid():
+            lock.unlink()
+    except (OSError, ValueError):
+        pass
 
 
 class Step:
@@ -129,6 +203,9 @@ def main() -> int:
                          "nothing overwritten")
     ap.add_argument("--supports", action="store_true",
                     help="with --fast: also run the pipe supports check (only when Bob asks for it)")
+    ap.add_argument("--drawings", action="store_true",
+                    help="with --fast: also draw the P&ID, line segment diagram and process flow diagram in check "
+                         "mode; only when Bob asks for it")
     ap.add_argument("--request", default="",
                     help="Bob's request (his words, trimmed), for this build's build-log row")
     ap.add_argument("--change", default="", help="what this build changed, for the build log")
@@ -156,6 +233,12 @@ def main() -> int:
     for line in mb.adopt_earlier_layout(rp.BUILDS_ROOT, rp.EARLIER_FAST_ROOT, BUILDS, rp.EARLIER_SKID_BUILD,
                                         mb.last_revision()):
         print(f"model_iterate: {line}", flush=True)
+    lock, why = take_build_lock(BUILDS, a.request)
+    if lock is None:
+        print(f"REFUSED: {why}", file=sys.stderr)
+        return 2
+    import atexit
+    atexit.register(release_build_lock, lock)
     if a.fast:
         return fast(a)
 
@@ -242,7 +325,7 @@ def finish_full(a, results: dict, started: str, t0: float, mt: float, newest: Pa
 def checks_cell(results: dict, tail: str) -> str:
     """The Checks cell of a build-log row: only the checks that ran are named."""
     short = {"interference": "int", "envelope": "env", "materials": "materials", "pipe_supports": "pipe_supports",
-             "list_delta": "list delta", "step": "STEP", "glb": "GLB"}
+             "list_delta": "list delta", "step": "STEP", "glb": "GLB", "drawings": "drawings"}
     cell = "; ".join(f"{short[k]} {'PASS' if r['exit'] == 0 else 'FAIL'}" + (f" {r['rows']}" if k == "list_delta" and "rows" in r else "")
                      for k, r in results.items() if k in short)
     return f"{cell}; {tail}"
@@ -309,9 +392,13 @@ def fast(a) -> int:
     if results["lists"]["exit"] != 0 and not a.keep_going:
         print("model_iterate: STOPPED - export_lists reported model problems (fix the model, or --keep-going)")
     else:
-        # the P&ID, LSD and PFD drawn from this build in check mode, beside the GLB (writes nothing); those are the
-        # project's drawings, so a job-level model skips them
-        drawings = pf.start_drawing_checks(out, logs) if not mb.JOB_LEVEL else None
+        # the P&ID, LSD and PFD only with --drawings (CAPA 2026-11-23: drawings follow the accepted model, and
+        # model_accept.py draws them before filing); never for a job-level model (they are the project's drawings)
+        drawings = pf.start_drawing_checks(out, logs) if a.drawings and not mb.JOB_LEVEL else None
+        if a.drawings and mb.JOB_LEVEL:
+            print("model_iterate --fast: --drawings ignored: the P&ID, line segment diagram and PFD are the "
+                  "project's drawings, not a job-level model's")
+        td = time.time()
         side = {"interference": Step("interference", [PY, rp.CHECKS / "interference.py"], logs),
                 "envelope": Step("envelope", [PY, rp.CHECKS / "envelope.py", "--no-step"], logs),
                 "materials": Step("materials", [PY, rp.CHECKS / "materials.py"], logs)}
@@ -323,10 +410,14 @@ def fast(a) -> int:
         for k, s in side.items():
             results[k] = s.wait()
             say(k, results[k])
-        drawing_items, drawing_info = pf.finish_drawing_checks(drawings) if drawings is not None else ([], {})
-        for name, d in drawing_info.items():
-            print(f"[{'ok  ' if not any(i['key'].startswith(f'drawing:{name}:') for i in drawing_items) else 'FAIL'}] "
-                  f"{'check ' + name:<13}        {d['summary']}", flush=True)
+        if drawings is not None:
+            drawing_items, drawing_info = pf.finish_drawing_checks(drawings)
+            for name, d in drawing_info.items():
+                print(f"[{'ok  ' if not any(i['key'].startswith(f'drawing:{name}:') for i in drawing_items) else 'FAIL'}] "
+                      f"{'check ' + name:<13}        {d['summary']}", flush=True)
+            results["drawings"] = {"exit": 1 if drawing_items else 0, "seconds": round(time.time() - td, 1),
+                                   "summary": f"drawings: {len(drawing_info)} drawn in check mode, "
+                                              f"{len(drawing_items)} error(s)"}
     results["glb"] = view.wait()
     if results["glb"]["exit"] == 0 and not glb.exists():
         results["glb"]["exit"] = 1
@@ -334,18 +425,33 @@ def fast(a) -> int:
     say("glb", results["glb"])
     if glb.exists():
         print(f"model_iterate --fast: view {glb}")
-    # the running list of what stands between this build and the next revision (Bob, chat, 2026-10-15)
-    items = pf.build_checks_from(results, a.supports) + drawing_items
-    if (results["lists"]["exit"] == 0 or a.keep_going) and not mb.JOB_LEVEL:
-        items += pf.collect(out, supports=a.supports, drawing_items=[], accept=False, with_build_checks=False)
     nxt = mb.next_letter(mb.last_revision())
-    rc = finish(results, started, t0, mt, newest, out, open_items=items, drawings=drawing_info)
-    pf.print_items(items, f"OPEN BEFORE REV {nxt}")
+    # CAPA 2026-11-23: printed = the hard items of the checks this build ran (and, with --supports, the lines outside
+    # that check's scope); everything else is carried to acceptance in a file, with one count line
+    shown = pf.build_checks_from(results, a.supports) + drawing_items
+    carried = []
+    if (results["lists"]["exit"] == 0 or a.keep_going) and not mb.JOB_LEVEL:
+        rest = pf.collect(out, supports=a.supports, drawing_items=[], accept=False, with_build_checks=False)
+        shown += [i for i in rest if i["key"].startswith("scope:")]
+        carried = [i for i in rest if not i["key"].startswith("scope:")]
+    carried_p = pf.write_carried(carried, out / pf.CARRIED_NAME, out.name, nxt)   # before finish() locks the folder
+    rc = finish(results, started, t0, mt, newest, out, open_items=shown + carried, drawings=drawing_info)
     if a.request:
+        hard = sum(1 for i in shown if i["hard"])
         mb.log_row(BUILDS, out.name, a.request, a.change,
-                   checks_cell(results, f"open before Rev {nxt}: {len(items)}; {time.time() - t0:.0f} s"))
+                   checks_cell(results, f"hard {hard}; carried to acceptance {len(carried)}; "
+                                        f"{time.time() - t0:.0f} s"))
         print(f"model_iterate --fast: build-log row added for {out.name}")
+    report_fast(shown, carried, carried_p)
     return rc
+
+
+def report_fast(shown: list[dict], carried: list[dict], carried_p: Path) -> None:
+    """The end of a fast build's output (CAPA 2026-11-23): the findings of the checks it ran, the one carried line,
+    then the fixed scope footer, always last."""
+    pf.print_items(shown, "FAST BUILD FINDINGS (only the checks this build ran)")
+    print(pf.carried_line(carried, carried_p))
+    print(pf.FAST_SCOPE_FOOTER, flush=True)
 
 
 def finish(results: dict, started: str, t0: float, mt: float, newest: Path, fast_dir: Path | None = None,

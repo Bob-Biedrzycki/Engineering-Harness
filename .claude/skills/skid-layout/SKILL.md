@@ -21,8 +21,9 @@ Writes `<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/` source a
 ## What goes on the skid
 
 From the project's equipment list (never assumed), and the job's design
-framework for what a unit of this product holds. Place only what the
-equipment list and the P&ID name.
+framework for what a unit of this product holds. A first layout places only what the
+equipment list and the P&ID name. A change Bob asks for after a revision is filed is a fast edit
+(`model-iterate`): the model leads and the lists follow at acceptance.
 
 ## Hard constraints
 
@@ -84,8 +85,8 @@ equipment list and the P&ID name.
 
 ## Then
 
-`model-iterate` (envelope and interference checks), `model-file` before Bob
-looks, give him the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`). No renders unless
+`model-iterate` (envelope and interference checks; a fast build's GLB path while he is editing). When he
+accepts (`model-accept`), give him the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`). No renders unless
 he asks.
 
 ## Hand-off

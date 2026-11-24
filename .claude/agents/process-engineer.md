@@ -19,7 +19,11 @@ Bob approves the selections (the job's design framework says how).
 
 ## You own
 
-`<project>/03_Working_Design/PID/02_Tag_Lists/` CSVs, which are what the CAD agent routes from:
+`<project>/03_Working_Design/PID/02_Tag_Lists/` CSVs, which are what the CAD agent first routes from. You write
+them when a P&ID is digitized (Gate 1). After the model has a filed revision the lists follow the model:
+`harness/scripts/model_accept.py` is the only writer that brings them up to an accepted model (CLAUDE.md "Work
+cycle"), and nobody edits them during a model fast edit. The column lists below are a guide; the header row of
+each CSV is the authority.
 
 - `line-list.csv` — `line_no, service_class, size_od_in, gauge, size_nps,
   schedule, material, spec, from_tag, to_tag, service, design_press_psig,

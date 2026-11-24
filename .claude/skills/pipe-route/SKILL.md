@@ -14,7 +14,8 @@ files, starting with `piping.yaml` `job_rules_by_class`; the project's `Design_R
 (`job/knowledge/`, named in `job/JOB.md`; the section "Layout and piping specifics for skid-layout and
 pipe-route").
 Writes the model source only (`<project>/03_Working_Design/CAD/01_Master_Assembly/<MODEL-ID>/piping/<line>/`,
-`skidlib/`). Then `model-iterate`; `model-file` before Bob looks.
+`skidlib/`). Then `model-iterate`: Bob looks at the numbered fast build, as a working copy. Nothing is filed
+until he accepts it (`model-accept`) or asks for a filing (`model-file`).
 
 ## Service class first (PIPE-SVC-001)
 
@@ -81,8 +82,8 @@ Company-wide practice, carried to every project; each applies only to the classe
   (harness `structural.yaml`) on stainless tube; on carbon steel, per the
   governing piping code (SAN-PIPE-001). Supports and their clearances allow
   for the insulation thickness on insulated lines, `unknown` until the line
-  list sets it. Accepted findings stay in the `pipe_supports.py` ACCEPT lists;
-  don't re-raise them.
+  list sets it. Accepted findings are in the project's
+  `01_Design_Basis/06_Assumptions_Open_Items/accepted-findings.yaml`; don't re-raise them.
 - **Hard minimums:** when geometry sets one (e.g. an elbow's centreline),
   tell Bob the number instead of fighting it.
 
@@ -95,8 +96,9 @@ Company-wide practice, carried to every project; each applies only to the classe
 
 ## Working with Bob's edits
 
-- One revision per batch of his edits: build, `model-file`, show the filed
-  GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`), stop. No re-review loop per letter and no
+- His edits are fast edits (skill `model-iterate`): build with `--fast`, give the fast GLB path, stop. One
+  revision per batch, filed only when he accepts it (skill `model-accept`); then the filed
+  GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`). No re-review loop per letter and no
   renders unless he asks (Bob, 2026-10-08).
 - A tag in his text that does not exist: match it to the geometry he named
   and ask in one line. Never guess the tag.

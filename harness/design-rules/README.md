@@ -55,7 +55,7 @@ like to be asked which designation it belongs in."
 | `maintenance_pull_space` valve actuator removal (`layout.yaml`) | harness; equipment service space per project | CPME practice |
 | INST-SR-001 maker's straight run (`instrument-mounting.yaml`) | principle harness; per-instrument values per project | CPME practice |
 | INST-POS-001, INST-LEAK-001 (hygienic clamp-mounted instruments) | harness | CPME practice |
-| STR-PS-001 tube clamp hanger, STR-PS-002 support spacing incl. 3.0 in (`structural.yaml`) | harness; lines in scope per project | CPME practice |
+| STR-PS-001 tube hanger and support bar (AWI hex hanger with collar on 3/4 in solid round 304, rev 9), STR-PS-002 support spacing incl. 3.0 in (`structural.yaml`) | harness; lines in scope and each line's collar per project | CPME practice; rev 9 hanger make and bar, Bob, chat, 2026-11-23: "The support rule can move to the engineering harness." |
 | STR-FRAME-001 frame materials reference list (`structural.yaml`, `frame-materials.csv`) | harness | AISC Shapes Database v16.0; Bob, chat, 2026-11-06: "Company-wide" |
 | MAT-LIB-001 construction materials list, MAT-FORM-001 how each material is worked (pipe and tube are never bent), MAT-LOOK-001 its surface in a picture (`materials.yaml`, read by `harness/lib/materials.py`) | harness; frame paint colour and product-contact grade per job or project | Bob, chat, 2026-11-09: "This could also live on the company level if you think that is the most appropriate place."; MAT-FORM-001 scope confirmed, Bob, chat, 2026-11-10 |
 | MAT-DIM-001 pipe and fitting dimension tables (`fitting-dims/`, `rp.FITTING_DIMS`) | harness | ASME B36.10M, B16.9, B16.5, MSS SP-97; Bob, chat, 2026-11-10: "yes company level." |

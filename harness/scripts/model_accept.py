@@ -10,22 +10,26 @@ package before that (run the support check, place a part) is a fast edit, not an
 
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\model_accept.py --rev Z --bob "<Bob's words>"
 
-In order; nothing is filed until step 4:
-    1. preflight: a fast build with the pipe supports check (model_iterate.py --fast --supports, about 75 s: lists,
-       list delta, interference, envelope, supports, the P&ID / LSD / PFD drawn in check mode), then sanitary.py and
-       pid_consistency.py; every open item listed by harness/lib/accept_preflight.py.
-    2. stops (exit 3, nothing filed) on the FIRST run if anything is open, and freezes that list in
-       <project>/_work/accept/rev<X>/state.json. Bob answers the list once; the fixes are fast edits; then the same
-       command again. From the SECOND run on, only HARD items stop it (a failed check, or a drawing that cannot be
-       drawn cleanly: those cannot be filed); every other item still open goes into the revision description as a
-       known open item and the acceptance goes on. One round of questions, never a loop.
-    3. full build (model_iterate.py, about 6 min) with every check; any failure stops it (exit 3, nothing filed).
+In order; nothing is filed until step 4, and every drawing is drawn and checked before it:
+    1. preflight: a fast build with the pipe supports check and the drawings (model_iterate.py --fast --supports
+       --drawings, about 75 s: lists, list delta, interference, envelope, supports, the P&ID / LSD / PFD drawn in
+       check mode); its list delta is written into the tag lists (harness/lib/list_from_model.py: the model is the
+       source of truth, Bob, chat, 2026-10-16) and, when that changed a list, the same fast build runs again on the
+       new lists; then sanitary.py and pid_consistency.py; every open item listed by harness/lib/accept_preflight.py.
+    2. only HARD items stop it (exit 3, nothing filed, the list saved in <project>/_work/accept/rev<X>/state.json):
+       a failed check, or a drawing that cannot be drawn cleanly (each names its generator log). Those are the
+       agent's to fix, not questions for Bob; fix them and run the same command again. Every other item goes into
+       the revision description as a note and the acceptance goes on. Nothing is asked of Bob on any run.
+    3. full build (model_iterate.py, about 6 min) with every check; any failure stops it (exit 3, nothing filed),
+       except pipe supports findings alone, which are recorded in the description. Then the P&ID, line segment
+       diagram and PFD are drawn in check mode from that full build, the one that will be filed; a drawing error
+       stops it here (exit 3, nothing filed, the generator log named), so no drawing failure can surface after the
+       model letter is taken (CAPA 2026-11-23).
     4. model_file.py --rev <X>: the description is built from Bob's words, the build-log rows since the last
-       revision, and the known open items.
-    5. the P&ID, line segment diagram and PFD, each drawn from the filed model in check mode first and filed at its
-       own next letter only when its content changed (its revision clouds against the last filed sheet; the model
-       revision text is not counted); then the P&ID revision requests raised since the last issued one are marked
-       issued.
+       revision, the list changes and the known open items.
+    5. the P&ID, line segment diagram and PFD, each filed at its own next letter only when its content changed (its
+       revision clouds against the last filed sheet, from the check in step 3; the model revision text is not
+       counted); then the P&ID revision requests raised since the last issued one are marked issued.
     6. drive_store.py pointers (Locked; `track.py save` saves and backs it up), a build-log row, <project>/_work/accept/rev<X>/accepted.md.
 
 --preflight-only runs step 1 and prints the list; it changes no state and files nothing.
@@ -58,6 +62,9 @@ PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 ACCEPT = rp.WORK / "accept"
 PRR_FILE = rp.OPEN_ITEMS / "pid-revision-requests.md"
 DOC_NAMES = {name: doc for name, _, doc in pf.DRAWINGS}   # P&ID = rp.PID_DOC_ID (the project's project.yaml)
+# the preflight build: supports always at acceptance (Bob, 2026-10-15); the drawings, which a fast edit no longer
+# draws (CAPA 2026-11-23), are drawn here, before anything is filed
+PREFLIGHT_FLAGS = ("--fast", "--supports", "--drawings")
 
 
 ENV = None  # --sandbox: CPME_DRAWINGS_ROOT for the drawing generators
@@ -243,7 +250,7 @@ def main() -> int:
     # model that cannot be built or drawn stops the run; everything else is recorded in the description.
     print("[1/6] preflight: fast build, lists from the model, fast build again (supports, drawings, sanitary, "
           "pid_consistency)", flush=True)
-    rc, _ = run([PY, rp.SCRIPTS / "model_iterate.py", "--fast", "--supports"], echo=False)
+    rc, _ = run([PY, rp.SCRIPTS / "model_iterate.py", *PREFLIGHT_FLAGS], echo=False)
     fast = latest_fast_build(base)
     if fast is None or not (fast / "iterate-summary.json").is_file():
         print("model_accept: STOPPED - the preflight build did not run (see <project>/03_Working_Design/CAD/Builds)", flush=True)
@@ -255,13 +262,17 @@ def main() -> int:
         for ln in list_changes:
             print(f"    lists from the model: {ln}")
         if list_changes:
-            rc, _ = run([PY, rp.SCRIPTS / "model_iterate.py", "--fast", "--supports"], echo=False)
+            rc, _ = run([PY, rp.SCRIPTS / "model_iterate.py", *PREFLIGHT_FLAGS], echo=False)
             fast = latest_fast_build(base)
     summ = json.loads((fast / "iterate-summary.json").read_text(encoding="utf-8"))
     items = list(summ.get("open_items", [])) + pf.close_out_checks()
     for i in items:  # checks report, they do not block (CLAUDE.md); the support findings go in the description
         if i["key"] == "check:pipe_supports":
             i["hard"] = False
+    if not summ.get("drawing_checks") and not any(i["hard"] for i in items):
+        # the drawings are part of the preflight; a build that did not draw them is not a preflight
+        items.append(pf.item("drawing:preflight", f"the preflight build {fast.name} drew no drawing (model_iterate.py "
+                                                  f"{' '.join(PREFLIGHT_FLAGS)}); see {rp.rel(fast / 'logs')}", True))
     print(f"    preflight build {rp.rel(fast)}: {'PASS' if rc == 0 else 'FAIL'} in {summ['seconds']:.0f} s")
     for name, d in summ.get("drawing_checks", {}).items():
         print(f"    {name}: {d['clouds']} content cloud(s) against its last filed sheet")
@@ -306,6 +317,21 @@ def main() -> int:
             print("model_accept: STOPPED, NOTHING FILED - the full build failed a step (above); fix it and run the "
                   "same command again.")
             return 3
+    # the drawings from the build that will be filed, before its letter is taken (CAPA 2026-11-23): a drawing that
+    # cannot be drawn stops the acceptance here, never after the model is filed
+    print(f"    P&ID, line segment diagram and PFD drawn in check mode from {mb.BUILD.name} before filing", flush=True)
+    dlogs = state_path.parent / "drawing-check"
+    ditems, dinfo = pf.finish_drawing_checks(pf.start_drawing_checks(mb.BUILD, dlogs, env=ENV))
+    for name, d in dinfo.items():
+        print(f"    {name}: {d['summary']}")
+    if ditems:
+        state["runs"][-1]["drawing_items"] = ditems
+        save_state(state_path, state)
+        pf.print_items(ditems, f"HARD ITEMS BEFORE REV {letter} (drawings from {mb.BUILD.name}; cannot be filed)")
+        print("model_accept: STOPPED, NOTHING FILED. A drawing cannot be drawn from the build that would be filed "
+              f"(generator logs in {rp.rel(dlogs)}); that is a defect for the agent to fix, not a question for Bob. "
+              "Fix it and run the same command again.")
+        return 3
 
     # ---- 4. model revision ---------------------------------------------------------------------------------
     print(f"[3/6] filing model Rev {letter}", flush=True)
@@ -324,9 +350,9 @@ def main() -> int:
     print("[4/6] P&ID, line segment diagram and PFD from the filed model", flush=True)
     dnote = f"FROM MODEL REV {letter}"
     for name, gen, doc in pf.DRAWINGS:
-        _, out = run([PY, rp.DRAWING_SOURCES / gen, "--check-build", mb.BUILD], echo=False)
-        m = re.search(r"(\d+) clouds", out)
-        clouds = int(m.group(1)) if m else -1
+        # the clouds counted by the check before filing (same build, same generator, nothing written)
+        c = dinfo.get(name, {}).get("clouds")
+        clouds = c if c is not None else -1
         if clouds == 0:
             print(f"    {name}: content unchanged from its last filed revision; not filed")
             continue

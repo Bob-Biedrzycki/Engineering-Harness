@@ -1,9 +1,10 @@
 """project_layout.py - every project folder still has every folder of the CPME project template.
 
 Bob, chat, 2026-10-26: every project is filed exactly the same way, from the full tree in
-harness/templates/project-folder/ (harness/scripts/project_new.py copies it). This check lists any template folder
-missing from a job/Project-*/ folder. It reports and never blocks (CLAUDE.md: checks report): exit 0 always.
-Extra folders (per-tag vendor folders, ISS-### packages, model folders) are expected and not reported.
+harness/templates/project-folder/ (harness/scripts/project_new.py copies it). This check reports MISSING template
+folders of job/Project-*/ folders only. It reports and never blocks (CLAUDE.md: checks report): exit 0 always.
+It does not look for extra folders, nor at the typicals folder: harness/checks/folder_layout.py does that (every
+folder under job/ named by the template, a guide or job/folder-register.csv; REVW-001, 2026-11-23).
 
   .\\harness\\tools\\venv\\Scripts\\python.exe harness\\checks\\project_layout.py
 """
@@ -31,7 +32,8 @@ def main() -> int:
         return 0
     gaps = {p.name: missing(p) for p in projects}
     n = sum(len(v) for v in gaps.values())
-    print(f"project_layout: {'PASS' if not n else 'WARN'} - {len(projects)} project folder(s), {n} template folder(s) missing")
+    print(f"project_layout: {'PASS' if not n else 'WARN'} - {len(projects)} project folder(s), {n} template folder(s) "
+          f"missing (missing folders only; extra folders are folder_layout.py's)")
     for name, dirs in gaps.items():
         for d in dirs:
             print(f"   {name}/{d}")

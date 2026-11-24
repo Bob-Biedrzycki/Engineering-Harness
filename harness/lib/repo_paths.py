@@ -59,12 +59,12 @@ JOB_COMPONENT_REGISTER = JOB_COMPONENTS / "component-register.csv"
 # use exist; each has the name and the place it has in a project (README_Project_Guide.md in the folder):
 #     03_Working_Design/CAD/01_Master_Assembly/    the typical models' source and their shared library (JOB_MODELS)
 #     03_Working_Design/CAD/06_Drawings/Generators/ the typical drawing generators (JOB_DRAWING_SOURCES)
-#     03_Working_Design/CAD/09_Presentation/       lifelike render tools (JOB_PRESENTATIONS)
-#     03_Working_Design/PID/02_Tag_Lists/          the typical P&ID lists and each range model's lists (JOB_LISTS)
 #     03_Working_Design/CAD/Builds/                        every model build, numbered (gitignored)
 #     06_Issued_Revisions/Drawings/, Models/       locked revisions (JOB_DRAWINGS, JOB_MODELS_FILED; TR-08)
 #     _work/                                       gitignored working copies (JOB_WORK)
 # The JOB_* names are kept from when these sat loose in job/ (before 2026-11-09), so their users did not change.
+# JOB_PRESENTATIONS (CAD/09_Presentation/), JOB_LISTS (PID/02_Tag_Lists/), JOB_REGISTERS and JOB_MODELS_WORK were
+# removed 2026-11-23 (REVW-001 F-061): their folders did not exist and no code in the master or a job used them.
 def _typical() -> Path:
     """The job's typicals folder: the only job/Typical-* folder. A job with none gets a name that does not exist."""
     found = sorted(p for p in JOBS.glob("Typical-*") if p.is_dir())
@@ -79,10 +79,11 @@ JOB_ISSUED = TYPICAL / "06_Issued_Revisions"
 JOB_DRAWINGS = JOB_ISSUED / "Drawings"
 JOB_WORK = TYPICAL / "_work"             # gitignored working copies of the typicals (job/*/_work/)
 JOB_FILING = JOB_WORK / "filing"         # gitignored staging for filing a typical drawing
-JOB_LISTS = TYPICAL_WORKING / "PID" / "02_Tag_Lists"
 JOB_DRAWING_SOURCES = TYPICAL_WORKING / "CAD" / "06_Drawings" / "Generators"
-JOB_PRESENTATIONS = TYPICAL_WORKING / "CAD" / "09_Presentation"
-JOB_REGISTERS = TYPICAL / "00_Project_Admin" / "07_Project_Controls" / "Registers"   # path-crosswalk.csv
+# The plan set working folder of the typicals (gitignored): the live model pin, the view caches and the generators'
+# scratch folders, for the plan sets of both levels (Generators/README.md there; REVW-001 F-051). Named here
+# 2026-11-23; the plan set tools still type the path themselves until CAPA PA-4 moves them onto these names.
+PLAN_SET_WORK = JOB_WORK / "plan-set"
 
 
 def rev_folder(doc_id: str, rev: str) -> str:
@@ -282,6 +283,8 @@ WORK = PROJECT / "_work"                    # gitignored working copies
 FILING = WORK / "filing"
 TRACKING = WORK / "tracking"
 DAILY = WORK / "daily"                   # close-out output: commit body skeleton, candidate paths (closeout.py)
+ACCEPT_WORK = WORK / "accept"            # model_accept.py state, one rev<X>/ per acceptance (REVW-001 F-014)
+WELD_BEAD_CACHE = WORK / "weld-bead-cache"   # the model source's weld bead solid cache (REVW-001 F-015)
 PORTAL_MEDIA = WORK / "portal-media"     # portal_media.py output, one rev<X>/ folder per filed model revision
 # The work site is laid out as the published site (publish_site.py): the landing page at its root, tracker/ and
 # mobile/ beside it, one shared assets/; so every link between the three works in the working copy too.
@@ -347,7 +350,6 @@ if not HAS_PROJECT:
 #     DATA         the list set named by `lists:` in the model's model.yaml (relative to the model folder)
 JOB_MODELS = Path(os.environ["CPME_JOB_MODELS_ROOT"]) if os.environ.get("CPME_JOB_MODELS_ROOT") \
     else TYPICAL_WORKING / "CAD" / "01_Master_Assembly"   # CPME_JOB_MODELS_ROOT points a test run at a scratch folder
-JOB_MODELS_WORK = JOB_WORK / "typical-models"   # gitignored caches of the typical-model library (step sizes, tag dumps)
 JOB_MODELS_BUILDS = TYPICAL_WORKING / "CAD" / "Builds"        # every build, as a project's BUILDS_ROOT (gitignored)
 JOB_MODELS_FILED = JOB_ISSUED / "Models"
 
@@ -408,6 +410,30 @@ def __getattr__(name: str):
     if name in _PROJECT_NAMES:
         raise NoProjectError(f"repo_paths.{name} is not available: {NO_PROJECT_HINT}")
     raise AttributeError(f"module 'repo_paths' has no attribute {name!r}")
+
+
+def level_folder(level: str) -> Path:
+    """The folder of a drawing level: "typical" = TYPICAL (job/Typical-*), "project" = PROJECT (NoProjectError when the
+    job has none). The plan set tools work at either level (skill plan-set-fast)."""
+    if level == "typical":
+        return TYPICAL
+    if level == "project":
+        if not HAS_PROJECT:
+            raise NoProjectError(f"repo_paths.level_folder('project'): {NO_PROJECT_HINT}")
+        return _FOUND
+    raise ValueError(f"level must be 'typical' or 'project', not {level!r}")
+
+
+def fast_drawings(level: str) -> Path:
+    """<level>/03_Working_Design/Fast_Edits/Fast_Drawings/: plan set fast edits, one <DOC-ID>/ folder holding its
+    latest set PDF and the <prefix>-Full Planset/ folder (gitignored; CLAUDE.md, skill plan-set-fast)."""
+    return level_folder(level) / "03_Working_Design" / "Fast_Edits" / "Fast_Drawings"
+
+
+def plan_set_sheets(level: str) -> Path:
+    """<level>/_work/plan-set-sheets/: the sheet records of plan set fast edits, one <DOC-ID>/ folder each with its
+    previous-sets/ (gitignored; skill plan-set-fast)."""
+    return level_folder(level) / "_work" / "plan-set-sheets"
 
 
 def skip_no_project(check: str) -> bool:

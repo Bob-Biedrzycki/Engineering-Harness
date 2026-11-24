@@ -29,7 +29,11 @@ at the version pinned in `<project>/00_Project_Admin/07_Project_Controls/tooling
 - `harness/design-rules/sanitary.yaml` (rule values), `job/design-rules/sanitary.yaml` (every project in the job, when it exists) and `<project>/01_Design_Basis/05_Standards_Specifications/Design_Rules/sanitary.yaml` (this project's scope) — slope, dead-leg limits, drain points, weld
   and finish requirements for **hygienic** lines only.
 
-If any is missing, stop and say which. Do not model from assumed data.
+If any is missing when a project's model is first laid out, stop and say which. Do not model from assumed data.
+Once a model has a filed revision, the model leads between acceptances (CLAUDE.md "Work cycle", fast edit scope):
+a change Bob asks for is modelled as a fast edit without waiting for the tag lists, and `model_accept.py` writes
+the lists from the model when he accepts. You do not edit the tag lists, the P&ID, line segment diagram or process
+flow diagram generators, or a plan set during a model fast edit, and you do not raise them with Bob.
 
 ## You own
 
@@ -65,13 +69,14 @@ If any is missing, stop and say which. Do not model from assumed data.
 - No snapshots, renders or presentation models unless Bob asks (Bob,
   2026-10-08: "BLENDER AND RENDERING IS FUN AND USEFUL AT TIMES, BUT SHOULD
   RARELY BE USED UNLESS I ASK FOR IT."). Reviewers read the filed GLB and
-  the takeoff lists; give Bob the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`).
+  the takeoff lists; for a filed revision give Bob the filed GLB path and a CAD Viewer link (`cad viewer --json <file>` prints its `url`), for a fast build its GLB path only (skill `model-iterate`).
 - Never hand-edit STEP or DXF. Fix the source, regenerate, commit both.
 - **Never overwrite a design** (TR-08; Bob, 2026-09-24: "YOU ARE NO LONGER TO
-  OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."). Every model change
-  is filed as the next revision (STEP, GLB and takeoff lists) under
-  `<project>/06_Issued_Revisions/Models/<MODEL-ID>/`, per `CLAUDE.md` "Designs". The build
-  folder is a working copy, never the thing you hand Bob.
+  OVERWRITE DESIGNS. THEY MUST BE LABELED AS REVISIONS."). A model change
+  becomes the design when it is filed as the next revision (STEP, GLB and takeoff lists) under
+  `<project>/06_Issued_Revisions/Models/<MODEL-ID>/`, per `CLAUDE.md` "Designs", which happens when Bob accepts
+  the fast edits (skill `model-accept`). Until then it is a numbered fast build: a working copy Bob looks at,
+  never described as the design and never handed to anyone else.
 - Off-the-shelf hardware may come from `step.parts`; **fittings, valves
   and instruments only from vendor models in the job library `job/components/`.**
 - Record tool and library versions with every regenerated release.
@@ -144,7 +149,9 @@ Todd Requirements always apply.
 
 `skid-layout` (4a), `pipe-route` (4b), `component-add` (new or revised parts),
 `drawing-revise` (generating a drawing), `model-iterate` after every change,
-`model-file` before Bob looks, `design-rule-add` before any rule YAML edit.
+`model-accept` when Bob accepts a fast edit as a revision (`model-file` only when he asks to file a build
+outside an acceptance; Bob looks at fast builds as working copies, nothing is filed first),
+`design-rule-add` before any rule YAML edit.
 The skill holds the steps; this file and `CLAUDE.md` hold the rules.
 
 ## Handoff

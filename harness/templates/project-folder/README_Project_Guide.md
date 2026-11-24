@@ -10,7 +10,7 @@ Inside the project, document and model IDs use the same name without the `Projec
 
 Each new project is copied from `harness/templates/project-folder/` by `harness/scripts/project_new.py`, so
 every folder exists from day one. An empty folder means "nothing of this kind yet", not "this doesn't apply".
-`harness/checks/project_layout.py` reports any folder that has gone missing.
+`harness/checks/project_layout.py` reports any folder that has gone missing; a folder beyond this tree and the children named below needs a row in `job/folder-register.csv`, and `harness/checks/folder_layout.py` reports any that has none.
 
 Knowledge that covers the whole job (all projects in the job) lives in `job/knowledge/`, not in a project. Reusable components live in the job library `job/components/` (cut sheet, STEP, install practice and `component-register.csv`). A job's typicals (typical P&IDs and typical models that every project starts from), when it has them, live in `job/Typical-<ID prefix>/`, laid out like this folder with only the folders they use, so a typical is developed the way a project is and shows a project how its folders are filled (Bob, chat, 2026-11-09).
 

@@ -15,10 +15,10 @@ Steps, in this order:
     2. frame calc   <project>/02_Engineering/06_Mechanical_Structural/frame-calc/frame_calc.py is run separately on a filed revision (as now): reports which
                     revision <project>/02_Engineering/06_Mechanical_Structural/frame-calc-results.md is for, and whether that is the newest; --frame-calc
                     reruns it (about 20 min)
-    3. list delta   the newest filed model revision vs <project>/03_Working_Design/PID/02_Tag_Lists lists (harness/lib/list_delta.py). Non-empty:
-                    append it to <project>/01_Design_Basis/06_Assumptions_Open_Items/pid-revision-requests.md and STOP (exit 3): the process-engineer step
-                    updates the lists, or Bob makes it a P&ID revision request; rerun close-out after. Lists changed
-                    since the line segment diagram / PFD were filed: says so (diagrams regenerate only then)
+    3. list delta   the newest filed model revision vs <project>/03_Working_Design/PID/02_Tag_Lists lists (harness/lib/list_delta.py), a
+                    report only. The one owner of a non-empty delta is harness/scripts/model_accept.py, which writes
+                    it into the lists at the next acceptance (CAPA 2026-11-23); close-out lists the rows as a warning,
+                    appends nothing and does not stop. Lists changed since the last commit: says so
     4. portal media the presentation renders when one was made from the newest filed revision
                     (<project>/_work/portal-media/presentation-rev<P>/); otherwise presentation_materials.py and the EEVEE
                     studio pass portal_media.py --materials --studio into <project>/_work/portal-media/rev<X>/ if missing.
@@ -55,8 +55,7 @@ Steps, in this order:
 Steps 4, 5 and 9 and the portal wording lint are the presentation site's. While the project has none
 (project.yaml site_repo `unknown`, or the builders are not in <project>/03_Working_Design/CAD/09_Presentation/;
 site_revs.site_dormant), each prints "no presentation site yet" and passes (CPME practice: the framework stays for
-the planned site). A missing <project>/01_Design_Basis/06_Assumptions_Open_Items/pid-revision-requests.md is started with
-its one-line header when step 3 first appends to it.
+the planned site).
 
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\closeout.py --dry-run     list every step, push nothing
     .\\harness\\tools\\venv\\Scripts\\python.exe harness\\scripts\\closeout.py --bob-go "<the day's go>"   the real run
@@ -67,7 +66,7 @@ design findings."): exit 0 PASS; 2 NOT IMPLEMENTED (warning); 1 with the "<name>
 (warning), or FAIL for a repo-integrity check (HARD_FAIL_CHECKS); anything else, or a traceback, = ERROR (broken).
 
 Exit 0 = close-out done (design findings, if any, are listed as warnings); 1 = done, but a step failed, a check is
-broken or a repo-integrity check failed (listed); 2 = refused; 3 = stopped at the list delta.
+broken or a repo-integrity check failed (listed); 2 = refused.
 """
 from __future__ import annotations
 
@@ -91,14 +90,12 @@ import site_revs  # noqa: E402
 PY = rp.TOOLS / "venv" / "Scripts" / "python.exe"
 # Repo-integrity checks whose FAIL is a failure, not a design finding. Mirrors HARD_FAIL_CHECKS in
 # harness/scripts/run_checks.sh (CI); harness/tests/test_track_daily.py fails if the two lists differ.
-HARD_FAIL_CHECKS = {"drive_pointers", "filed_layout"}
+HARD_FAIL_CHECKS = {"drive_pointers", "filed_layout", "folder_layout"}
 BLENDER = Path(r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe")
 PRESENT = rp.PRESENTATIONS
 PORTAL_REVS = rp.PORTAL_FILED / "revisions.csv"
 MOBILE_REVS = rp.MOBILE_FILED / "revisions.csv"
 QUOTING_REVS = rp.QUOTING_FILED / "revisions.csv"   # the Fabrication Estimating Portal, on a project that has it
-PRR = rp.OPEN_ITEMS / "pid-revision-requests.md"
-PRR_HEADER = "# P&ID revision requests\n"   # the seed's one-line header (harness/templates/project-folder)
 PORTAL_TERMS = rp.CHECKS / "portal_terms.py"
 LOG = rp.DAILY
 
@@ -223,7 +220,8 @@ def step_frame_calc(R: Report, dry: bool, newest: str | None, run_it: bool) -> N
 
 
 def step_list_delta(R: Report, dry: bool, newest: str | None, date: str) -> bool:
-    """True = stop here (non-empty delta)."""
+    """A report only (CAPA 2026-11-23): the rows are listed as a warning for the next acceptance, which writes the
+    lists from the model (model_accept.py); nothing is appended and close-out never stops here. Returns False."""
     head(3, f"list delta ({mb.MODEL_ID} Rev {newest} vs {rp.rel(rp.DATA)} lists)")
     import list_delta
     if not newest:
@@ -239,7 +237,7 @@ def step_list_delta(R: Report, dry: bool, newest: str | None, date: str) -> bool
     if changed_lists:
         print(f"   lists changed since the last commit: {', '.join(changed_lists)}; the line segment diagram "
               f"(Rev {lsd[-1]['revision'] if lsd else '-'}) and PFD (Rev {pfd[-1]['revision'] if pfd else '-'}) "
-              "regenerate only when a list change touches them (process-engineer step)")
+              "follow the model at its next acceptance (model_accept.py)")
     if not n:
         msg = f"0 rows - the model and the lists agree ({d['n_list_tags']} list tags, {d['n_spools']} spools)"
         if dry:
@@ -247,28 +245,14 @@ def step_list_delta(R: Report, dry: bool, newest: str | None, date: str) -> bool
         else:
             R.step("list delta", msg)
         return False
-    marker = f"<!-- closeout list-delta {mb.MODEL_ID} Rev {newest} {date} -->"
-    body = [marker, f"## List delta from {mb.MODEL_ID} Rev {newest} (close-out {date}, harness/scripts/closeout.py)", "",
-            "Generated: the model leads and the lists are the formal input. Each row becomes a list update "
-            "(process-engineer) or a P&ID revision request (Bob). Status: open.", "",
-            "| kind | subject | line | model | lists | detail |", "|---|---|---|---|---|---|"]
-    body += [f"| {r['kind']} | {r['subject']} | {r['line_no']} | {r['model']} | {r['lists']} | {r['detail']} |" for r in d["rows"]]
-    text = PRR.read_text(encoding="utf-8") if PRR.is_file() else PRR_HEADER
-    if dry:
-        print(f"   {n} row(s): would append them to {rp.rel(PRR)} and STOP")
-        for r in d["rows"]:
-            print(f"     {r['kind']}: {r['subject']} {r['detail']}")
-        return False
-    if marker not in text:
-        PRR.parent.mkdir(parents=True, exist_ok=True)
-        PRR.write_text(text.rstrip("\n") + "\n\n" + "\n".join(body) + "\n", encoding="utf-8", newline="\n")
-        where = f"appended to {rp.rel(PRR)}"
-    else:
-        where = f"already in {rp.rel(PRR)}"
-    R.step("list delta", f"{n} row(s), {where}", ok=False)
-    print(f"\ncloseout: STOPPED at the list delta. The process-engineer updates <project>/03_Working_Design/PID/02_Tag_Lists lists (or Bob turns the rows into "
-          f"a P&ID revision request), then rerun closeout.py.")
-    return True
+    msg = (f"WARNING {n} row(s) - the lists differ from Rev {newest}; model_accept.py writes them from the model at "
+           f"the next acceptance (nothing appended, close-out goes on)")
+    print(f"   {msg}")
+    for r in d["rows"]:
+        print(f"     {r['kind']}: {r['subject']} {r['detail']}")
+    if not dry:
+        R.step("list delta", msg)   # a warning: recorded, never in R.failed
+    return False
 
 
 def presentation_media(rev: str) -> Path | None:
@@ -663,8 +647,7 @@ def main() -> int:
     R = Report()
     step_checks(R, a.dry_run, a.date)
     step_frame_calc(R, a.dry_run, newest, a.frame_calc)
-    if step_list_delta(R, a.dry_run, newest, a.date):
-        return 3
+    step_list_delta(R, a.dry_run, newest, a.date)
     if newest:
         step_media(R, a.dry_run, newest)
         step_portal(R, a.dry_run, newest, a.date, a.refile_portal, a.refile_quoting)

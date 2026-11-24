@@ -28,15 +28,21 @@ Put Bob's words in a UTF-8 file first: PowerShell 5.1 splits quoted arguments.
 ```
 
 What it does, with no judgement in between:
-1. Preflight: a fast build with the pipe support check (always at acceptance, Bob 2026-10-15); its list delta is
-   written into the <project>/03_Working_Design/PID/02_Tag_Lists lists (`harness/lib/list_from_model.py`: rows added, resized or removed as the model
-   has them, `unknown` where the model says nothing); a second fast build confirms it, with the three drawings in
-   check mode, then `sanitary.py` (hygienic lines only) and `pid_consistency.py`. About 2.5 min.
+1. Preflight: a fast build with the pipe support check (always at acceptance, Bob 2026-10-15) and the three
+   drawings in check mode (`--fast --supports --drawings`; fast edits themselves do not draw them, Bob 2026-11-23);
+   its list delta is written into the <project>/03_Working_Design/PID/02_Tag_Lists lists
+   (`harness/lib/list_from_model.py`: rows added, resized or removed as the model has them, the part on a tag that
+   stays brought up to the model's component, `unknown` where the model says nothing); a second fast build confirms
+   it, then `sanitary.py` (hygienic lines only) and `pid_consistency.py`. About 2.5 min. What the fast edits
+   carried (`carried-to-acceptance.md` in each build) is dealt with here, by the script.
 2. Everything open (support findings, components not placed, open questions, check reports) is a **note** in the revision
    description; it never stops the run. Only a model that cannot be built or a drawing that cannot be drawn stops it
    (exit 3, nothing filed): that is a generator or model defect for the agent to fix, then rerun the same command.
    Never take it to Bob as a question.
-3. Full build (about 6 min); a pipe supports failure alone is filed with `--failing-ok` and recorded.
+3. Full build (about 6 min); a pipe supports failure alone is filed with `--failing-ok` and recorded. The three
+   drawings are then drawn in check mode from that full build, before anything is filed: an error stops the run
+   (exit 3, nothing filed, generator logs in `<project>/_work/accept/rev<X>/drawing-check/`). This is the one place
+   a drawing generator is fixed for a model change.
 4. `model_file.py --rev <X>`, then the P&ID, LSD and PFD (once their generators exist), each filed at its own next letter only when its content changed. Then PRRs raised since the last issued one are marked issued,
    `drive_store.py pointers`, a build-log row, and `<project>/_work/accept/rev<X>/accepted.md`.
 

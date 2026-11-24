@@ -180,7 +180,8 @@ the generator; it is reworded in the basis file, or marked basis only, never dro
 `plan_set.py set <SET>` first builds the drawing in memory again (so it is compared with the files as they are now,
 not as remembered; `--no-verify` skips that), then writes `Fast_Drawings/<DOC>/<DOC>-<base>-set-<nnn>.pdf` (`<base>`
 is `rev<X>` after a filed revision, else `first`): a sheet drawn since the last set comes from its own PDF, every
-other page is carried over from the last set. The last set and the sheet files are then deleted. It refuses, naming
+other page is carried over from the last set. The last set is then moved to `previous-sets/` (never deleted) and
+the loose sheet files are removed. It refuses, naming
 each sheet, when a sheet was never drawn, changed since its latest version, prints an old `SHEET n OF N`, or is
 neither freshly drawn nor in the last set. `set-record.json` (with the sheet records) says which sheet versions are in
 it. With no `<SET>` it does all seven.
@@ -200,6 +201,12 @@ target; it can be stopped and finished later with `changed`). The generators rea
 come from; the cache is projected by `plan_set_lib/project_views.py`, run with the cad venv, `harness/tools/venv-cad`, the job's one engine pin, one agent at a time). The
 saved copy of the pin is `plan-set-reference/model-pin.yaml`; `status` says when the two differ. After a pin change,
 run `baseline`.
+
+**Who moves the pin, and when** (Bob, chat, 2026-11-23: "When the model is accepted, thats when the plans should be
+updated"; CAPA REVW-001). The pin moves in a plan set session only: to the newly filed model revision after an
+acceptance, or to a build Bob names when he asks for a plan set fast edit from it. A model fast-edit session never
+moves the pin, never redraws a plan set and never tells Bob a plan set is stale. A plan set drawn from a fast
+build is a working copy of that build and simply waits for the next acceptance.
 
 ## The basis files
 
