@@ -267,7 +267,11 @@ FAST_BUILDS = BUILDS                     # the earlier name, kept for job code t
 EARLIER_FAST_ROOT = CAD / "Fast_Builds"
 EARLIER_SKID_BUILD = BUILD / SKID_MODEL_ID
 SKID_BUILD = current_build(BUILDS)
-MODELS = ISSUED / "Models"               # filed designs (TR-08)
+# Weld sample boards (Bob, chat, 2026-11-25: "I have created this folder to work out of ... in one .glb, i would like
+# you to create labled samples of every joint that we have on the skid"): weld-samples-<nnn>.glb / .md and
+# weld-log.md, written by the model's weld_samples.py, never overwritten (gitignored, as every build)
+WELD_SAMPLES = BUILDS_ROOT / "Welds"
+MODELS = ISSUED / "Models"              # filed designs (TR-08)
 SKID_FILED = MODELS / SKID_MODEL_ID      # filed revisions of the model (TR-08)
 # History only: a retired model ID whose filed revisions stay untouched (TR-08) after its source moved to
 # SKID_MODEL. Blank in project.yaml on a project that has none: then "" and None.
